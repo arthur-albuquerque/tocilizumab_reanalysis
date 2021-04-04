@@ -1,6 +1,6 @@
 ---
 title: "Priors"
-author: "Arthur M. Albuquerque"
+author: "Arthur M. Albuquerque; Lucas Tramujas, MD; Lorenzo Sewanan, MD, PhD; James M. Brophy, MD, PhD"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output:
   html_document:
@@ -9,6 +9,8 @@ output:
     theme: cerulean
     toc: yes
     toc_float: yes
+    includes:
+      in_header: header.html #https://joshuacook.netlify.app/post/github-corner-link-to-rmd/
   pdf_document:
     toc: yes
 link-citations: yes
@@ -34,17 +36,30 @@ library(kableExtra)
 
 # RECOVERY trial: Tocilizumab and COVID-19
 
-The Randomised Evaluation of COVID-19 Therapy (**RECOVERY**) is a platform trial that tested several treatments for COVID-19 since the beginning of the pandemics in 2020.
-**Preliminary results** on the anti-inflammatory drug **tocilizumab** were [published on **medRxiv**](https://www.medrxiv.org/content/10.1101/2021.02.11.21249258v1) on February 11, 2021 <br>
 
-This was a large, open-label randomized controlled trial that assessed **28-day mortality** as the **primary outcome** in hospitalized patients with COVID-19 using a **frequentist** statistical approach.
-Compared to the control group, there was a **reduction** in **overall mortality** in the **tocilizumab group** (rate ratio of **0.86**; 95% confidence interval 0.77-0.96).
+The Randomised Evaluation of COVID-19 Therapy (**RECOVERY**) is a platform trial that tested several treatments for COVID-19 since the beginning of the pandemics in 2020. **Preliminary results** on the anti-inflammatory drug **tocilizumab** were [published on **medRxiv**](https://www.medrxiv.org/content/10.1101/2021.02.11.21249258v1) on February 11, 2021
 <br>
 
-Though this was a **well-powered** trial for the **overall** primary outcome, **subgroup analyses** were **not conclusive**.
-Here, we will focus on **subgroups** based on **respiratory support** and **days since symptom onset**.
+The RECOVERY was a large, open-label randomized controlled trial that assessed **28-day mortality** as the **primary outcome** in hospitalized patients with COVID-19 using a **frequentist** statistical approach. Secondary outcomes were: **discharge from hospital within 28 days in all patients** and **risk of invasive mechanical ventilation (IVM)/death among those not receiving IVM at baseline**. 
+<br>
 
-> Because subgroup analysis of the primary outcome (mortality) were not conclusive, we decided to also include other outcomes reported by the authors: **discharge from hospital within 28 days** and **risk of invasive mechanical ventilation/death**
+Compared to the control group, there was a **reduction** in **overall mortality** in the **tocilizumab group** (rate ratio of **0.86**; 95% confidence interval 0.77-0.96). Patients receiving **tocilizumab** were also **more likely** of being **discharged alive** within 28 days (rate ratio of **1.22**; 95%CI 1.12-1.34). Lastly, among those not receiving IVM at baseline, patients allocated to **tocilizumab** were **less likely** to reach the **composite endpoint of IVM or death** (risk ratio **0.85**; 95% CI 0.78-0.93).
+<br>
+
+These **results** are of great **public health interest**. To date, there are only a **few effective treatments** for COVID-19 infection, such as **corticosteroids**. Interestingly, in the RECOVERY trial on tocilizumab, **82% of patients** in both treatment arms were **using corticosteroids**. Therefore, the **effects** mentioned above are  **complementary** to the already established **beneficial effect of corticosteroids**.
+
+## Subgroup analyses
+
+**Subgroup analyses** are **key** for clinical research. It allows one to either further **explore** or **confirm hypotheses** based on the data.
+<br>
+
+In the RECOVERY trial, the authors reported several pre-specified subgroups analyses. Two clusters of subgroups are especially clinically important: **respiratory support** and **days since symptom onset**. 
+<br>
+
+For COVID-19 infection, **duration of disease** and **use of oxygen** are significant to **stratify risk of patients**. **Respiratory support** should be interpreted as a direct **proxy** for **severity of disease**. Patients on invasive mechanical ventilation are naturally at greater risk of death than patients on simple oxygen only. Also, [previous research](https://www.uptodate.com/contents/covid-19-clinical-features?search=covid%2019&source=search_result&selectedTitle=1~150&usage_type=default&display_rank=1#H1282615935) has shown that **dyspnea** most commonly develops after a median of **5-7 days since the onset of symptoms**.
+
+Here are the results of the RECOVERY trial on the outcomes and subgroups mentioned above:
+<br>
 
 ## 28-days mortality
 
@@ -62,8 +77,6 @@ knitr::include_graphics(here("preregistration", "images", "tocilizumab_mortality
 
 ### Both respiratory support and days since symptom onset subgroups
 
-Patients allocated to **tocilizumab** were **more likely** to be **discharged** from hospital alive within 28 days (**rate ratio 1.22**; 95% CI 1.12-1.34).
-<br> <br>
 
 ```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **tocilizumab** on **hospital discharge** by baseline characteristics"}
 knitr::include_graphics(here("preregistration", "images", "tocilizumab_discharge.png"))
@@ -75,9 +88,6 @@ knitr::include_graphics(here("preregistration", "images", "tocilizumab_discharge
 
 ### Both respiratory support and days since symptom onset subgroups
 
-Among those **not receiving invasive mechanical ventilation at baseline**, patients allocated **tocilizumab** were **less likely** to reach the composite endpoint of **invasive mechanical ventilation or death** (**risk ratio 0.85**; 95% CI 0.78-0.93).
-<br> <br>
-
 ```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **tocilizumab** on **invasive mechanical ventilation** or **death** in those **not** on **invasive mechanical ventilation at randomisation**, by baseline characteristics"}
 
 knitr::include_graphics(here("preregistration", "images", "tocilizumab_ventilation.png"))
@@ -86,42 +96,65 @@ knitr::include_graphics(here("preregistration", "images", "tocilizumab_ventilati
 
 <br>
 
-> In this project, we will reanalyze this trial through Bayesian methods.
+## Outcomes
+
+Death, the risk of receiving invasive mechanical ventilation, and time to hospital discharge are **crucial** for both the **patient** and **society's benefits**. Overall, **tocilizumab** seems to be **effective** for these outcomes. In addition to usual care, this **medication** could **save** several **lives** (NNT = 25 for mortality) of hospitalized patients with COVID-19.
+
+However, **tocilizumab** may have **different effects** in each **subgroup**. It has been postulated that **severity of COVID-19 disease** is closely related to the degree of **inflammation** and **length of disease**. Thus, one could **expect different results** between the subgroups mentioned above. Yet, the **subgroup results** of this trial are **not consistent** between outcomes. Due to this difference, it becomes **questionable** whether these **results** are accurate enough to **aid** in specifying **clinical decisions** to **subgroups** of patients.
+
+**Subgroup analyses** are key for estimating **heterogeneity** of tocilizumab's **effect** on different groups of patients. It is **clinically** and **economically** important to determine if there is sufficient **discrepancy** to ascertain **different treatments** for specific **subgroups**.
+<br>
+
+## Limitations
+
+**Subgroup analyses** pose several **limitations**. Their intrinsic **low statistical power** increases both type 2 error, [leading to false-negatives results](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(05)66516-6/fulltext), and type 1 error risk, [inflating treatment effect](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124). If these analyses are **not appropriately interpreted**, it could generate **misleading conclusions** about the effect of tocilizumab in specific subgroups.
+<br>
+
+It is of utmost **importance** to define if **results** from a clinical trial are **clinically meaningful**. Of note, **P-values** only provide information about the **data's incompatibility** to the **null hypothesis** (effect equals zero). It is **impossible** to **infer** whether the **true effect size** is **large** or what is the **probability** of the **alternative hypothesis** (effect different from zero) of being **true** based on P-values. Also, the use of a **frequentist** approach to **subgroup analysis** can lead to **multiplicity** issues.
+<br>
+
+**Confidence intervals** (CI) can **improve** the **interpretation** of results beyond P-values. **However**, they are also easily **misinterpreted**. CIs contain a range of parameter values that are more [compatible with the data than are values outside the interval](https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-020-01105-9). A **single CI does not** provide any **information** on what is the **true effect**. CIs can only **inform** the **compatibility** of data from this trial to an arbitrary threshold (e.g., 95%). It **does not** inform what is the **probability of a range of effects** (eg, RR < 1, 0.9, 0.8 etc) **to be true**. All of this information would be of great **interest** to **clinicians**.
+
+> Thus, we believe that **Bayesian analysis** can **improve** the interpretation of these **results** for clinicians.
 
 # A Bayesian reanalysis
 
-The **Bayesian statistical framework** relies on defining **priors**.
-Then, these, in combination with new data (**likelihood**), generate **posterior probabilities**.
-Classically, researchers define the parameters of their priors before extracting the data.
+The **Bayesian statistical framework** relies on defining **priors** that capture our **belief** on the **true effect**.
+These, combined with new data (**likelihood**), generate a **posterior probability** (PP). PP can be described with **credible intervals**, which, in contrast to confidence intervals, inform the **probability** of an **effect** given the prior and likelihood. We can also perform **multiple looks** at the PP **without** worrying about **multiplicity issues**. 
 <br>
 
-In contrast, we will do a **post hoc reanalysis** of a published article.
-Therefore, this will be an **exploratory analysis**.
+> We will perform a **post hoc reanalysis** of the RECOVERY trial on tocilizumab.
 
 ## Rationale underlying our priors
 
-**Tocilizumab** is an **anti-inflammatory** drug commonly used in patients with rheumatoid arthritis.
-It is a monoclonal antibody to the receptor for IL-6, a pro-inflammatory cytokine.
+We have decided to **define** the parameters of our **priors** for each **subgroup** on two fronts:
+
+1. We will perform a **systematic review** of randomized controlled trials on tocilizumab and COVID-19 (PROSPERO protocol number .....)
+   * To create an **evidence-based prior**
+   * This prior **will not** be further **described here** since the systematic review has not been performed yet
+
+2. Based on [Zampieri et al. 2020](https://www.atsjournals.org/doi/10.1164/rccm.202006-2381CP), we also decided to choose **four** other **prior beliefs**:
+   * Non-informative (uniform)
+   * Skeptical
+   * Optimistic
+   * Pessimistic
+
+The **non-informative prior** is equal in **every subgroup**. Thus, we **will not report** any analysis on this prior in this file.
 <br>
 
-**COVID-19** is a disease caused by the virus **SARS-CoV2**.
-It has been postulated that the **severity of disease** is closely related to the degree of **inflammation**.
-Thus, there have been trials testing anti-inflammatory drugs for patients with COVID-19.
+Because we will also create an evidence-based prior, we have decided to **define** the **parameters** of our **other priors** based on **data** from **similar drugs** to tocilizumab on COVID-19. **Tocilizumab** is an **anti-inflammatory** drug commonly used in patients with rheumatoid arthritis. It is a monoclonal **antibody** to the receptor for **IL-6**, a pro-inflammatory cytokine.
 <br>
 
-**Corticosteroid** is one of the drug classes that *decreases* **mortality** in patients with **COVID-19**.
-One of the most notable trials that has shown this effect was the one by the [RECOVERY group on dexamethasone](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436?source=nejmfacebook&medium=organic-social&fbclid=IwAR0_hby7lkCH3WFaH1DroDaM2wbe96ibQvITdHlhFHsayULZ8wKYaEv3EuA).
+**Corticosteroid** is a classic **anti-inflammatory** drug class with a **plethora of effects** on the **inflammatory cascade**, such as in the **IL-6 pathway**. Previous research has shown that **dexamethasone** and **methylprednisolone** is **effective** in patients with **COVID-19**. One of the **most notable clinical trials** that has shown this effect was the [RECOVERY trial on dexamethasone](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436?source=nejmfacebook&medium=organic-social&fbclid=IwAR0_hby7lkCH3WFaH1DroDaM2wbe96ibQvITdHlhFHsayULZ8wKYaEv3EuA).
 <br>
-
-Thus, we have decided to **define** the parameters of our **priors** based on the **biological plausibility** of anti-inflammatory drugs, such as **dexamethasone**, for COVID-19.
-We also used the guidelines proposed by [Zampieri et al. 2020](https://www.atsjournals.org/doi/10.1164/rccm.202006-2381CP) to decide our **priors beliefs** and **belief strengths**.
 
 ## RECOVERY trial: Dexamethasone and COVID-19
 
-A total of 2104 patients were assigned to receive dexamethasone and 4321 to receive usual care.
-The **primary outcome** was **28-days mortality**.
-Overall, the **pooled age-adjusted rate ratio** was **0.83** (95% confidence interval, 0.75 to 0.93).
-Next, we will discuss about a few **pre-specified subgroup analyses** of this trial.
+A total of 2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Similar to the trial on tocilizumab, 
+the **primary outcome** was **28-days mortality**. Overall, the **pooled age-adjusted rate ratio** was **0.83** (95% confidence interval, 0.75 to 0.93). Secondary outcomes were: **discharge from hospital within 28 days in all patients** and **risk of invasive mechanical ventilation (IVM)/death among those not receiving IVM at baseline**.
+<br>
+
+Next, we will discuss a few **pre-specified subgroup analyses** of this trial.
 <br>
 
 ## 28-days mortality
@@ -140,8 +173,8 @@ knitr::include_graphics(here("preregistration", "images", "dexamethasone_mortali
 
 ### Days since symptom onset subgroups
 
-The **time point** in which patients **start** the **treatment** also plays a key role in the **effectiveness** of this drug.
-There were **less deaths** in patients treated before **≤7 days since symptom onset**.
+The **time point** in which patients **start** the **treatment** also plays a vital role in the **effectiveness** of this drug.
+There were ** fewer deaths** in patients treated before **≤7 days since symptom onset**.
 <br> <br>
 
 ```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **28−day mortality** by other pre−specified baseline characteristics"}
@@ -154,6 +187,9 @@ knitr::include_graphics(here("preregistration", "images", "dexamethasone_mortali
 
 ### Both respiratory support and days since symptom onset subgroups
 
+Again, this **data** suggests there might be a **difference** between **subgroups**.
+
+
 ```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **discharge from hospital alive within 28 days** by other pre−specified baseline characteristics"}
 knitr::include_graphics(here("preregistration", "images", "dexamethasone_discharge.png"))
 ```
@@ -164,6 +200,8 @@ knitr::include_graphics(here("preregistration", "images", "dexamethasone_dischar
 
 ### Both respiratory support and days since symptom onset subgroups
 
+Notably, there is a **clear difference** in the **days since symptom onset** subgroups.
+
 ```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **invasive mechanical ventilation** or **death** in those **not** on **invasive mechanical ventilation at randomisation**, by baseline characteristics"}
 
 knitr::include_graphics(here("preregistration", "images", "dexamethasone_ventilation.png"))
@@ -172,36 +210,23 @@ knitr::include_graphics(here("preregistration", "images", "dexamethasone_ventila
 
 # Priors
 
-> In light of the data from the dexamethasone trial, we decided on the priors beliefs and belief strengths for each subgroup per outcome in the tocilizumab trial.
+> We have decided to choose the parameters of our belief strengths in light of the data on dexamethasone
 
-Next, we will discuss about our priors for each of the outcomes in the tocilizumab trial:
+We will discuss our priors for the following outcomes in the tocilizumab trial:
 
 1.  28-days mortality
 
-2.  Discharge from hospital within 28 days
+2.  Discharge from the hospital within 28 days
 
 3.  Invasive mechanical ventilation (IMV) or death in patients not receiving IMV at baseline
 
-In regards to **respiratory support** subgroups, it is important note that they are **different** between the **dexamethasone** and **tocilizumab** trial. There isn't a **no oxygen received** subgroup in the **tocilizumab** trial. Lastly, the **oxygen only** subgroup in the **dexamethasone** trial matches the inclusion criteria of both **no ventilator support** and **non-invasive ventilation** subgroups in the **tocilizumab** trial.
+Regarding **respiratory support**,  there are **different subgroups** between the **dexamethasone** and **tocilizumab** trial. There is not a **no oxygen received** subgroup in the **tocilizumab** trial. Lastly, the **oxygen only** subgroup in the **dexamethasone** trial is equal to both **no ventilator support** and **non-invasive ventilation** in the **tocilizumab** trial.
 <br>
 
 Thus, we ignored the **no oxygen received** subgroup data and interpreted the **oxygen only** as analog to both tocilizumab subgroups mentioned above.
 <br>
 
-Based on [Zampieri et al. 2020](https://www.atsjournals.org/doi/10.1164/rccm.202006-2381CP), we decided to choose four different prior beliefs for each subgroup:
-
-1.  Non-informative (uniform)
-
-2.  Skeptical
-
-3.  Optimistic
-
-4.  Pessimistic
-
-The **non-informative prior** is the **same** for **all subgroups** in every outcome. Thus, we **will not report** any analysis of this prior in this file.
-<br>
-
-For each prior, we will report the **absolute risk reduction** (ARR) of tocilizumab minus control group. Thus, for the mortality outcome, an ARR **smaller than zero** means **tocilizumab** is **better**.
+We will report the **absolute risk reduction** (ARR) of tocilizumab minus the control group for each prior. An ARR **smaller than zero** means **tocilizumab** is **better** for the **mortality** outcome.
 
 ## 28-days mortality
 
@@ -364,7 +389,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -402,7 +427,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
@@ -594,7 +619,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -632,7 +657,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
@@ -815,7 +840,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -853,7 +878,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
@@ -894,11 +919,11 @@ plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior #+
 ## Discharge from hospital within 28 days
 
 ------------------------------------------------------------------------
-> Now, we will discuss the priors for the outcome of discharge from hospital within 28 days. Again, we will use the results from the dexamethasone trial as a reference for the parameters of prior beliefs and belief strengths.
+> Now, we will discuss the priors for the outcome of discharge from the hospital within 28 days. Again, we will use the dexamethasone trial results as a reference for the parameters of prior beliefs and belief strengths.
 
 ### Respiratory support
 
-We decided that the **priors** should **match** the ones we used for these subgroups in regards to the **mortality outcome**, **except** for the **invasive mechanical ventilation group**. Of note, for the discharge from hospital outcome, an **absolute risk difference (ARD) greater than 0** means **tocilizumab** is **better**.
+We decided that the **priors** should **match** the ones we used for these subgroups regarding the **mortality outcome**, **except** for the **invasive mechanical ventilation group**. Of note, for the discharge from hospital outcome, an **absolute risk difference (ARD) greater than 0** means **tocilizumab** is **better**.
 
 ### No ventilator support and non-invasive ventilation
 
@@ -1045,7 +1070,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -1083,7 +1108,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
@@ -1266,7 +1291,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -1304,7 +1329,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
@@ -1491,7 +1516,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -1529,7 +1554,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
@@ -1712,7 +1737,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -1750,7 +1775,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
@@ -1794,7 +1819,7 @@ plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior #+
 
 ### Respiratory support
 
-Here, we will *only* **consider** data from the **oxygen only** subgroup of the **dexamethasone** trial since this is the **only one** that **matches** the **tocilizumab** trial. Of note, for this outcome, an **ARR smaller than 0** means **tocilizumab** is **better**.
+Here, we will *only* **consider** data from the **oxygen only** subgroup of the **dexamethasone** trial since this is the **one** that **matches** the **tocilizumab** trial. Of note, for this outcome, an **ARR smaller than 0** means **tocilizumab** is **better**.
 
 ### Oxygen only subgroup
 
@@ -1941,7 +1966,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -1979,7 +2004,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
@@ -2019,7 +2044,7 @@ plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior #+
 
 ### Days since symptom onset
 
-For these subgroups, we judged it would be reasonable to choose different parameters of prios for each subgroup
+For these subgroups, we judged it would be reasonable to choose different priors' parameters for each subgroup.
 
 ### ≤ 7 days
 
@@ -2166,7 +2191,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -2204,7 +2229,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
@@ -2385,7 +2410,7 @@ plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_optimistic_prior,
                         sd = sd_optimistic_prior),
-            fill = "#DE77AE", xlim = c(0,0.3*optimistic_multiplier),
+            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
             alpha=1) +
   stat_function(fun = dnorm, n = 1000,
                  args = list(mean = mean_optimistic_prior,
@@ -2423,7 +2448,7 @@ plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
   geom_area(stat = "function", fun = dnorm,
             args = list(mean = mean_pessimistic_prior,
                         sd = sd_pessimistic_prior),
-            fill = "#57A95E", xlim = c(0,0.3*pessimistic_multiplier),
+            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
             alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
                 args = list(mean = mean_pessimistic_prior,
