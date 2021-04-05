@@ -52,10 +52,11 @@ These **results** are of great **public health interest**. To date, there are on
 **Subgroup analyses** are **key** for clinical research. It allows one to either further **explore** or **confirm hypotheses** based on the data.
 <br>
 
-In the RECOVERY trial, the authors reported several pre-specified subgroups analyses. Two clusters of subgroups are especially clinically important: **respiratory support** and **days since symptom onset**. 
+In the RECOVERY trial, the authors reported several pre-specified subgroups analyses. Two clusters of subgroups are of distinguished clinical interest: **respiratory support** and **days since symptom onset**. 
+
 <br>
 
-For COVID-19 infection, **duration of disease** and **use of oxygen** are significant to **stratify risk of patients**. **Respiratory support** should be interpreted as a direct **proxy** for **severity of disease**. Patients on invasive mechanical ventilation are naturally at greater risk of death than patients on only simple oxygen Also, [previous research](https://www.uptodate.com/contents/covid-19-clinical-features?search=covid%2019&source=search_result&selectedTitle=1~150&usage_type=default&display_rank=1#H1282615935) has shown that **dyspnea** most commonly develops after a median of **5-7 days since the onset of symptoms**.
+For COVID-19 infection, **duration of disease** and **use of oxygen** are crucial to **stratify the risk of patients**. **Respiratory support** should be interpreted as a direct **proxy** for **severity of disease**. Patients on invasive mechanical ventilation are naturally at greater risk of death than patients on only simple oxygen. Also, [previous research](https://www.uptodate.com/contents/covid-19-clinical-features?search=covid%2019&source=search_result&selectedTitle=1~150&usage_type=default&display_rank=1#H1282615935) has shown that **dyspnea** most commonly develops after a median of **5-7 days since the onset of symptoms**.
 
 Here are the results of the RECOVERY trial on the outcomes and subgroups mentioned above:
 <br>
@@ -103,7 +104,7 @@ However, **tocilizumab** may have **different effects** in each **subgroup**. It
 
 ## Limitations
 
-**Subgroup analyses** pose several **limitations**. Their intrinsic **low statistical power** increases both type 2 error, [leading to false-negatives results](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(05)66516-6/fulltext), and type 1 error risk, [inflating treatment effect](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124). If these analyses are **not appropriately interpreted**, it could generate **misleading conclusions** about the effect of tocilizumab in specific subgroups.
+**Frequentist subgroup analyses** pose several **limitations**. Their intrinsic **low statistical power** increases both type 2 error, [leading to false-negatives results](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(05)66516-6/fulltext), and type 1 error risk, [inflating treatment effect](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124). If these analyses are **not appropriately interpreted**, it could generate **misleading conclusions** about the effect of tocilizumab in specific subgroups.
 <br>
 
 It is of utmost **importance** to define if **results** from a clinical trial are **clinically meaningful**. Of note, **P-values** only provide information about the **data's incompatibility** to the **null hypothesis** (effect equals zero). It is **impossible** to **infer** whether the **true effect size** is **large** or what is the **probability** of the **alternative hypothesis** (effect different from zero) of being **true** based on P-values. Also, the use of a **frequentist** approach to **subgroup analysis** can lead to [**multiplicity** issues](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(05)66516-6/fulltext).
@@ -111,7 +112,7 @@ It is of utmost **importance** to define if **results** from a clinical trial ar
 
 **Confidence intervals** (CI) can **improve** the **interpretation** of results beyond P-values. **However**, they are also easily **misinterpreted**. CIs contain a range of parameter values that are more [compatible with the data than are values outside the interval](https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-020-01105-9). A **single CI does not** provide any **information** on the **true effect size**. CIs can only **inform** about the **compatibility** of data from this trial to an arbitrary threshold (e.g., 95%). It **does not** inform what is the **probability of a range of effects** (eg, RR < 1, 0.9, 0.8 etc) **to be true**. All of this information would be of great **interest** to **clinicians**.
 
-> Thus, we believe that **Bayesian analysis** can **clarify** the interpretation of these **results** for clinicians.
+> Thus, we believe that **Bayesian analysis** can **clarify** the interpretation of these **results**.
 
 # A Bayesian reanalysis
 
@@ -135,7 +136,36 @@ We have decided to **define** the parameters of our **priors** for each **subgro
    * Optimistic
    * Pessimistic
 
-The **non-informative prior** is equal in **every subgroup**. Thus, we **will not report** any analysis on this prior in this file.
+The **non-informative prior** is equal in **every subgroup**. Thus, we **will not report** any analysis on this prior in this file. 
+<br>
+
+Below, we explain the **rationale** underlying the parameters for our **prior beliefs** and **belief strengths**:
+<br>
+
+```{r echo=FALSE, fig.width=10, fig.height=4, fig.cap=""}
+tibble(
+  
+  "Prior Belief" = c("Neutral", "Optimistic", "Pessimistic"),
+  
+  "Prior Mean" = c(0, 0.05, -0.05),
+  
+  "Rationale Underlying the Mean" = c("Null effect", "Estimated risk difference in sample size calculation", "Mirrored from the optimistic prior"),
+  
+  "Weak" = c("Uniform (all values equally possible)", "Pr(ARD > 0) = 0.30", "Pr(ARD < 0) = 0.30"),
+    
+  "Moderate" = c("Pr(> 0.1) & Pr(< -0.1) = 0.05", "Pr(ARD > 0) = 0.15", "Pr(ARD < 0) = 0.15"),
+    
+  "Strong" = c("Pr(> 0.075) & Pr(< -0.075) = 0.05", "Pr(ARD > 0) = 0.05", "Pr(ARD < 0) = 0.05")
+)  %>% 
+
+  kbl(align = 'c') %>% 
+  add_header_above(c(" " = 3, "Belief Strength" = 3)) %>%  
+  kable_styling(bootstrap_options = "striped", full_width = F) %>% 
+  footnote("Adapted from Zampieri et al. 2020;    Absolute Risk Difference (ARD) < 0 means tocilizuamb is better")
+
+
+```
+
 <br>
 
 Because we will also create an evidence-based prior, we have decided to **define** the **parameters** of our **other priors** based on **data** from **similar drugs** to tocilizumab on COVID-19. **Tocilizumab** is an **anti-inflammatory** drug commonly used in patients with rheumatoid arthritis. It is a monoclonal **antibody** to the receptor for **IL-6**, a pro-inflammatory cytokine.
@@ -150,7 +180,8 @@ A total of 2104 patients were assigned to receive dexamethasone and 4321 to rece
 the **primary outcome** was **28-days mortality**. Overall, the **pooled age-adjusted rate ratio** was **0.83** (95% confidence interval, 0.75 to 0.93). Secondary outcomes were: **discharge from hospital within 28 days in all patients** and **risk of invasive mechanical ventilation (IMV)/death among those not receiving IMV at baseline**.
 <br>
 
-Next, we will discuss a few **pre-specified subgroup analyses** of this trial.
+Here are the **results** from this trial:
+
 <br>
 
 # {.tabset}
@@ -184,7 +215,6 @@ knitr::include_graphics(here("preregistration", "images", "dexamethasone_mortali
 ### Both respiratory support and days since symptom onset subgroups
 
 Again, this **data** suggests there might be a **difference** between **subgroups**.
-
 
 ```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **discharge from hospital alive within 28 days** by other pre−specified baseline characteristics"}
 knitr::include_graphics(here("preregistration", "images", "dexamethasone_discharge.png"))
@@ -228,7 +258,7 @@ Regarding **respiratory support**,  there are **different subgroups** between th
 Thus, we ignored the **no oxygen received** subgroup data and interpreted the **oxygen only** as analog to both tocilizumab subgroups mentioned above.
 <br>
 
-We will report the **Absolute risk difference** (ARD) of tocilizumab minus the control group for each prior. An ARD **smaller than zero** means **tocilizumab** is **better** for the **mortality** outcome.
+We will report the **absolute risk difference** (ARD) of tocilizumab minus the control group for each prior. Regarding the **mortality** outcome, an ARD **lower than zero** means **tocilizumab** is **better**.
 
 ## 28-days mortality
 
