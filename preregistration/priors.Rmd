@@ -2412,3 +2412,7 @@ knitr::include_graphics(here("preregistration", "images", "dexamethasone_ventila
 # {-}
 
 <br>
+
+```{r echo=TRUE}
+sessionInfo()
+```
