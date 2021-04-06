@@ -2888,6 +2888,8 @@ plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
 priors_table
 ```
 
+------------------------------------------------------------------------
+
 ## Corresponding dexamethasone data {.panel-name}
 
 ```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **discharge from hospital alive within 28 days** by other pre−specified baseline characteristics"}
