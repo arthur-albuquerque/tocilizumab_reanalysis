@@ -1,0 +1,172 @@
+---
+title: 'Effect of Tocilizumab in Patients with COVID-19 Regarding Oxygen Therapy and Days Since Symptom Onset: Data Extraction Protocol'
+author:
+- name: Arthur M. Albuquerque
+  affiliation: Universidade Federal do Rio de Janeiro, Brazil
+- name: Lucas Tramujas, MD
+  affiliation: Research Institute, HCor‐Hospital do Coração, Brazil
+- name: Lorenzo R. Sewanan, MD, PhD
+  affiliation: Columbia University, U.S.A.
+- name: James M. Brophy, MD, PhD
+  affiliation: McGill University Health Center, Canada
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    citation_package: natbib
+    keep_tex: no
+    fig_caption: yes
+    latex_engine: pdflatex
+    template: svm-latex-ms2.tex # source: https://github.com/cmcr-class/example_article
+  word_document: default
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+bibliography: master.bib
+biblio-style: apsr
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Protocol question
+
+What is the effect of tocilizumab in patients with COVID-19 regarding oxygen
+therapy and days since symptom onset?
+
+# Searches
+
+We will manually search the bibliography of Cochrane's systematic living
+review on tocilizumab and COVID-19 [@ghosn2021]. We will extract data from the
+studies that attend to the inclusion criteria described in this document.
+
+# Condition or domain being studied
+
+COVID-19
+
+# Participants/population
+
+Adults ($\geq$ 18 years of age) with a clinical and/or laboratory diagnosis 
+of COVID-19, regardless of other medications use.
+
+# Intervention(s), exposure(s)
+
+Tocilizumab
+
+# Comparator(s)/control
+
+Placebo or usual care
+
+# Types of study to be included
+
+Randomized clinical trials
+
+# Context
+
+## Inclusion criteria
+
+Randomized controlled trials; tocilizumab; adults hospitalized with COVID-19;
+available data sub-grouped by the type of oxygen therapy (no oxygen, simple
+oxygen, non-invasive ventilation or invasive mechanical ventilation) and/or days
+since symptom onset (cutoffs of 7 +- 2 days)
+
+## Exclusion criteria
+
+Preclinical studies; case reports; observational studies; data on mortality or
+use of oxygen therapy not available; full-text not available.
+
+# Main outcome(s)
+
+Mortality (regardless of end-point)
+
+# Additional outcome(s)
+
+Discharge from hospital within 28 days.
+
+# Data extraction (selection and coding).
+
+We will screen the title and abstract from the randomized controlled trials
+included in the systematic living review [@ghosn2021] independently
+and in duplicate. Reviewers will attempt to reach a consensus on their choice of
+studies. If this is not possible, a third reviewer will be used as an
+adjudicator. The selected studies' full text will be reviewed independently and
+duplicated for final inclusion in the review.
+
+Data extraction will be conducted independently and duplicated using a
+prefabricated and pilot-tested Excel-based digital extraction form. There will
+be two separate forms: one for subgroup data and one for overall trial
+characteristics. Extractors will attempt to reach a consensus. If this is not
+possible, a third reviewer will act as an adjudicator.
+
+Because this living review gets updated weekly, we will screen it two times:
+before analyzing and extracting the data and at the end of the analyses, to
+check if any new trials were published. In case a new study gets published, we
+will extract its data if it fits our inclusion criteria mentioned above.
+
+**The domains for the subgroup extraction form will include:**
+
+1.  Trial name
+
+2.  Type of oxygen therapy
+
+3.  Days since symptom onset subgroup
+
+4.  Outcome
+
+5.  Events in the tocilizumab group
+
+6.  Sample size in the tocilizumab group
+
+7.  Events in the control group
+
+8.  Events in the control group
+
+9.  Sample size in the control group
+
+**The domains for the overall trial extraction form will include:**
+
+1.  Trial name
+
+2.  Year
+
+3.  Blind status
+
+4.  Length of follow-up for the mortality outcome
+
+5.  Length of follow-up for the hospital discharge outcome
+
+6.  The cutoff used for days since symptom onset subgroups
+
+7.  Type of treatment in the control group (placebo or standard of care)
+
+8.  The proportion of patients on corticosteroids in the tocilizumab group
+
+9. The proportion of patients on corticosteroids in the control group
+
+10. The proportion of patients with a negative PCR in the tocilizumab group
+
+11. The proportion of patients with a negative PCR in the control group
+
+# Strategy for data synthesis
+
+We will use the data gathered from this living systematic review to create
+evidence-based priors for a Bayesian analysis. We will pre-register the protocol
+for this analysis along with this document on OpenScienceFramework, in which we
+will explain all the details underlying our analyses.
+
+# Analysis of subgroups or subsets
+
+We will also explain this topic in the pre-registered protocol on
+OpenScienceFramework.
+
+# Stage at time of this submission
+
+The data extraction has not yet started.
+
+# Conflicts of interest
+
+Dr. Tramujas participated as a co-principal investigator on the TOCIBRAS trial
+[@veiga2021].

@@ -1,0 +1,327 @@
+---
+title: 'A Bayesian Interpretation of Subgroup Analyses: RECOVERY Trial on Tocilizumab
+  and COVID-19'
+thanks: '`r format(Sys.time(), "%B %d, %Y")`'
+author:
+- name: Arthur M. Albuquerque
+  affiliation: Universidade Federal do Rio de Janeiro, Brazil
+- name: Lucas Tramujas, MD
+  affiliation: Research Institute, HCor‐Hospital do Coração, Brazil
+- name: Lorenzo R. Sewanan, MD, PhD
+  affiliation: Columbia University, U.S.A.
+- name: James M. Brophy, MD, PhD
+  affiliation: McGill University Health Center, Canada
+output:
+  pdf_document:
+    extra_dependencies: ["float"]
+    citation_package: natbib
+    keep_tex: no
+    fig_caption: yes
+    latex_engine: pdflatex
+    template: svm-latex-ms2.tex # source: https://github.com/cmcr-class/example_article
+  word_document: default
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+bibliography: master.bib
+biblio-style: apsr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos = "H", out.extra = "")
+
+# https://bookdown.org/yihui/rmarkdown-cookbook/figure-placement.html
+```
+
+```{r include=FALSE}
+library(here)
+library(tidyverse)
+library(cowplot)
+library(patchwork)
+library(kableExtra)
+library(ggtext)
+```
+
+# Introduction
+
+The Randomised Evaluation of COVID-19 Therapy (RECOVERY) is a platform trial
+testing several treatments for COVID-19 since the beginning of the pandemics
+in 2020. Preliminary results on the anti-inflammatory drug tocilizumab were
+published on medRxiv on February 11, 2021 [@horby2021]. The RECOVERY was a
+large, open-label randomized controlled trial (RCT) that assessed 28-day
+mortality as the primary outcome in hospitalized patients with COVID-19 using a
+frequentist statistical approach. Secondary outcomes were: discharge from
+hospital within 28 days in all patients and risk of invasive mechanical
+ventilation (IMV) or death among those not receiving IMV at baseline. Overall,
+tocilizumab was effective for these outcomes.
+
+The authors also reported several pre-specified subgroups analyses. Two clusters
+of subgroups are of substantial clinical interest: respiratory support and days
+since symptom onset. For COVID-19 infection, duration of disease and use of
+oxygen are crucial to stratify the risk of patients. Respiratory support should
+be interpreted as a direct proxy for the severity of the disease. Patients on
+invasive mechanical ventilation are naturally at greater risk of death than
+patients on only simple oxygen. Previous research has shown that dyspnea most
+commonly develops after a median of 5-7 days since the onset of symptoms
+[@wang2020].
+
+It has been postulated that the severity of COVID-19 disease is closely related
+to the degree of inflammation and disease length [@wiersinga2020]. For
+example, the results of another anti-inflammatory drug -- dexamethasone --
+showed strikingly different results between subgroups
+[@therecoverycollaborativegroup2021]. Thus, one could also expect different
+results between the subgroups in the tocilizumab trial. However, this trial's
+subgroup results were consistent with each other.
+
+Subgroup analyses are fundamental for clinical research. They allow one to
+explore or confirm hypotheses. In the context of tocilizumab and COVID-19, it is
+clinically and economically important to determine if there is sufficient
+discrepancy to ascertain different treatments for specific subgroups. Notably,
+frequentist subgroup analyses pose several limitations. Their low statistical
+power increases both type 2 error, leading to false-negatives results
+[@schulz2005], and type 1 error risk, inflating treatment effect
+[@ioannidis2005]. It is estimated that clinical trials designed to have 80%
+power for the primary outcome is anticipated to have 30% power for the
+interaction term [@kent2018]. Thus, one could quickly draw misleading
+conclusions about the effect of tocilizumab in specific subgroups if these
+analyses are not appropriately interpreted.
+
+Also, it is of utmost importance to define if results from a study are
+clinically meaningful. The frequentist statistical inference relies on p-values
+and confidence intervals (CIs) to report results. Unfortunately, p-values only
+provide information about the data's compatibility to the null hypothesis
+(usually zero effect). It is impossible to infer whether the actual effect size
+is large or what is the probability of the alternative hypothesis (result
+different from zero) of being true based on p-values [@rafi2020]. Also, the
+frequentist approach to subgroup analysis can lead to multiplicity issues
+[@schulz2005]. CIs can improve the interpretation of results beyond p-values.
+However, they are also easily misinterpreted. CIs contain a range of parameter
+values that are more compatible with the data than are values outside the
+interval [@rafi2020]. A single CI does not provide any information on the
+actual effect size. CIs can only inform about the compatibility of data from
+this trial to an arbitrary threshold (e.g., 95%). It does not indicate what the
+probability of a range of effects is (e.g., RR \< 1, 0.9, 0.8 etc.) to be true.
+Thus, the frequentist statistical framework poorly aids clinicians to analyze
+data from subgroups in RCTs thoroughly.
+
+# Bayesian re-analysis
+
+We believe that Bayesian analyses can clarify the interpretation of the RECOVERY
+trial [@wijeysundera2009]. In brief, the Bayesian statistical framework relies
+on the use of *priors* that represent our belief in the actual effect. Then,
+these are combined with data (*likelihood*), generating *posterior
+probabilities* (PP). PP can be described with credible intervals, which, in
+contrast to confidence intervals, actually inform the probability of an effect
+within a specified interval. We can also perform multiple looks at the PP
+without worrying about multiplicity issues. Because of this, Bayesian analyses
+allows one to assess the probability of numerous effect sizes at once
+[@spiegelhalter2004].
+
+Here, we aim to describe the priors we will use in our re-analysis of the
+RECOVERY trial on tocilizumab. We will re-analyze the primary outcome -- 28-day
+mortality -- and a secondary outcome, risk of being discharged alive from the
+hospital within 28 days. We will analyze these outcomes in all patients and each
+subgroup regarding respiratory support (no ventilator support, non-invasive
+mechanical ventilation, and invasive mechanical ventilation) and days since
+symptom onset ($\leq$ 7 days and $>$ 7 days). We will primarily report the
+risk difference between the tocilizumab and control groups.
+
+## Methods
+
+We will extract data from RCTs on tocilizumab and COVID-19 included in a
+Cochrane's systematic living review [@ghosn2021]. Then, we will use these
+results to create evidence-based priors (EBP) for each subgroup if specific data
+is available. We will also pool data from every subgroup to create an EBP for
+all patients. In case data is not available for a particular subgroup, we will
+use the pooled data as the EBP for these subgroups. To dampen this adaptation's
+influence on the final results, we will also analyze these specific subgroups
+with both 10% and 50% weight of this adapted prior [@brophy1995;
+@goligher2018]. We described the entire data extraction protocol elsewhere
+(**OSF link**).
+
+Thus, every prior will be normally distributed and described by a *mean* and a
+*variance*. To test our results' robustness, we will also perform sensitivity
+analyses using different priors [@sung2005; @zampieri2021]. We will create
+four extra priors: skeptical, optimistic, pessimistic, and non-informative.
+While the latter will have the same parameters (*mean* and *variance*) for every
+subgroup, we will adapt each subgroup's original EBP to create priors
+accordingly [@white2005]. The skeptical prior uses the EBP's *variance*, but
+the *mean* equals $0$. The optimistic prior uses the EBP's *variance*, but the
+*mean* equals $-0.05$. Lastly, the pessimistic prior uses the EBP's *variance*,
+but the *mean* equals $0.05$. We decided on the absolute *mean* value of $0.05$
+because the RECOVERY group estimated risk difference was $-0.05$ for their
+sample size calculation [@therecoverycollaborativegroup2021; @zampieri2021].
+We note that these are values for the analyses regarding the mortality outcome
+because negative results mean tocilizumab is better. Thus, we will use opposite
+mean values for the secondary outcome because, in this case, positive results
+mean tocilizumab is better.
+
+## A simulation
+
+```{r include=FALSE}
+#Skeptical prior parameters
+
+mean_data_prior = -0.02 # Prior ARD mean
+sd_data_prior = 0.038 # Prior SD
+
+#Skeptical prior parameters
+mean_skeptical_prior = 0 # Prior ARD mean
+sd_skeptical_prior = sd_data_prior # Prior SD
+
+#Optimistic prior parameters
+
+mean_optimistic_prior = -0.05   # Prior ARD mean
+sd_optimistic_prior = sd_data_prior # Prior SD
+
+#Pessimistic prior parameters
+
+mean_pessimistic_prior = 0.05  # Prior ARD mean
+sd_pessimistic_prior = sd_data_prior # Prior SD
+
+#Non-informative prior parameters
+
+mean_noninformative_prior = 0  # Prior ARD mean
+sd_noninformative_prior = 10 # Prior SD
+
+```
+
+To aid in the interpretation of our methods, we will simulate data to create
+multiple priors. In this example, we will analyze the mortality outcome of a
+fictitious subgroup. The evidence-based prior for this subgroup is described by
+a *mean* of $`r mean_data_prior`$ and *standard deviation* of
+$`r sd_data_prior`$. We then created the priors following the instructions
+mentioned above. The priors can be visualized in *Figure 1* and their parameters
+in *Table 1*.
+
+# Conclusion
+
+Here, we discussed the rationale and the methods of a pre-planned Bayesian
+re-analysis of the RECOVERY trial on tocilizumab and COVID-19.
+
+\newpage
+
+
+
+```{r include=FALSE}
+priors = tibble(
+  
+  "Prior Belief" = c("Evidence-based",
+                     "Skeptical",
+                     "Optimistic",
+                     "Pessimistic",
+                     "Non-informative"),
+  
+  "Mean RD"= c(mean_data_prior,
+                mean_skeptical_prior,
+                mean_optimistic_prior,
+                mean_pessimistic_prior,
+                mean_noninformative_prior),
+  
+  "SD of RD" = c(round(sd_data_prior,2),
+                  round(sd_skeptical_prior,2),
+                  round(sd_optimistic_prior,2),
+                  round(sd_pessimistic_prior,2),
+                  round(sd_noninformative_prior,2)),
+  
+  "Pr(< 0)" = c(round(pnorm(0,mean_data_prior,sd_data_prior),2),
+                round(pnorm(0,mean_skeptical_prior,sd_skeptical_prior),2),
+                round(pnorm(0,mean_optimistic_prior,sd_optimistic_prior),2),
+                round(pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior),2),
+                round(pnorm(0,mean_noninformative_prior,sd_noninformative_prior),2)),
+  
+  "Pr(< -0.05)" = c(round(pnorm(-.05,mean_data_prior,sd_data_prior),2),
+                    round(pnorm(-.05,mean_skeptical_prior,sd_skeptical_prior),2),
+                    round(pnorm(-.05,mean_optimistic_prior,sd_optimistic_prior),2),
+                    round(pnorm(-.05,mean_pessimistic_prior,sd_pessimistic_prior),2),
+                    round(pnorm(-.05,mean_noninformative_prior,sd_noninformative_prior),2)),
+  
+  "Pr(< -0.10)" = c(round(pnorm(-.1,mean_data_prior,sd_data_prior),2),
+                    round(pnorm(-.1,mean_skeptical_prior,sd_skeptical_prior),2),
+                    round(pnorm(-.1,mean_optimistic_prior,sd_optimistic_prior),2),
+                    round(pnorm(-.1,mean_pessimistic_prior,sd_pessimistic_prior),2),
+                    round(pnorm(-.1,mean_noninformative_prior,sd_noninformative_prior),2)),
+)
+
+priors_table =
+  priors %>% 
+  kbl(caption = "Parameters of priors",
+      booktabs = T, align = 'c') %>% 
+  kable_styling(latex_options = "striped")  %>% 
+  add_header_above(c(" " = 3, "Probability of Treatment Effect" = 3)) %>% 
+  footnote(general = "SD = Standard Deviation; RD = Risk Difference")
+  
+```
+
+```{r echo=FALSE}
+priors_table
+```
+
+\newpage
+
+```{r echo=FALSE, fig.cap = "Simulation of priors derived from a fictitious evidence-based prior. Negative values mean tocilizumab is better."}
+
+#### Data plot
+
+pal = c("Evidence-based" = "#3C4D54",   
+        "Skeptical" = "#D49352", 
+        "Optimistic" = "#479ED0",
+        "Pessimistic" = "#A64E49",
+        "Non-informative" = "#85AD99") 
+
+plot_prior = ggplot(data = data.frame(x = c(-0.2, 0.2)), aes(x)) +
+  
+  stat_function(fun = dnorm, n = 1000,
+                args = list(mean = mean_data_prior,
+                            sd = sd_data_prior), aes(colour = "Evidence-based"),
+                linetype = 1, size = 1) + 
+  
+  stat_function(fun = dnorm, n = 1000,
+                args = list(mean = mean_skeptical_prior,
+                            sd = sd_skeptical_prior), aes(colour = "Skeptical"),
+                linetype = 1, size = 1) + 
+    
+  stat_function(fun = dnorm, n = 1000,
+                 args = list(mean = mean_optimistic_prior,
+                            sd = sd_optimistic_prior), aes(colour = "Optimistic"),
+                linetype = 1, size = 1) +
+  
+  stat_function(fun = dnorm, n = 1000,
+                args = list(mean = mean_pessimistic_prior,
+                            sd = sd_pessimistic_prior), aes(colour = "Pessimistic"),
+                linetype = 1, size = 1) +
+    
+  stat_function(fun = dnorm, n = 1000,
+                 args = list(mean =mean_noninformative_prior,
+                            sd = sd_noninformative_prior), aes(colour = "Non-informative"),
+                linetype = 1, size = 1) + 
+  geom_vline(xintercept = 0, color="grey70", linetype = 2) +
+  
+  scale_colour_manual("",values = pal) +   # legend
+  guides(col = guide_legend(nrow = 2)) +   # to split legend in two rows https://ggplot2.tidyverse.org/reference/guide_legend.html
+  labs(x="Risk difference", y = "") +
+  
+  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1)) +
+  scale_y_continuous(limits=c(0, 13)) +
+  
+  theme_classic() +
+  theme(axis.line.y=element_blank(),
+        axis.title = element_text(size = 13),
+        axis.text.y=element_blank(),
+        axis.text.x = element_text(size = 11),
+        axis.ticks.y=element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        legend.position = "top",
+        plot.margin = margin(25,25,10,25)) +
+  
+  coord_cartesian(expand = T, clip = 'off')
+
+
+plot_prior
+
+```
+
+\newpage
+
+
