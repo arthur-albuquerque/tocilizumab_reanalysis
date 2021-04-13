@@ -138,7 +138,7 @@ use the pooled data as the EBP for these subgroups. To dampen this adaptation's
 influence on the final results, we will also analyze these specific subgroups
 with both 10% and 50% weight of this adapted prior [@brophy1995;
 @goligher2018]. We described the entire data extraction protocol elsewhere
-(**OSF link**).
+([https://osf.io/upd4q/](https://osf.io/upd4q/)).
 
 Thus, every prior will be normally distributed and described by a *mean* and a
 *variance*. To test our results' robustness, we will also perform sensitivity
