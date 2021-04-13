@@ -1,28 +1,36 @@
 ---
-title: "Priors"
-author: "Arthur M. Albuquerque; Lucas Tramujas, MD; Lorenzo R. Sewanan, MD, PhD; James M. Brophy, MD, PhD"
-date: '`r format(Sys.Date(), "%B %d, %Y")`'
+title: 'A Bayesian Interpretation of Subgroup Analyses: RECOVERY Trial on Tocilizumab
+  and COVID-19'
+thanks: '`r format(Sys.time(), "%B %d, %Y")`'
+author:
+- name: Arthur M. Albuquerque
+  affiliation: Universidade Federal do Rio de Janeiro, Brazil
+- name: Lucas Tramujas, MD
+  affiliation: Research Institute, HCor‐Hospital do Coração, Brazil
+- name: Lorenzo R. Sewanan, MD, PhD
+  affiliation: Columbia University, U.S.A.
+- name: James M. Brophy, MD, PhD
+  affiliation: McGill University Health Center, Canada
 output:
-  html_document:
-    highlight: tango
-    theme: cerulean
-    toc: no
-    toc_float: no
-    includes:
-      in_header: header.html #https://joshuacook.netlify.app/post/github-corner-link-to-rmd/
   pdf_document:
-    toc: no
-link-citations: yes
-linkcolor: red
-urlcolor: blue
-csl: vancouver-brackets.csl
-editor_options: 
-  markdown: 
-    wrap: sentence
+    extra_dependencies: ["float"]
+    citation_package: natbib
+    keep_tex: no
+    fig_caption: yes
+    latex_engine: pdflatex
+    template: svm-latex-ms2.tex # source: https://github.com/cmcr-class/example_article
+  word_document: default
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+bibliography: master.bib
+biblio-style: apsr
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE, fig.pos = "H", out.extra = "")
+
+# https://bookdown.org/yihui/rmarkdown-cookbook/figure-placement.html
 ```
 
 ```{r include=FALSE}
@@ -31,362 +39,271 @@ library(tidyverse)
 library(cowplot)
 library(patchwork)
 library(kableExtra)
+library(ggtext)
 ```
 
-# RECOVERY trial: Tocilizumab and COVID-19
+# Introduction
 
+The Randomised Evaluation of COVID-19 Therapy (RECOVERY) is a platform trial
+testing several treatments for COVID-19 since the beginning of the pandemics
+in 2020. Preliminary results on the anti-inflammatory drug tocilizumab were
+published on medRxiv on February 11, 2021 [@horby2021]. The RECOVERY was a
+large, open-label randomized controlled trial (RCT) that assessed 28-day
+mortality as the primary outcome in hospitalized patients with COVID-19 using a
+frequentist statistical approach. Secondary outcomes were discharge from
+hospital within 28 days in all patients and risk of invasive mechanical
+ventilation (IMV) or death among those not receiving IMV at baseline. Overall,
+tocilizumab was effective for these outcomes.
 
-The Randomised Evaluation of COVID-19 Therapy (**RECOVERY**) is a platform trial that tested several treatments for COVID-19 since the beginning of the pandemics in 2020. **Preliminary results** on the anti-inflammatory drug **tocilizumab** were [published on **medRxiv**](https://www.medrxiv.org/content/10.1101/2021.02.11.21249258v1) on February 11, 2021
-<br>
+The authors also reported several pre-specified subgroups analyses. Two clusters
+of subgroups are of substantial clinical interest: respiratory support and days
+since symptom onset. For COVID-19 infection, duration of disease and use of
+oxygen are crucial to stratify the risk of patients. Respiratory support should
+be interpreted as a direct proxy for the severity of the disease. Patients on
+invasive mechanical ventilation are naturally at greater risk of death than
+patients on only simple oxygen. Previous research has shown that dyspnea most
+commonly develops after a median of 5-7 days since the onset of symptoms
+[@wang2020].
 
-The RECOVERY was a large, open-label randomized controlled trial that assessed **28-day mortality** as the **primary outcome** in hospitalized patients with COVID-19 using a **frequentist** statistical approach. Secondary outcomes were: **discharge from hospital within 28 days in all patients** and **risk of invasive mechanical ventilation (IMV)/death among those not receiving IMV at baseline**. 
-<br>
+It has been postulated that the severity of COVID-19 disease is closely related
+to the degree of inflammation and disease length [@wiersinga2020]. For
+example, the results of another anti-inflammatory drug -- dexamethasone --
+showed strikingly different results between subgroups
+[@therecoverycollaborativegroup2021]. Thus, one could also expect different
+results between the subgroups in the tocilizumab trial. However, this trial's
+subgroup results were consistent with each other.
 
-Compared to the control group, there was a **reduction** in **overall mortality** in the **tocilizumab group** (rate ratio of **0.86**; 95% confidence interval 0.77-0.96). Patients receiving **tocilizumab** were also **more likely** of being **discharged alive** within 28 days (rate ratio of **1.22**; 95%CI 1.12-1.34). Lastly, among those not receiving IMV at baseline, patients allocated to **tocilizumab** were **less likely** to reach the **composite endpoint of IMV or death** (risk ratio **0.85**; 95% CI 0.78-0.93).
-<br>
+Subgroup analyses are fundamental to clinical practice. These analyses inform
+clinicians about the effect of treatments in specific subsets of patients and
+thus yield to the opportunity of precision medicine. They also allow one to
+explore or confirm hypotheses. In the context of tocilizumab and COVID-19, it is
+clinically and economically important to determine if there is sufficient
+discrepancy to ascertain different treatments for specific subgroups.
 
-These **results** are of great **public health interest**. To date, there are only a **few effective treatments** for COVID-19 infection, such as **corticosteroids**. Interestingly, in the RECOVERY trial on tocilizumab, **82% of patients** in both treatment arms were **using corticosteroids**. Therefore, the **effects** mentioned above are  **complementary** to the already established **beneficial effect of corticosteroids**.
+Notably, frequentist subgroup analyses pose several limitations. Their low
+statistical power increases both type 2 error, leading to false-negatives
+results [@schulz2005], and type 1 error risk, inflating treatment effect
+[@ioannidis2005]. Estimations suggest that clinical trials designed to
+have 80% power for the primary outcome are anticipated to have 30% power for the
+interaction term [@kent2018]. Thus, one could quickly draw misleading
+conclusions about the effect of tocilizumab in specific subgroups if these
+analyses are not appropriately interpreted.
 
-## Subgroup analyses
+Also, it is of utmost importance to define if results from a study are
+clinically meaningful. The frequentist statistical inference relies on p-values
+and confidence intervals (CIs) to report results. Unfortunately, p-values only
+provide information about the data's compatibility to the null hypothesis
+(usually zero effect). It is impossible to infer whether the actual effect size
+is large or what is the probability of the alternative hypothesis (result
+different from zero) of being true based on p-values [@rafi2020]. Also, the
+frequentist approach to subgroup analysis can lead to multiplicity issues
+[@schulz2005]. CIs can improve the interpretation of results beyond p-values.
+However, they are also easily misinterpreted. CIs contain a range of parameter
+values that are more compatible with the data than are values outside the
+interval [@rafi2020]. CIs do not indicate what the probability of a range of
+effects is (e.g., RR \< 1, 0.9, 0.8 etc.) to be true. Thus, the frequentist
+statistical framework poorly aids clinicians to analyze data from subgroups in
+RCTs thoroughly.
 
-**Subgroup analyses** are **key** for clinical research. It allows one to either further **explore** or **confirm hypotheses** based on the data.
-<br>
+# Bayesian re-analysis
 
-In the RECOVERY trial, the authors reported several pre-specified subgroups analyses. Two clusters of subgroups are of distinguished clinical interest: **respiratory support** and **days since symptom onset**. 
+We believe that Bayesian analyses can clarify the interpretation of the RECOVERY
+trial [@wijeysundera2009]. In brief, the Bayesian statistical framework relies
+on the use of *priors* that represent our belief in the actual effect. Then,
+these are combined with data (*likelihood*), generating *posterior
+probabilities* (PP). PP can be described with credible intervals, which, in
+contrast to confidence intervals, actually inform the probability of an effect
+within a specified interval. We can also perform multiple looks at the PP
+without worrying about multiplicity issues. Because of this, Bayesian analyses
+allows one to assess the probability of numerous effect sizes at once
+[@spiegelhalter2004].
 
-<br>
+Here, we aim to describe the priors we will use in our re-analysis of the
+RECOVERY trial on tocilizumab. We will re-analyze the primary outcome -- 28-day
+mortality -- and a secondary outcome, risk of being discharged alive from the
+hospital within 28 days. We will analyze these outcomes in all patients and each
+subgroup regarding respiratory support (no ventilator support, non-invasive
+mechanical ventilation, and invasive mechanical ventilation) and days since
+symptom onset ($\leq$ 7 days and $>$ 7 days). We will primarily report the
+risk difference between the tocilizumab and control groups.
 
-For COVID-19 infection, **duration of disease** and **use of oxygen** are crucial to **stratify the risk of patients**. **Respiratory support** should be interpreted as a direct **proxy** for **severity of disease**. Patients on invasive mechanical ventilation are naturally at greater risk of death than patients on only simple oxygen. Also, [previous research](https://www.uptodate.com/contents/covid-19-clinical-features?search=covid%2019&source=search_result&selectedTitle=1~150&usage_type=default&display_rank=1#H1282615935) has shown that **dyspnea** most commonly develops after a median of **5-7 days since the onset of symptoms**.
+## Methods
 
-Here are the results of the RECOVERY trial on the outcomes and subgroups mentioned above:
-<br>
+We will extract data from RCTs on tocilizumab and COVID-19 included in a
+Cochrane's systematic living review [@ghosn2021]. Then, we will use these
+results to create evidence-based priors (EBP) for each subgroup if specific data
+is available. We will also pool data from every subgroup to create an EBP for
+all patients. In case data is not available for a particular subgroup, we will
+use the pooled data as the EBP for these subgroups. To dampen this adaptation's
+influence on the final results, we will also analyze these specific subgroups
+with both 10% and 50% weight of this adapted prior [@brophy1995;
+@goligher2018]. We described the entire data extraction protocol elsewhere
+([https://osf.io/upd4q/](https://osf.io/upd4q/)).
 
-# {.tabset}
+Thus, every prior will be normally distributed and described by a *mean* and a
+*variance*. To test our results' robustness, we will also perform sensitivity
+analyses using different priors [@sung2005; @zampieri2021]. We will create
+four extra priors: skeptical, optimistic, pessimistic, and non-informative.
+While the latter will have the same parameters (*mean* and *variance*) for every
+subgroup, we will adapt each subgroup's original EBP to create priors
+accordingly [@white2005]. The skeptical prior uses the EBP's *variance*, but
+the *mean* equals $0$. The optimistic prior uses the EBP's *variance*, but the
+*mean* equals $-0.05$. Lastly, the pessimistic prior uses the EBP's *variance*,
+but the *mean* equals $0.05$. We decided on the absolute *mean* value of $0.05$
+because the RECOVERY group estimated risk difference would be $0.05$ for their
+sample size calculation [@therecoverycollaborativegroup2021; @zampieri2021].
+We note that these are values for the analyses regarding the mortality outcome
+because negative results mean tocilizumab is better. Thus, we will use opposite
+mean values for the secondary outcome because, in this case, positive results
+mean tocilizumab is better.
 
-## 28-days mortality {.panel-name}
+## A simulation
 
-```{r echo=FALSE, fig.align='center', fig.width=10, fig.height=4, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **tocilizumab** on **28−day mortality** by baseline characteristics"}
-knitr::include_graphics(here("preregistration", "images", "tocilizumab_mortality.png"))
+```{r include=FALSE}
+#Skeptical prior parameters
+
+mean_data_prior = -0.02 # Prior ARD mean
+sd_data_prior = 0.04 # Prior SD
+
+#Skeptical prior parameters
+mean_skeptical_prior = 0 # Prior ARD mean
+sd_skeptical_prior = sd_data_prior # Prior SD
+
+#Optimistic prior parameters
+
+mean_optimistic_prior = -0.05   # Prior ARD mean
+sd_optimistic_prior = sd_data_prior # Prior SD
+
+#Pessimistic prior parameters
+
+mean_pessimistic_prior = 0.05  # Prior ARD mean
+sd_pessimistic_prior = sd_data_prior # Prior SD
+
+#Non-informative prior parameters
+
+mean_noninformative_prior = 0  # Prior ARD mean
+sd_noninformative_prior = 10 # Prior SD
+
 ```
 
-------------------------------------------------------------------------
+To aid in the interpretation of our methods, we simulated data to create
+multiple priors. In this example, we analyzed the mortality outcome of a
+fictitious subgroup. The evidence-based prior for this subgroup is described by
+a *mean* of $`r mean_data_prior`$ and *standard deviation* of
+$`r sd_data_prior`$. We then created the priors following the instructions
+mentioned above. These priors can be visualized in *Figure 1* and their parameters
+in *Table 1*.
 
-## Discharge from hospital within 28 days {.panel-name}
+# Conclusion
 
-```{r echo=FALSE, fig.align='center',fig.width=10, fig.height=4, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **tocilizumab** on **hospital discharge** by baseline characteristics"}
-knitr::include_graphics(here("preregistration", "images", "tocilizumab_discharge.png"))
+Here, we discussed the rationale and the methods of a pre-planned Bayesian
+re-analysis of the RECOVERY trial on tocilizumab and COVID-19.
+
+\newpage
+
+
+
+```{r include=FALSE}
+priors = tibble(
+  
+  "Prior Belief" = c("Evidence-based",
+                     "Skeptical",
+                     "Optimistic",
+                     "Pessimistic",
+                     "Non-informative"),
+  
+  "Mean RD"= c(mean_data_prior,
+                mean_skeptical_prior,
+                mean_optimistic_prior,
+                mean_pessimistic_prior,
+                mean_noninformative_prior),
+  
+  "SD of RD" = c(round(sd_data_prior,2),
+                  round(sd_skeptical_prior,2),
+                  round(sd_optimistic_prior,2),
+                  round(sd_pessimistic_prior,2),
+                  round(sd_noninformative_prior,2)),
+  
+  "Pr(< 0)" = c(round(pnorm(0,mean_data_prior,sd_data_prior),2),
+                round(pnorm(0,mean_skeptical_prior,sd_skeptical_prior),2),
+                round(pnorm(0,mean_optimistic_prior,sd_optimistic_prior),2),
+                round(pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior),2),
+                round(pnorm(0,mean_noninformative_prior,sd_noninformative_prior),2)),
+  
+  "Pr(< -0.05)" = c(round(pnorm(-.05,mean_data_prior,sd_data_prior),2),
+                    round(pnorm(-.05,mean_skeptical_prior,sd_skeptical_prior),2),
+                    round(pnorm(-.05,mean_optimistic_prior,sd_optimistic_prior),2),
+                    round(pnorm(-.05,mean_pessimistic_prior,sd_pessimistic_prior),2),
+                    round(pnorm(-.05,mean_noninformative_prior,sd_noninformative_prior),2)),
+  
+  "Pr(< -0.10)" = c(round(pnorm(-.1,mean_data_prior,sd_data_prior),2),
+                    round(pnorm(-.1,mean_skeptical_prior,sd_skeptical_prior),2),
+                    round(pnorm(-.1,mean_optimistic_prior,sd_optimistic_prior),2),
+                    round(pnorm(-.1,mean_pessimistic_prior,sd_pessimistic_prior),2),
+                    round(pnorm(-.1,mean_noninformative_prior,sd_noninformative_prior),2)),
+)
+
+priors_table =
+  priors %>% 
+  kbl(caption = "Parameters of priors",
+      booktabs = T, align = 'c') %>% 
+  kable_styling(latex_options = "striped")  %>% 
+  add_header_above(c(" " = 3, "Probability of Treatment Effect" = 3)) %>% 
+  footnote(general = "SD = Standard Deviation; RD = Risk Difference")
+  
 ```
 
-------------------------------------------------------------------------
-
-## Invasive mechanical ventilation or death {.panel-name}
-
-```{r echo=FALSE, fig.align='center', fig.width=10, fig.height=4, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **tocilizumab** on **invasive mechanical ventilation** or **death** in those **not** on **invasive mechanical ventilation at randomisation**, by baseline characteristics"}
-
-knitr::include_graphics(here("preregistration", "images", "tocilizumab_ventilation.png"))
-
+```{r echo=FALSE}
+priors_table
 ```
 
-------------------------------------------------------------------------
+\newpage
 
-# {-} 
+```{r echo=FALSE, fig.cap = "Simulation of priors derived from a fictitious evidence-based prior. Negative values mean tocilizumab is better."}
 
-<br>
+#### Data plot
 
-## Outcomes
+pal = c("Evidence-based" = "#3C4D54",   
+        "Skeptical" = "#D49352", 
+        "Optimistic" = "#479ED0",
+        "Pessimistic" = "#A64E49",
+        "Non-informative" = "#85AD99") 
 
-Death, the risk of receiving invasive mechanical ventilation, and time to hospital discharge are **crucial** for both the **patient** and **society's benefits**. Overall, **tocilizumab** seems to be **effective** for these outcomes. In addition to usual care, this **medication** could **save** several **lives** (NNT = 25 for mortality) of hospitalized patients with COVID-19.
-
-However, **tocilizumab** may have **different effects** in each **subgroup**. It has been postulated that **severity of COVID-19 disease** is closely related to the degree of **inflammation** and **length of disease**. Thus, one could **expect different results** between the subgroups mentioned above. Yet, the **subgroup results** of this trial are **not consistent** between outcomes. Due to this difference, it becomes **questionable** whether these **results** are accurate enough to **aid** in specifying **clinical decisions** to **subgroups** of patients.
-
-**Subgroup analyses** are key for estimating **heterogeneity** of tocilizumab's **effect** on different groups of patients. It is **clinically** and **economically** important to determine if there is sufficient **discrepancy** to ascertain **different treatments** for specific **subgroups**.
-<br>
-
-## Limitations
-
-**Frequentist subgroup analyses** pose several **limitations**. Their intrinsic **low statistical power** increases both type 2 error, [leading to false-negatives results](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(05)66516-6/fulltext), and type 1 error risk, [inflating treatment effect](https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124). If these analyses are **not appropriately interpreted**, it could generate **misleading conclusions** about the effect of tocilizumab in specific subgroups.
-<br>
-
-It is of utmost **importance** to define if **results** from a clinical trial are **clinically meaningful**. Of note, **P-values** only provide information about the **data's incompatibility** to the **null hypothesis** (effect equals zero). It is **impossible** to **infer** whether the **true effect size** is **large** or what is the **probability** of the **alternative hypothesis** (effect different from zero) of being **true** based on P-values. Also, the use of a **frequentist** approach to **subgroup analysis** can lead to [**multiplicity** issues](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(05)66516-6/fulltext).
-<br>
-
-**Confidence intervals** (CI) can **improve** the **interpretation** of results beyond P-values. **However**, they are also easily **misinterpreted**. CIs contain a range of parameter values that are more [compatible with the data than are values outside the interval](https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-020-01105-9). A **single CI does not** provide any **information** on the **true effect size**. CIs can only **inform** about the **compatibility** of data from this trial to an arbitrary threshold (e.g., 95%). It **does not** inform what is the **probability of a range of effects** (eg, RR < 1, 0.9, 0.8 etc) **to be true**. All of this information would be of great **interest** to **clinicians**.
-
-> Thus, we believe that **Bayesian analysis** can **clarify** the interpretation of these **results**.
-
-# A Bayesian reanalysis
-
-The **Bayesian statistical framework** relies on defining **priors** that capture our **belief** on the **true effect**.
-These, combined with new data (**likelihood**), generate a **posterior probability** (PP). PP can be described with **credible intervals**, which, in contrast to confidence intervals, inform the **probability** of an **effect** given the prior and likelihood. We can also perform **multiple looks** at the PP **without** worrying about **multiplicity issues**. 
-<br>
-
-> We will perform a **post hoc reanalysis** of the RECOVERY trial on tocilizumab.
-
-## Rationale underlying our priors
-
-We have decided to **define** the parameters of our **priors** for each **subgroup** on two fronts:
-
-1. We will perform a **systematic review** of randomized controlled trials on tocilizumab and COVID-19 (PROSPERO registration number .....)
-   * To create an **evidence-based prior**
-   * This prior **will not** be further **described here** since the systematic review has not been performed yet
-
-2. Based on [Zampieri et al. 2020](https://www.atsjournals.org/doi/10.1164/rccm.202006-2381CP), we also decided to choose **four** other **prior beliefs**:
-   * Non-informative (uniform)
-   * Skeptical
-   * Optimistic
-   * Pessimistic
-
-The **non-informative prior** is equal in **every subgroup**. Thus, we **will not report** any analysis on this prior in this file. 
-<br>
-
-Below, we explain the **rationale** underlying the parameters for our **prior beliefs** and **belief strengths**:
-<br>
-
-```{r echo=FALSE, fig.width=10, fig.height=4, fig.cap=""}
-tibble(
+plot_prior = ggplot(data = data.frame(x = c(-0.2, 0.2)), aes(x)) +
   
-  "Prior Belief" = c("Neutral", "Optimistic", "Pessimistic"),
+  stat_function(fun = dnorm, n = 1000,
+                args = list(mean = mean_data_prior,
+                            sd = sd_data_prior), aes(colour = "Evidence-based"),
+                linetype = 1, size = 1) + 
   
-  "Prior Mean" = c(0, 0.05, -0.05),
-  
-  "Rationale Underlying the Mean" = c("Null effect", "Estimated risk difference in sample size calculation", "Mirrored from the optimistic prior"),
-  
-  "Weak" = c("Uniform (all values equally possible)", "Pr(ARD > 0) = 0.30", "Pr(ARD < 0) = 0.30"),
+  stat_function(fun = dnorm, n = 1000,
+                args = list(mean = mean_skeptical_prior,
+                            sd = sd_skeptical_prior), aes(colour = "Skeptical"),
+                linetype = 1, size = 1) + 
     
-  "Moderate" = c("Pr(> 0.1) & Pr(< -0.1) = 0.05", "Pr(ARD > 0) = 0.15", "Pr(ARD < 0) = 0.15"),
+  stat_function(fun = dnorm, n = 1000,
+                 args = list(mean = mean_optimistic_prior,
+                            sd = sd_optimistic_prior), aes(colour = "Optimistic"),
+                linetype = 1, size = 1) +
+  
+  stat_function(fun = dnorm, n = 1000,
+                args = list(mean = mean_pessimistic_prior,
+                            sd = sd_pessimistic_prior), aes(colour = "Pessimistic"),
+                linetype = 1, size = 1) +
     
-  "Strong" = c("Pr(> 0.075) & Pr(< -0.075) = 0.05", "Pr(ARD > 0) = 0.05", "Pr(ARD < 0) = 0.05")
-)  %>% 
-
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 3, "Belief Strength" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F) %>% 
-  footnote("Adapted from Zampieri et al. 2020;    Absolute Risk Difference (ARD) < 0 means tocilizuamb is better")
-
-
-```
-
-<br>
-
-Because we will also create an evidence-based prior, we have decided to **define** the **parameters** of our **other priors** based on **data** from **similar drugs** to tocilizumab on COVID-19. **Tocilizumab** is an **anti-inflammatory** drug commonly used in patients with rheumatoid arthritis. It is a monoclonal **antibody** to the receptor for **IL-6**, a pro-inflammatory cytokine.
-<br>
-
-**Corticosteroid** is a classic **anti-inflammatory** drug class with a **plethora of effects** on the **inflammatory cascade**, such as in the **IL-6 pathway**. Previous research has shown that **dexamethasone** and **methylprednisolone** is **effective** in patients with **COVID-19**. One of the **most notable clinical trials** that has shown this effect was the [RECOVERY trial on dexamethasone](https://www.nejm.org/doi/full/10.1056/NEJMoa2021436?source=nejmfacebook&medium=organic-social&fbclid=IwAR0_hby7lkCH3WFaH1DroDaM2wbe96ibQvITdHlhFHsayULZ8wKYaEv3EuA).
-<br>
-
-## RECOVERY trial: Dexamethasone and COVID-19
-
-A total of 2104 patients were assigned to receive dexamethasone and 4321 to receive usual care. Similar to the trial on tocilizumab, 
-the **primary outcome** was **28-days mortality**. Overall, the **pooled age-adjusted rate ratio** was **0.83** (95% confidence interval, 0.75 to 0.93). Secondary outcomes were: **discharge from hospital within 28 days in all patients** and **risk of invasive mechanical ventilation (IMV)/death among those not receiving IMV at baseline**.
-<br>
-
-Here are the **results** from this trial:
-
-<br>
-
-# {.tabset}
-
-## 28-days mortality {.panel-name}
-
-### Respiratory support subgroups
-
-Interestingly, when analyzing by **respiratory support** subgroups, there is a clear **differential effect** of dexamethasone on **mortality**.
-Patients on **invasive mechanical ventilation benefit the most**, while patients **not on oxygen** tends to get **harmed** by the therapy.
-<br> <br>
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of **dexamethasone** on **28-day mortality**, according to respiratory support at randomization"}
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_mortality_respiratory-support.png"))
-```
-
-### Days since symptom onset subgroups
-
-The **time point** in which patients **start** the **treatment** also plays a vital role in the **effectiveness** of this drug.
-There were ** fewer deaths** in patients treated before **≤7 days since symptom onset**.
-<br> <br>
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **28−day mortality** by other pre−specified baseline characteristics"}
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_mortality_days-symptom.png"))
-```
-
-------------------------------------------------------------------------
-
-## Discharge from hospital within 28 days {.panel-name}
-
-### Both respiratory support and days since symptom onset subgroups
-
-Again, this **data** suggests there might be a **difference** between **subgroups**.
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **discharge from hospital alive within 28 days** by other pre−specified baseline characteristics"}
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_discharge.png"))
-```
-
-------------------------------------------------------------------------
-
-## Invasive mechanical ventilation or death {.panel-name}
-
-### Both respiratory support and days since symptom onset subgroups
-
-Notably, there is a **clear difference** in the **days since symptom onset** subgroups.
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **invasive mechanical ventilation** or **death** in those **not** on **invasive mechanical ventilation at randomisation**, by baseline characteristics"}
-
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_ventilation.png"))
-
-```
-
-------------------------------------------------------------------------
-
-# {-} 
-
-<br>
-
-# Priors
-
-> We have decided to choose the parameters of our belief strengths in light of the data on dexamethasone
-
-We will discuss our priors for the following outcomes in the tocilizumab trial:
-
-1.  28-days mortality
-
-2.  Discharge from the hospital within 28 days
-
-3.  Invasive mechanical ventilation (IMV) or death in patients not receiving IMV at baseline
-
-Regarding **respiratory support**,  there are **different subgroups** between the **dexamethasone** and **tocilizumab** trial. There is not a **no oxygen received** subgroup in the **tocilizumab** trial. Lastly, the **oxygen only** subgroup in the **dexamethasone** trial is equal to both **no ventilator support** and **non-invasive ventilation** in the **tocilizumab** trial.
-<br>
-
-Thus, we ignored the **no oxygen received** subgroup data and interpreted the **oxygen only** as analog to both tocilizumab subgroups mentioned above.
-<br>
-
-We will report the **absolute risk difference** (ARD) of tocilizumab minus the control group for each prior. Regarding the **mortality** outcome, an ARD **lower than zero** means **tocilizumab** is **better**.
-
-## 28-days mortality
-
-------------------------------------------------------------------------
-
-### Respiratory support
-
-There are three subgroups:
-
-1.  No ventilator support
-
-2.  Non-invasive ventilation
-
-3.  Invasive mechanical ventilation
-
-We have decided that the parameters of **priors** should be the **same** for **all three subgroups**.
-
-```{r}
-#Skeptical prior parameters
-mean_skeptical_prior = 0 # Prior ARD mean
-sd_skeptical_prior = 0.051 # Prior SD
-
-sum = round((1-pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior)) +
-  pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2)
-
-skeptical_text = paste0(" Pr(> 0.1 & < -0.1) = ", sum)
-
-# Check if output matches target_prob
-#skeptical_text
-```
-
-```{r}
-#Optimistic prior parameters
-
-prob_harm_optimistic = F        # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_optimistic_prior = -0.05   # Prior ARD mean
-target_prob = 0.15              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_optimistic_prior = abs(mean_optimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-optimistic_text = ifelse(prob_harm_optimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#optimistic_text
-```
-
-```{r}
-#Pessimistic prior parameters
-
-prob_harm_pessimistic = T       # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_pessimistic_prior = 0.05  # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_pessimistic_prior = abs(mean_pessimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-pessimistic_text = ifelse(prob_harm_pessimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#pessimistic_text
-```
-
-```{r}
-priors = tibble(
-  
-  "Prior Belief" = c("Skeptical",
-                     "Optimistic",
-                     "Pessimistic"),
-  
-  "Assumed Mean ARD"= c(mean_skeptical_prior,
-                        mean_optimistic_prior,
-                        mean_pessimistic_prior),
-  
-  "Belief Strength" = c("Moderate",
-                        "Moderate", 
-                        "Weak"),
-  
-  "Assumed SD of ARD" = c(round(sd_skeptical_prior, 2),
-                          round(sd_optimistic_prior, 2),
-                           round(sd_pessimistic_prior,2)),
-  
-  "Pr(< 0)" = c(pnorm(0,mean_skeptical_prior,sd_skeptical_prior),
-               pnorm(0,mean_optimistic_prior,sd_optimistic_prior),
-               pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)),
-  
-  "Pr(< -0.05)" = c(round(pnorm(-0.05,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(pnorm(-0.05,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(pnorm(-0.05,mean_pessimistic_prior,sd_pessimistic_prior,2))),
-  
-  "Pr(< -0.10)" = c(round(pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(pnorm(-0.1,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(pnorm(-0.1,mean_pessimistic_prior,sd_pessimistic_prior,2)))
-)
-
-priors_table =
-  priors %>% 
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 4, "Probability of Treatment Effect" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F)
-  
-```
-
-```{r echo=FALSE, fig.width=10, fig.height=4}
-
-#### Skeptical plot
-
-plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(-0.3,-0.1),
-            alpha=0.9) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(0.1,0.3),
-            alpha=0.9) +
   stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_skeptical_prior,
-                            sd = sd_skeptical_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0.1, color="black")+ 
-  geom_vline(xintercept = -0.1, color="black")+
-  geom_vline(xintercept = 0, color="gray70", linetype = 2)+
+                 args = list(mean =mean_noninformative_prior,
+                            sd = sd_noninformative_prior), aes(colour = "Non-informative"),
+                linetype = 1, size = 1) + 
+  geom_vline(xintercept = 0, color="grey70", linetype = 2) +
+  
+  scale_colour_manual("",values = pal) +   # legend
+  guides(col = guide_legend(nrow = 2)) +   # to split legend in two rows https://ggplot2.tidyverse.org/reference/guide_legend.html
+  labs(x="Risk difference", y = "") +
+  
+  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1)) +
+  scale_y_continuous(limits=c(0, 13)) +
+  
   theme_classic() +
   theme(axis.line.y=element_blank(),
         axis.title = element_text(size = 13),
@@ -394,2025 +311,18 @@ plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
         axis.text.x = element_text(size = 11),
         axis.ticks.y=element_blank(),
         plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y="Density",
-       title = paste0(" Skeptical prior\n\n",
-                      #skeptical_text1,
-                    #  skeptical_text2,
-                      " N(",
-                      round(mean_skeptical_prior,2),
-                      ", ",
-                      round(sd_skeptical_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12),
+        legend.position = "top",
+        plot.margin = margin(25,25,10,25)) +
+  
+  coord_cartesian(expand = T, clip = 'off')
 
 
-#### Optimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_optimistic" above)
-optimistic_multiplier = ifelse(prob_harm_optimistic,1,-1)
-
-plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_optimistic_prior,
-                        sd = sd_optimistic_prior),
-            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
-            alpha=1) +
-  stat_function(fun = dnorm, n = 1000,
-                 args = list(mean = mean_optimistic_prior,
-                            sd = sd_optimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_optimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Optimistic prior\n\n",
-                      #optimistic_text,
-                      " N(",
-                      round(mean_optimistic_prior,2),
-                      ", ",
-                      round(sd_optimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-#### Pessimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_pessimistic" above)
-pessimistic_multiplier = ifelse(prob_harm_pessimistic,1,-1)
-
-plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_pessimistic_prior,
-                        sd = sd_pessimistic_prior),
-            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_pessimistic_prior,
-                            sd = sd_pessimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_pessimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Pessimistic prior\n\n",
-                      #pessimistic_text,
-                      " N(",
-                      round(mean_pessimistic_prior,2),
-                      ", ",
-                      round(sd_pessimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
+plot_prior
 
 ```
 
-# {.tabset}
+\newpage
 
-## Priors: all subgroups {.panel-name}
 
-```{r, fig.align='center', fig.width=10, fig.height=4}
-### Plot all 3
-
-plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
-
-priors_table
-```
-
-------------------------------------------------------------------------
-
-## Corresponding dexamethasone data {.panel-name}
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of **dexamethasone** on **28-day mortality**, according to respiratory support at randomization"}
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_mortality_respiratory-support.png"))
-```
-
-------------------------------------------------------------------------
-
-# {-}
-
-<br>
-
-### Days since symptom onset
-
-There are two subgroups:
-
-1.  ≤ 7 days
-2.  \> 7 days
-
-In this case, the parameters of priors will be different for each subgroup, as follows:
-
-# {.tabset}
-
-## Priors: ≤ 7 days {.panel-name}
-
-```{r}
-#Skeptical prior parameters
-mean_skeptical_prior = 0 # Prior ARD mean
-sd_skeptical_prior = 0.0383 # Prior SD
-
-sum = round((1-pnorm(0.075,mean_skeptical_prior,sd_skeptical_prior)) +
-  pnorm(-0.075,mean_skeptical_prior,sd_skeptical_prior),2)
-
-skeptical_text = paste0(" Pr(> 0.075 & < -0.075) = ", sum)
-
-# Check if output matches target_prob
-#skeptical_text
-```
-
-```{r}
-#Optimistic prior parameters
-
-prob_harm_optimistic = F        # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_optimistic_prior = -0.05   # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_optimistic_prior = abs(mean_optimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-optimistic_text = ifelse(prob_harm_optimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#optimistic_text
-```
-
-```{r}
-#Pessimistic prior parameters
-
-prob_harm_pessimistic = T       # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_pessimistic_prior = 0.05  # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_pessimistic_prior = abs(mean_pessimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-pessimistic_text = ifelse(prob_harm_pessimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#pessimistic_text
-```
-
-```{r}
-priors = tibble(
-  
-  "Prior Belief" = c("Skeptical",
-                     "Optimistic",
-                     "Pessimistic"),
-  
-  "Assumed Mean ARD"= c(mean_skeptical_prior,
-                        mean_optimistic_prior,
-                        mean_pessimistic_prior),
-  
-  "Belief Strength" = c("Strong",
-                        "Weak", 
-                        "Weak"),
-  
-  "Assumed SD of ARD" = c(round(sd_skeptical_prior, 2),
-                          round(sd_optimistic_prior, 2),
-                           round(sd_pessimistic_prior,2)),
-  
-  "Pr(< 0)" = c(round(pnorm(0,mean_skeptical_prior,sd_skeptical_prior),2),
-                round(pnorm(0,mean_optimistic_prior,sd_optimistic_prior),2),
-                round(pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior),2)),
-  
-  "Pr(< -0.05)" = c(round(pnorm(-0.05,mean_skeptical_prior,sd_skeptical_prior),2),
-                    round(pnorm(-0.05,mean_optimistic_prior,sd_optimistic_prior),2),
-                    round(pnorm(-0.05,mean_pessimistic_prior,sd_pessimistic_prior),2)),
-  
-  "Pr(< -0.10)" = c(round(pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2),
-                    round(pnorm(-0.1,mean_optimistic_prior,sd_optimistic_prior),2),
-                    round(pnorm(-0.1,mean_pessimistic_prior,sd_pessimistic_prior),2))
-)
-
-priors_table =
-  priors %>% 
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 4, "Probability of Treatment Effect" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F)
-  
-```
-
-```{r echo=FALSE, fig.width=10, fig.height=4}
-
-#### Skeptical plot
-
-plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(-0.3,-0.075),
-            alpha=0.9) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(0.075,0.3),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_skeptical_prior,
-                            sd = sd_skeptical_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0.075, color="black")+ 
-  geom_vline(xintercept = -0.075, color="black")+
-  geom_vline(xintercept = 0, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y="Density",
-       title = paste0(" Skeptical prior\n\n",
-                      #skeptical_text1,
-                    #  skeptical_text2,
-                      " N(",
-                      round(mean_skeptical_prior,2),
-                      ", ",
-                      round(sd_skeptical_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-
-#### Optimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_optimistic" above)
-optimistic_multiplier = ifelse(prob_harm_optimistic,1,-1)
-
-plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_optimistic_prior,
-                        sd = sd_optimistic_prior),
-            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
-            alpha=1) +
-  stat_function(fun = dnorm, n = 1000,
-                 args = list(mean = mean_optimistic_prior,
-                            sd = sd_optimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_optimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Optimistic prior\n\n",
-                      #optimistic_text,
-                      " N(",
-                      round(mean_optimistic_prior,2),
-                      ", ",
-                      round(sd_optimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-#### Pessimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_pessimistic" above)
-pessimistic_multiplier = ifelse(prob_harm_pessimistic,1,-1)
-
-plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_pessimistic_prior,
-                        sd = sd_pessimistic_prior),
-            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_pessimistic_prior,
-                            sd = sd_pessimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_pessimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Pessimistic prior\n\n",
-                      #pessimistic_text,
-                      " N(",
-                      round(mean_pessimistic_prior,2),
-                      ", ",
-                      round(sd_pessimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-```
-
-```{r, fig.align='center', fig.width=10, fig.height=4}
-### Plot all 3
-
-plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
-
-priors_table
-```
-
-------------------------------------------------------------------------
-
-## Priors: > 7 days {.panel-name}
-
-```{r}
-#Skeptical prior parameters
-mean_skeptical_prior = 0 # Prior ARD mean
-sd_skeptical_prior = 0.051 # Prior SD
-
-sum = round((1-pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior)) +
-  pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2)
-
-skeptical_text = paste0(" Pr(> 0.1 & < -0.1) = ", sum)
-
-# Check if output matches target_prob
-#skeptical_text
-```
-
-```{r}
-#Optimistic prior parameters
-
-prob_harm_optimistic = F        # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_optimistic_prior = -0.05   # Prior ARD mean
-target_prob = 0.15              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_optimistic_prior = abs(mean_optimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-optimistic_text = ifelse(prob_harm_optimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#optimistic_text
-```
-
-```{r}
-#Pessimistic prior parameters
-
-prob_harm_pessimistic = T       # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_pessimistic_prior = 0.05  # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_pessimistic_prior = abs(mean_pessimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-pessimistic_text = ifelse(prob_harm_pessimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#pessimistic_text
-```
-
-```{r}
-priors = tibble(
-  
-  "Prior Belief" = c("Skeptical",
-                     "Optimistic",
-                     "Pessimistic"),
-  
-  "Assumed Mean ARD"= c(mean_skeptical_prior,
-                        mean_optimistic_prior,
-                        mean_pessimistic_prior),
-  
-  "Belief Strength" = c("Moderate",
-                        "Moderate", 
-                        "Weak"),
-  
-  "Assumed SD of ARD" = c(round(sd_skeptical_prior, 2),
-                          round(sd_optimistic_prior, 2),
-                           round(sd_pessimistic_prior,2)),
-  
-  "Pr(< 0)" = c(round(pnorm(0,mean_skeptical_prior,sd_skeptical_prior),2),
-                round(pnorm(0,mean_optimistic_prior,sd_optimistic_prior),2),
-                round(pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior),2)),
-  
-  "Pr(< -0.05)" = c(round(pnorm(-0.05,mean_skeptical_prior,sd_skeptical_prior),2),
-                    round(pnorm(-0.05,mean_optimistic_prior,sd_optimistic_prior),2),
-                    round(pnorm(-0.05,mean_pessimistic_prior,sd_pessimistic_prior,2))),
-  
-  "Pr(< -0.10)" = c(round(pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2),
-                    round(pnorm(-0.1,mean_optimistic_prior,sd_optimistic_prior),2),
-                    round(pnorm(-0.1,mean_pessimistic_prior,sd_pessimistic_prior),2))
-)
-
-priors_table =
-  priors %>% 
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 4, "Probability of Treatment Effect" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F)
-  
-```
-
-```{r echo=FALSE, fig.width=10, fig.height=4}
-
-#### Skeptical plot
-
-plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(-0.3,-0.1),
-            alpha=0.9) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(0.1,0.3),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_skeptical_prior,
-                            sd = sd_skeptical_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0.1, color="black")+ 
-  geom_vline(xintercept = -0.1, color="black")+
-  geom_vline(xintercept = 0, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y="Density",
-       title = paste0(" Skeptical prior\n\n",
-                      #skeptical_text1,
-                    #  skeptical_text2,
-                      " N(",
-                      round(mean_skeptical_prior,2),
-                      ", ",
-                      round(sd_skeptical_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-
-#### Optimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_optimistic" above)
-optimistic_multiplier = ifelse(prob_harm_optimistic,1,-1)
-
-plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_optimistic_prior,
-                        sd = sd_optimistic_prior),
-            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
-            alpha=1) +
-  stat_function(fun = dnorm, n = 1000,
-                 args = list(mean = mean_optimistic_prior,
-                            sd = sd_optimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_optimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Optimistic prior\n\n",
-                      #optimistic_text,
-                      " N(",
-                      round(mean_optimistic_prior,2),
-                      ", ",
-                      round(sd_optimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-#### Pessimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_pessimistic" above)
-pessimistic_multiplier = ifelse(prob_harm_pessimistic,1,-1)
-
-plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_pessimistic_prior,
-                        sd = sd_pessimistic_prior),
-            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_pessimistic_prior,
-                            sd = sd_pessimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_pessimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Pessimistic prior\n\n",
-                      #pessimistic_text,
-                      " N(",
-                      round(mean_pessimistic_prior,2),
-                      ", ",
-                      round(sd_pessimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-```
-
-```{r, fig.align='center', fig.width=10, fig.height=4}
-### Plot all 3
-
-plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
-
-priors_table
-```
-
-------------------------------------------------------------------------
-
-## Corresponding dexamethasone data {.panel-name}
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **28−day mortality** by other pre−specified baseline characteristics"}
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_mortality_days-symptom.png"))
-```
-
-------------------------------------------------------------------------
-
-# {-}
-
-<br>
-
-## Discharge from hospital within 28 days
-
-Now, we will discuss the priors for the outcome of discharge from the hospital within 28 days. 
-
-### Respiratory support
-
-We decided that the **priors** should **match** the ones we used for these subgroups regarding the **mortality outcome**. Of note, for the discharge from hospital outcome, an **absolute risk difference (ARD) greater than 0** means **tocilizumab** is **better**.
-
-# {.tabset}
-
-## Priors: all subgroups {.panel-name}
-
-```{r}
-#Skeptical prior parameters
-mean_skeptical_prior = 0 # Prior ARD mean
-sd_skeptical_prior = 0.051 # Prior SD
-
-sum = round((1-pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior)) +
-  pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2)
-
-skeptical_text = paste0(" Pr(> 0.1 & < -0.1) = ", sum)
-
-# Check if output matches target_prob
-#skeptical_text
-```
-
-```{r}
-#Optimistic prior parameters
-
-prob_harm_optimistic = T        # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_optimistic_prior = 0.05   # Prior ARD mean
-target_prob = 0.15              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_optimistic_prior = abs(mean_optimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-optimistic_text = ifelse(prob_harm_optimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#optimistic_text
-```
-
-```{r}
-#Pessimistic prior parameters
-
-prob_harm_pessimistic = F       # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_pessimistic_prior = -0.05  # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_pessimistic_prior = abs(mean_pessimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-pessimistic_text = ifelse(prob_harm_pessimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#pessimistic_text
-```
-
-```{r}
-priors = tibble(
-  
-  "Prior Belief" = c("Skeptical",
-                     "Optimistic",
-                     "Pessimistic"),
-  
-  "Assumed Mean ARD"= c(mean_skeptical_prior,
-                        mean_optimistic_prior,
-                        mean_pessimistic_prior),
-  
-  "Belief Strength" = c("Moderate",
-                        "Moderate", 
-                        "Weak"),
-  
-  "Assumed SD of ARD" = c(round(sd_skeptical_prior, 2),
-                          round(sd_optimistic_prior, 2),
-                           round(sd_pessimistic_prior,2)),
-  
-  "Pr(> 0)" = c((1 - pnorm(0,mean_skeptical_prior,sd_skeptical_prior)),
-                (1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)),
-                (1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior))),
-  
-  "Pr(> 0.05)" = c(round(1 - pnorm(0.05,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(1 - pnorm(0.05,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(1 - pnorm(0.05,mean_pessimistic_prior,sd_pessimistic_prior),2)),
-  
-  "Pr(> 0.10)" = c(round(1 - pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(1 - pnorm(0.1,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(1 - pnorm(0.1,mean_pessimistic_prior,sd_pessimistic_prior),2))
-)
-
-priors_table =
-  priors %>% 
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 4, "Probability of Treatment Effect" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F)
-  
-```
-
-```{r echo=FALSE, fig.width=10, fig.height=4}
-
-#### Skeptical plot
-
-plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(-0.3,-0.1),
-            alpha=0.9) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(0.1,0.3),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_skeptical_prior,
-                            sd = sd_skeptical_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0.1, color="black")+ 
-  geom_vline(xintercept = -0.1, color="black")+
-  geom_vline(xintercept = 0, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y="Density",
-       title = paste0(" Skeptical prior\n\n",
-                      #skeptical_text1,
-                    #  skeptical_text2,
-                      " N(",
-                      round(mean_skeptical_prior,2),
-                      ", ",
-                      round(sd_skeptical_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-
-#### Optimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_optimistic" above)
-optimistic_multiplier = ifelse(prob_harm_optimistic,1,-1)
-
-plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_optimistic_prior,
-                        sd = sd_optimistic_prior),
-            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
-            alpha=1) +
-  stat_function(fun = dnorm, n = 1000,
-                 args = list(mean = mean_optimistic_prior,
-                            sd = sd_optimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_optimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Optimistic prior\n\n",
-                      #optimistic_text,
-                      " N(",
-                      round(mean_optimistic_prior,2),
-                      ", ",
-                      round(sd_optimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-#### Pessimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_pessimistic" above)
-pessimistic_multiplier = ifelse(prob_harm_pessimistic,1,-1)
-
-plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_pessimistic_prior,
-                        sd = sd_pessimistic_prior),
-            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_pessimistic_prior,
-                            sd = sd_pessimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_pessimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Pessimistic prior\n\n",
-                      #pessimistic_text,
-                      " N(",
-                      round(mean_pessimistic_prior,2),
-                      ", ",
-                      round(sd_pessimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-```
-
-```{r, fig.align='center', fig.width=10, fig.height=4}
-### Plot all 3
-
-plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
-
-priors_table
-```
-
-## Corresponding dexamethasone data {.panel-name}
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **discharge from hospital alive within 28 days** by other pre−specified baseline characteristics"}
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_discharge.png"))
-```
-
-------------------------------------------------------------------------
-
-# {-}
-
-<br>
-
-### Days since symptom onset
-
-The **risk difference** between the **≤ 7 days** and **> 7 days** subgroup in the dexamethasone trial is **small**. Yet, we judged that the **priors** for the tocilizumab trial should be **different** in each subgroup.
-
-# {.tabset}
-
-## Priors: ≤ 7 days {.panel-name}
-
-```{r}
-#Skeptical prior parameters
-mean_skeptical_prior = 0 # Prior ARD mean
-sd_skeptical_prior = 0.051 # Prior SD
-
-sum = round((1-pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior)) +
-  pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2)
-
-skeptical_text = paste0(" Pr(> 0.1 & < -0.1) = ", sum)
-
-# Check if output matches target_prob
-#skeptical_text
-```
-
-```{r}
-#Optimistic prior parameters
-
-prob_harm_optimistic = T        # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_optimistic_prior = 0.05   # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_optimistic_prior = abs(mean_optimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-optimistic_text = ifelse(prob_harm_optimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#optimistic_text
-```
-
-```{r}
-#Pessimistic prior parameters
-
-prob_harm_pessimistic = F       # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_pessimistic_prior = -0.05  # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_pessimistic_prior = abs(mean_pessimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-pessimistic_text = ifelse(prob_harm_pessimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#pessimistic_text
-```
-
-```{r}
-priors = tibble(
-  
-  "Prior Belief" = c("Skeptical",
-                     "Optimistic",
-                     "Pessimistic"),
-  
-  "Assumed Mean ARD"= c(mean_skeptical_prior,
-                        mean_optimistic_prior,
-                        mean_pessimistic_prior),
-  
-  "Belief Strength" = c("Moderate",
-                        "Weak", 
-                        "Weak"),
-  
-  "Assumed SD of ARD" = c(round(sd_skeptical_prior, 2),
-                          round(sd_optimistic_prior, 2),
-                           round(sd_pessimistic_prior,2)),
-  
-  "Pr(> 0)" = c((1 - pnorm(0,mean_skeptical_prior,sd_skeptical_prior)),
-                (1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)),
-                (1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior))),
-  
-  "Pr(> 0.05)" = c(round(1 - pnorm(0.05,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(1 - pnorm(0.05,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(1 - pnorm(0.05,mean_pessimistic_prior,sd_pessimistic_prior),2)),
-  
-  "Pr(> 0.10)" = c(round(1 - pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(1 - pnorm(0.1,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(1 - pnorm(0.1,mean_pessimistic_prior,sd_pessimistic_prior),2))
-)
-
-priors_table =
-  priors %>% 
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 4, "Probability of Treatment Effect" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F)
-  
-```
-
-```{r echo=FALSE, fig.width=10, fig.height=4}
-
-#### Skeptical plot
-
-plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(-0.3,-0.1),
-            alpha=0.9) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(0.1,0.3),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_skeptical_prior,
-                            sd = sd_skeptical_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0.1, color="black")+ 
-  geom_vline(xintercept = -0.1, color="black")+
-  geom_vline(xintercept = 0, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y="Density",
-       title = paste0(" Skeptical prior\n\n",
-                      #skeptical_text1,
-                    #  skeptical_text2,
-                      " N(",
-                      round(mean_skeptical_prior,2),
-                      ", ",
-                      round(sd_skeptical_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-
-#### Optimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_optimistic" above)
-optimistic_multiplier = ifelse(prob_harm_optimistic,1,-1)
-
-plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_optimistic_prior,
-                        sd = sd_optimistic_prior),
-            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
-            alpha=1) +
-  stat_function(fun = dnorm, n = 1000,
-                 args = list(mean = mean_optimistic_prior,
-                            sd = sd_optimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_optimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Optimistic prior\n\n",
-                      #optimistic_text,
-                      " N(",
-                      round(mean_optimistic_prior,2),
-                      ", ",
-                      round(sd_optimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-#### Pessimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_pessimistic" above)
-pessimistic_multiplier = ifelse(prob_harm_pessimistic,1,-1)
-
-plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_pessimistic_prior,
-                        sd = sd_pessimistic_prior),
-            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_pessimistic_prior,
-                            sd = sd_pessimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_pessimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Pessimistic prior\n\n",
-                      #pessimistic_text,
-                      " N(",
-                      round(mean_pessimistic_prior,2),
-                      ", ",
-                      round(sd_pessimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-```
-
-```{r, fig.align='center', fig.width=10, fig.height=4}
-### Plot all 3
-
-plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
-
-priors_table
-```
-
-------------------------------------------------------------------------
-
-## Priors: > 7 days {.panel-name}
-
-```{r}
-#Skeptical prior parameters
-mean_skeptical_prior = 0 # Prior ARD mean
-sd_skeptical_prior = 0.051 # Prior SD
-
-sum = round((1-pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior)) +
-  pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2)
-
-skeptical_text = paste0(" Pr(> 0.1 & < -0.1) = ", sum)
-
-# Check if output matches target_prob
-#skeptical_text
-```
-
-```{r}
-#Optimistic prior parameters
-
-prob_harm_optimistic = T        # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_optimistic_prior = 0.05   # Prior ARD mean
-target_prob = 0.15              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_optimistic_prior = abs(mean_optimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-optimistic_text = ifelse(prob_harm_optimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#optimistic_text
-```
-
-```{r}
-#Pessimistic prior parameters
-
-prob_harm_pessimistic = F       # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_pessimistic_prior = -0.05  # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_pessimistic_prior = abs(mean_pessimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-pessimistic_text = ifelse(prob_harm_pessimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#pessimistic_text
-```
-
-```{r}
-priors = tibble(
-  
-  "Prior Belief" = c("Skeptical",
-                     "Optimistic",
-                     "Pessimistic"),
-  
-  "Assumed Mean ARD"= c(mean_skeptical_prior,
-                        mean_optimistic_prior,
-                        mean_pessimistic_prior),
-  
-  "Belief Strength" = c("Moderate",
-                        "Moderate", 
-                        "Weak"),
-  
-  "Assumed SD of ARD" = c(round(sd_skeptical_prior, 2),
-                          round(sd_optimistic_prior, 2),
-                           round(sd_pessimistic_prior,2)),
-  
-  "Pr(> 0)" = c((1 - pnorm(0,mean_skeptical_prior,sd_skeptical_prior)),
-                (1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)),
-                (1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior))),
-  
-  "Pr(> 0.05)" = c(round(1 - pnorm(0.05,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(1 - pnorm(0.05,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(1 - pnorm(0.05,mean_pessimistic_prior,sd_pessimistic_prior),2)),
-  
-  "Pr(> 0.10)" = c(round(1 - pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(1 - pnorm(0.1,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(1 - pnorm(0.1,mean_pessimistic_prior,sd_pessimistic_prior),2))
-)
-
-priors_table =
-  priors %>% 
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 4, "Probability of Treatment Effect" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F)
-  
-```
-
-```{r echo=FALSE, fig.width=10, fig.height=4}
-
-#### Skeptical plot
-
-plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(-0.3,-0.1),
-            alpha=0.9) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(0.1,0.3),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_skeptical_prior,
-                            sd = sd_skeptical_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0.1, color="black")+ 
-  geom_vline(xintercept = -0.1, color="black")+
-  geom_vline(xintercept = 0, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y="Density",
-       title = paste0(" Skeptical prior\n\n",
-                      #skeptical_text1,
-                    #  skeptical_text2,
-                      " N(",
-                      round(mean_skeptical_prior,2),
-                      ", ",
-                      round(sd_skeptical_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-
-#### Optimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_optimistic" above)
-optimistic_multiplier = ifelse(prob_harm_optimistic,1,-1)
-
-plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_optimistic_prior,
-                        sd = sd_optimistic_prior),
-            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
-            alpha=1) +
-  stat_function(fun = dnorm, n = 1000,
-                 args = list(mean = mean_optimistic_prior,
-                            sd = sd_optimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_optimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Optimistic prior\n\n",
-                      #optimistic_text,
-                      " N(",
-                      round(mean_optimistic_prior,2),
-                      ", ",
-                      round(sd_optimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-#### Pessimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_pessimistic" above)
-pessimistic_multiplier = ifelse(prob_harm_pessimistic,1,-1)
-
-plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_pessimistic_prior,
-                        sd = sd_pessimistic_prior),
-            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_pessimistic_prior,
-                            sd = sd_pessimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_pessimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Pessimistic prior\n\n",
-                      #pessimistic_text,
-                      " N(",
-                      round(mean_pessimistic_prior,2),
-                      ", ",
-                      round(sd_pessimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-```
-
-```{r, fig.align='center', fig.width=10, fig.height=4}
-### Plot all 3
-
-plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
-
-priors_table
-```
-
-------------------------------------------------------------------------
-
-## Corresponding dexamethasone data {.panel-name}
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **discharge from hospital alive within 28 days** by other pre−specified baseline characteristics"}
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_discharge.png"))
-```
-
-------------------------------------------------------------------------
-
-# {-}
-
-<br>
-
-## Invasive mechanical ventilation (IMV) or death in patients not receiving IMV at baseline
-
-### Respiratory support
-
-Here, we will *only* **consider** data from the **oxygen only** subgroup of the **dexamethasone** trial. This is the **only** dexamethasone subgroup that **matches** the subgroups (no ventilator support and non-invasive ventilation subgroups) from the **tocilizumab**  trial. Of note, for this outcome, an **ARD smaller than 0** means **tocilizumab** is **better**.
-
-# {.tabset}
-
-## Priors: all subgroups {.panel-name}
-
-```{r}
-#Skeptical prior parameters
-mean_skeptical_prior = 0 # Prior ARD mean
-sd_skeptical_prior = 0.051 # Prior SD
-
-sum = round((1-pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior)) +
-  pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2)
-
-skeptical_text = paste0(" Pr(> 0.1 & < -0.1) = ", sum)
-
-# Check if output matches target_prob
-#skeptical_text
-```
-
-```{r}
-#Optimistic prior parameters
-
-prob_harm_optimistic = F        # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_optimistic_prior = -0.05   # Prior ARD mean
-target_prob = 0.15              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_optimistic_prior = abs(mean_optimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-optimistic_text = ifelse(prob_harm_optimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#optimistic_text
-```
-
-```{r}
-#Pessimistic prior parameters
-
-prob_harm_pessimistic = T       # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_pessimistic_prior = 0.05  # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_pessimistic_prior = abs(mean_pessimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-pessimistic_text = ifelse(prob_harm_pessimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#pessimistic_text
-```
-
-```{r}
-priors = tibble(
-  
-  "Prior Belief" = c("Skeptical",
-                     "Optimistic",
-                     "Pessimistic"),
-  
-  "Assumed Mean ARD"= c(mean_skeptical_prior,
-                        mean_optimistic_prior,
-                        mean_pessimistic_prior),
-  
-  "Belief Strength" = c("Moderate",
-                        "Moderate", 
-                        "Weak"),
-  
-  "Assumed SD of ARD" = c(round(sd_skeptical_prior, 2),
-                          round(sd_optimistic_prior, 2),
-                           round(sd_pessimistic_prior,2)),
-  
-  "Pr(< 0)" = c(pnorm(0,mean_skeptical_prior,sd_skeptical_prior),
-               pnorm(0,mean_optimistic_prior,sd_optimistic_prior),
-               pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)),
-  
-  "Pr(< -0.05)" = c(round(pnorm(-0.05,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(pnorm(-0.05,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(pnorm(-0.05,mean_pessimistic_prior,sd_pessimistic_prior,2))),
-  
-  "Pr(< -0.10)" = c(round(pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2),
-                   round(pnorm(-0.1,mean_optimistic_prior,sd_optimistic_prior),2),
-                   round(pnorm(-0.1,mean_pessimistic_prior,sd_pessimistic_prior,2)))
-)
-
-priors_table =
-  priors %>% 
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 4, "Probability of Treatment Effect" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F)
-  
-```
-
-```{r echo=FALSE, fig.width=10, fig.height=4}
-
-#### Skeptical plot
-
-plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(-0.3,-0.1),
-            alpha=0.9) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(0.1,0.3),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_skeptical_prior,
-                            sd = sd_skeptical_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0.1, color="black")+ 
-  geom_vline(xintercept = -0.1, color="black")+
-  geom_vline(xintercept = 0, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y="Density",
-       title = paste0(" Skeptical prior\n\n",
-                      #skeptical_text1,
-                    #  skeptical_text2,
-                      " N(",
-                      round(mean_skeptical_prior,2),
-                      ", ",
-                      round(sd_skeptical_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-
-#### Optimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_optimistic" above)
-optimistic_multiplier = ifelse(prob_harm_optimistic,1,-1)
-
-plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_optimistic_prior,
-                        sd = sd_optimistic_prior),
-            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
-            alpha=1) +
-  stat_function(fun = dnorm, n = 1000,
-                 args = list(mean = mean_optimistic_prior,
-                            sd = sd_optimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_optimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Optimistic prior\n\n",
-                      #optimistic_text,
-                      " N(",
-                      round(mean_optimistic_prior,2),
-                      ", ",
-                      round(sd_optimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-#### Pessimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_pessimistic" above)
-pessimistic_multiplier = ifelse(prob_harm_pessimistic,1,-1)
-
-plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_pessimistic_prior,
-                        sd = sd_pessimistic_prior),
-            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_pessimistic_prior,
-                            sd = sd_pessimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_pessimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Pessimistic prior\n\n",
-                      #pessimistic_text,
-                      " N(",
-                      round(mean_pessimistic_prior,2),
-                      ", ",
-                      round(sd_pessimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-```
-
-```{r, fig.align='center', fig.width=10, fig.height=4}
-### Plot all 3
-
-plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
-
-priors_table
-```
-
-------------------------------------------------------------------------
-
-## Corresponding dexamethasone data {.panel-name}
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **invasive mechanical ventilation** or **death** in those **not** on **invasive mechanical ventilation at randomisation**, by baseline characteristics"}
-
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_ventilation.png"))
-
-```
-
-------------------------------------------------------------------------
-
-# {-}
-
-<br>
-
-### Days since symptom onset
-
-For these subgroups, we judged it would be reasonable to choose different priors' parameters for each subgroup.
-
-# {.tabset}
-
-## Priors: ≤ 7 days {.panel-name}
-
-```{r}
-#Skeptical prior parameters
-mean_skeptical_prior = 0 # Prior ARD mean
-sd_skeptical_prior = 0.0383 # Prior SD
-
-sum = round((1-pnorm(0.075,mean_skeptical_prior,sd_skeptical_prior)) +
-  pnorm(-0.075,mean_skeptical_prior,sd_skeptical_prior),2)
-
-skeptical_text = paste0(" Pr(> 0.075 & < -0.075) = ", sum)
-
-# Check if output matches target_prob
-#skeptical_text
-```
-
-```{r}
-#Optimistic prior parameters
-
-prob_harm_optimistic = F        # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_optimistic_prior = -0.05   # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_optimistic_prior = abs(mean_optimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-optimistic_text = ifelse(prob_harm_optimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#optimistic_text
-```
-
-```{r}
-#Pessimistic prior parameters
-
-prob_harm_pessimistic = T       # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_pessimistic_prior = 0.05  # Prior ARD mean
-target_prob = 0.15              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_pessimistic_prior = abs(mean_pessimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-pessimistic_text = ifelse(prob_harm_pessimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#pessimistic_text
-```
-
-```{r}
-priors = tibble(
-  
-  "Prior Belief" = c("Skeptical",
-                     "Optimistic",
-                     "Pessimistic"),
-  
-  "Assumed Mean ARD"= c(mean_skeptical_prior,
-                        mean_optimistic_prior,
-                        mean_pessimistic_prior),
-  
-  "Belief Strength" = c("Strong",
-                        "Weak", 
-                        "Moderate"),
-  
-  "Assumed SD of ARD" = c(round(sd_skeptical_prior, 2),
-                          round(sd_optimistic_prior, 2),
-                           round(sd_pessimistic_prior,2)),
-  
-  "Pr(< 0)" = c(round(pnorm(0,mean_skeptical_prior,sd_skeptical_prior),2),
-                round(pnorm(0,mean_optimistic_prior,sd_optimistic_prior),2),
-                round(pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior),2)),
-  
-  "Pr(< -0.05)" = c(round(pnorm(-0.05,mean_skeptical_prior,sd_skeptical_prior),2),
-                    round(pnorm(-0.05,mean_optimistic_prior,sd_optimistic_prior),2),
-                    round(pnorm(-0.05,mean_pessimistic_prior,sd_pessimistic_prior),2)),
-  
-  "Pr(< -0.10)" = c(round(pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2),
-                    round(pnorm(-0.1,mean_optimistic_prior,sd_optimistic_prior),2),
-                    round(pnorm(-0.1,mean_pessimistic_prior,sd_pessimistic_prior),2))
-)
-
-priors_table =
-  priors %>% 
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 4, "Probability of Treatment Effect" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F)
-  
-```
-
-```{r echo=FALSE, fig.width=10, fig.height=4}
-
-#### Skeptical plot
-
-plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(-0.3,-0.075),
-            alpha=0.9) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(0.075,0.3),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_skeptical_prior,
-                            sd = sd_skeptical_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0.075, color="black")+ 
-  geom_vline(xintercept = -0.075, color="black")+
-  geom_vline(xintercept = 0, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y="Density",
-       title = paste0(" Skeptical prior\n\n",
-                      #skeptical_text1,
-                    #  skeptical_text2,
-                      " N(",
-                      round(mean_skeptical_prior,2),
-                      ", ",
-                      round(sd_skeptical_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-
-#### Optimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_optimistic" above)
-optimistic_multiplier = ifelse(prob_harm_optimistic,1,-1)
-
-plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_optimistic_prior,
-                        sd = sd_optimistic_prior),
-            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
-            alpha=1) +
-  stat_function(fun = dnorm, n = 1000,
-                 args = list(mean = mean_optimistic_prior,
-                            sd = sd_optimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_optimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Optimistic prior\n\n",
-                      #optimistic_text,
-                      " N(",
-                      round(mean_optimistic_prior,2),
-                      ", ",
-                      round(sd_optimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-#### Pessimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_pessimistic" above)
-pessimistic_multiplier = ifelse(prob_harm_pessimistic,1,-1)
-
-plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_pessimistic_prior,
-                        sd = sd_pessimistic_prior),
-            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_pessimistic_prior,
-                            sd = sd_pessimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_pessimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Pessimistic prior\n\n",
-                      #pessimistic_text,
-                      " N(",
-                      round(mean_pessimistic_prior,2),
-                      ", ",
-                      round(sd_pessimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-```
-
-```{r, fig.align='center', fig.width=10, fig.height=4}
-### Plot all 3
-
-plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
-
-priors_table
-```
-
-------------------------------------------------------------------------
-
-## Priors: > 7 days {.panel-name}
-
-```{r}
-#Skeptical prior parameters
-mean_skeptical_prior = 0 # Prior ARD mean
-sd_skeptical_prior = 0.051 # Prior SD
-
-sum = round((1-pnorm(0.1,mean_skeptical_prior,sd_skeptical_prior)) +
-  pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2)
-
-skeptical_text = paste0(" Pr(> 0.1 & < -0.1) = ", sum)
-
-# Check if output matches target_prob
-#skeptical_text
-```
-
-```{r}
-#Optimistic prior parameters
-
-prob_harm_optimistic = F        # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_optimistic_prior = -0.05   # Prior ARD mean
-target_prob = 0.15              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_optimistic_prior = abs(mean_optimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-optimistic_text = ifelse(prob_harm_optimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_optimistic_prior,sd_optimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#optimistic_text
-```
-
-```{r}
-#Pessimistic prior parameters
-
-prob_harm_pessimistic = T       # Set TRUE to calculate Pr(ARD > 0) / Set FALSE to calculate Pr(ARD < 0)
-mean_pessimistic_prior = 0.05  # Prior ARD mean
-target_prob = 0.30              # Probability chose accordingly to belief strength (weak, moderate or strong) / Check Zampieri et al. 2020
-
-sd_pessimistic_prior = abs(mean_pessimistic_prior/qnorm(target_prob)) # Prior SD
-
-
-pessimistic_text = ifelse(prob_harm_pessimistic,
-                      paste0(" Pr(> 0) = ", round((1 - pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)),
-                      paste0(" Pr(< 0) = ", round((pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior)), 2)))
-
-# Check if output matches target_prob
-#pessimistic_text
-```
-
-```{r}
-priors = tibble(
-  
-  "Prior Belief" = c("Skeptical",
-                     "Optimistic",
-                     "Pessimistic"),
-  
-  "Assumed Mean ARD"= c(mean_skeptical_prior,
-                        mean_optimistic_prior,
-                        mean_pessimistic_prior),
-  
-  "Belief Strength" = c("Moderate",
-                        "Moderate", 
-                        "Weak"),
-  
-  "Assumed SD of ARD" = c(round(sd_skeptical_prior, 2),
-                          round(sd_optimistic_prior, 2),
-                           round(sd_pessimistic_prior,2)),
-  
-  "Pr(< 0)" = c(round(pnorm(0,mean_skeptical_prior,sd_skeptical_prior),2),
-                round(pnorm(0,mean_optimistic_prior,sd_optimistic_prior),2),
-                round(pnorm(0,mean_pessimistic_prior,sd_pessimistic_prior),2)),
-  
-  "Pr(< -0.05)" = c(round(pnorm(-0.05,mean_skeptical_prior,sd_skeptical_prior),2),
-                    round(pnorm(-0.05,mean_optimistic_prior,sd_optimistic_prior),2),
-                    round(pnorm(-0.05,mean_pessimistic_prior,sd_pessimistic_prior,2))),
-  
-  "Pr(< -0.10)" = c(round(pnorm(-0.1,mean_skeptical_prior,sd_skeptical_prior),2),
-                    round(pnorm(-0.1,mean_optimistic_prior,sd_optimistic_prior),2),
-                    round(pnorm(-0.1,mean_pessimistic_prior,sd_pessimistic_prior),2))
-)
-
-priors_table =
-  priors %>% 
-  kbl(align = 'c') %>% 
-  add_header_above(c(" " = 4, "Probability of Treatment Effect" = 3)) %>%  
-  kable_styling(bootstrap_options = "striped", full_width = F)
-  
-```
-
-```{r echo=FALSE, fig.width=10, fig.height=4}
-
-#### Skeptical plot
-
-plot_skeptical_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(-0.3,-0.1),
-            alpha=0.9) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_skeptical_prior,
-                        sd = sd_skeptical_prior),
-            fill = "darkgray", xlim = c(0.1,0.3),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_skeptical_prior,
-                            sd = sd_skeptical_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0.1, color="black")+ 
-  geom_vline(xintercept = -0.1, color="black")+
-  geom_vline(xintercept = 0, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y="Density",
-       title = paste0(" Skeptical prior\n\n",
-                      #skeptical_text1,
-                    #  skeptical_text2,
-                      " N(",
-                      round(mean_skeptical_prior,2),
-                      ", ",
-                      round(sd_skeptical_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-
-#### Optimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_optimistic" above)
-optimistic_multiplier = ifelse(prob_harm_optimistic,1,-1)
-
-plot_optimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) + 
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_optimistic_prior,
-                        sd = sd_optimistic_prior),
-            fill = "#85965F", xlim = c(0,0.3*optimistic_multiplier),
-            alpha=1) +
-  stat_function(fun = dnorm, n = 1000,
-                 args = list(mean = mean_optimistic_prior,
-                            sd = sd_optimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_optimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Optimistic prior\n\n",
-                      #optimistic_text,
-                      " N(",
-                      round(mean_optimistic_prior,2),
-                      ", ",
-                      round(sd_optimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-#### Pessimistic plot
-
-# Defines which area will be shaded (ARD > 0 or ARD < 0, based on "prob_harm_pessimistic" above)
-pessimistic_multiplier = ifelse(prob_harm_pessimistic,1,-1)
-
-plot_pessimistic_prior = ggplot(data = data.frame(x = c(-0.3, 0.3)), aes(x)) +
-  geom_area(stat = "function", fun = dnorm,
-            args = list(mean = mean_pessimistic_prior,
-                        sd = sd_pessimistic_prior),
-            fill = "#C76800", xlim = c(0,0.3*pessimistic_multiplier),
-            alpha=0.9) +
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = mean_pessimistic_prior,
-                            sd = sd_pessimistic_prior), color="black", linetype = 1) +
-  geom_vline(xintercept = 0, color="black")+ 
-  geom_vline(xintercept = mean_pessimistic_prior, color="gray70", linetype = 2)+
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 20),
-        legend.text = element_text(size = 20)) +
-  labs(x="Absolute risk difference",
-       y = "",
-       title = paste0(" Pessimistic prior\n\n",
-                      #pessimistic_text,
-                      " N(",
-                      round(mean_pessimistic_prior,2),
-                      ", ",
-                      round(sd_pessimistic_prior,2),
-                      ")\n")) +
-  scale_x_continuous(breaks=seq(from = -0.2, to = 0.2, 0.1),
-                     expand=c(0,0)) +
-  scale_y_continuous(limits=c(0, 18), expand=c(0, 0))
-
-```
-
-```{r, fig.align='center', fig.width=10, fig.height=4}
-### Plot all 3
-
-plot_skeptical_prior + plot_optimistic_prior + plot_pessimistic_prior
-
-priors_table
-```
-
-------------------------------------------------------------------------
-
-## Corresponding dexamethasone data {.panel-name}
-
-```{r echo=FALSE, fig.align='center', fig.width=12, fig.cap="Adapted from the RECOVERY trial: Effect of allocation to **dexamethasone** on **invasive mechanical ventilation** or **death** in those **not** on **invasive mechanical ventilation at randomisation**, by baseline characteristics"}
-
-knitr::include_graphics(here("preregistration", "images", "dexamethasone_ventilation.png"))
-
-```
-
-------------------------------------------------------------------------
-
-# {-}
-
-<br>
-
-```{r echo=TRUE}
-sessionInfo()
-```
