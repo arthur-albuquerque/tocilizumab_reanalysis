@@ -122,9 +122,7 @@ will extract its data if the study fits our inclusion criteria mentioned above.
 
 7.  Events in the control group
 
-8.  Events in the control group
-
-9.  Sample size in the control group
+8.  Sample size in the control group
 
 **The domains for the overall trial extraction form will include:**
 
