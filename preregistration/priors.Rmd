@@ -50,7 +50,7 @@ in 2020. Preliminary results on the anti-inflammatory drug tocilizumab were
 published on medRxiv on February 11, 2021 [@horby2021]. The RECOVERY was a
 large, open-label randomized controlled trial (RCT) that assessed 28-day
 mortality as the primary outcome in hospitalized patients with COVID-19 using a
-frequentist statistical approach. Secondary outcomes were: discharge from
+frequentist statistical approach. Secondary outcomes were discharge from
 hospital within 28 days in all patients and risk of invasive mechanical
 ventilation (IMV) or death among those not receiving IMV at baseline. Overall,
 tocilizumab was effective for these outcomes.
@@ -73,15 +73,18 @@ showed strikingly different results between subgroups
 results between the subgroups in the tocilizumab trial. However, this trial's
 subgroup results were consistent with each other.
 
-Subgroup analyses are fundamental for clinical research. They allow one to
+Subgroup analyses are fundamental to clinical practice. These analyses inform
+clinicians about the effect of treatments in specific subsets of patients and
+thus yield to the opportunity of precision medicine. They also allow one to
 explore or confirm hypotheses. In the context of tocilizumab and COVID-19, it is
 clinically and economically important to determine if there is sufficient
-discrepancy to ascertain different treatments for specific subgroups. Notably,
-frequentist subgroup analyses pose several limitations. Their low statistical
-power increases both type 2 error, leading to false-negatives results
-[@schulz2005], and type 1 error risk, inflating treatment effect
-[@ioannidis2005]. It is estimated that clinical trials designed to have 80%
-power for the primary outcome is anticipated to have 30% power for the
+discrepancy to ascertain different treatments for specific subgroups.
+
+Notably, frequentist subgroup analyses pose several limitations. Their low
+statistical power increases both type 2 error, leading to false-negatives
+results [@schulz2005], and type 1 error risk, inflating treatment effect
+[@ioannidis2005]. Estimations suggest that clinical trials designed to
+have 80% power for the primary outcome are anticipated to have 30% power for the
 interaction term [@kent2018]. Thus, one could quickly draw misleading
 conclusions about the effect of tocilizumab in specific subgroups if these
 analyses are not appropriately interpreted.
@@ -97,12 +100,10 @@ frequentist approach to subgroup analysis can lead to multiplicity issues
 [@schulz2005]. CIs can improve the interpretation of results beyond p-values.
 However, they are also easily misinterpreted. CIs contain a range of parameter
 values that are more compatible with the data than are values outside the
-interval [@rafi2020]. A single CI does not provide any information on the
-actual effect size. CIs can only inform about the compatibility of data from
-this trial to an arbitrary threshold (e.g., 95%). It does not indicate what the
-probability of a range of effects is (e.g., RR \< 1, 0.9, 0.8 etc.) to be true.
-Thus, the frequentist statistical framework poorly aids clinicians to analyze
-data from subgroups in RCTs thoroughly.
+interval [@rafi2020]. CIs do not indicate what the probability of a range of
+effects is (e.g., RR \< 1, 0.9, 0.8 etc.) to be true. Thus, the frequentist
+statistical framework poorly aids clinicians to analyze data from subgroups in
+RCTs thoroughly.
 
 # Bayesian re-analysis
 
@@ -149,7 +150,7 @@ accordingly [@white2005]. The skeptical prior uses the EBP's *variance*, but
 the *mean* equals $0$. The optimistic prior uses the EBP's *variance*, but the
 *mean* equals $-0.05$. Lastly, the pessimistic prior uses the EBP's *variance*,
 but the *mean* equals $0.05$. We decided on the absolute *mean* value of $0.05$
-because the RECOVERY group estimated risk difference was $-0.05$ for their
+because the RECOVERY group estimated risk difference would be $0.05$ for their
 sample size calculation [@therecoverycollaborativegroup2021; @zampieri2021].
 We note that these are values for the analyses regarding the mortality outcome
 because negative results mean tocilizumab is better. Thus, we will use opposite
@@ -162,7 +163,7 @@ mean tocilizumab is better.
 #Skeptical prior parameters
 
 mean_data_prior = -0.02 # Prior ARD mean
-sd_data_prior = 0.038 # Prior SD
+sd_data_prior = 0.04 # Prior SD
 
 #Skeptical prior parameters
 mean_skeptical_prior = 0 # Prior ARD mean
@@ -185,12 +186,12 @@ sd_noninformative_prior = 10 # Prior SD
 
 ```
 
-To aid in the interpretation of our methods, we will simulate data to create
-multiple priors. In this example, we will analyze the mortality outcome of a
+To aid in the interpretation of our methods, we simulated data to create
+multiple priors. In this example, we analyzed the mortality outcome of a
 fictitious subgroup. The evidence-based prior for this subgroup is described by
 a *mean* of $`r mean_data_prior`$ and *standard deviation* of
 $`r sd_data_prior`$. We then created the priors following the instructions
-mentioned above. The priors can be visualized in *Figure 1* and their parameters
+mentioned above. These priors can be visualized in *Figure 1* and their parameters
 in *Table 1*.
 
 # Conclusion

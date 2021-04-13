@@ -1,5 +1,6 @@
 ---
 title: 'Effect of Tocilizumab in Patients with COVID-19 Regarding Oxygen Therapy and Days Since Symptom Onset: Data Extraction Protocol'
+thanks: '`r format(Sys.time(), "%B %d, %Y")`'
 author:
 - name: Arthur M. Albuquerque
   affiliation: Universidade Federal do Rio de Janeiro, Brazil
@@ -9,7 +10,6 @@ author:
   affiliation: Columbia University, U.S.A.
 - name: James M. Brophy, MD, PhD
   affiliation: McGill University Health Center, Canada
-date: "`r format(Sys.time(), '%B %d, %Y')`"
 output:
   pdf_document:
     citation_package: natbib
@@ -95,7 +95,7 @@ studies. If this is not possible, a third reviewer will be used as an
 adjudicator. The selected studies' full text will be reviewed independently and
 duplicated for final inclusion in the review.
 
-Data extraction will be conducted independently and duplicated using a
+Data extraction will be conducted independently and in duplicate using a
 prefabricated and pilot-tested Excel-based digital extraction form. There will
 be two separate forms: one for subgroup data and one for overall trial
 characteristics. Extractors will attempt to reach a consensus. If this is not
@@ -104,7 +104,7 @@ possible, a third reviewer will act as an adjudicator.
 Because this living review gets updated weekly, we will screen it two times:
 before analyzing and extracting the data and at the end of the analyses, to
 check if any new trials were published. In case a new study gets published, we
-will extract its data if it fits our inclusion criteria mentioned above.
+will extract its data if the study fits our inclusion criteria mentioned above.
 
 **The domains for the subgroup extraction form will include:**
 
