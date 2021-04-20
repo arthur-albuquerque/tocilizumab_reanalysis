@@ -14,7 +14,8 @@
 #   post.mean = posterior mean                                     #
 #   post.var  = posterior variance                                 #
 #                                                                  #
-#   Source: Brophy, J. M. (2020). Bayesian Interpretation of       #
+#   Adapted from:                                                  #
+#           Brophy, J. M. (2020). Bayesian Interpretation of       #
 #           the EXCEL Trial and Other Randomized Clinical Trials   #
 #           of Left Main Coronary Artery Revascularization.        #
 #           JAMA Internal Medicine, 180(7), 986–992.               #
@@ -33,6 +34,6 @@ post.normal.mean <- function(data.mean, data.var, prior.mean, prior.var)
   b <- "Post Var = "
   c <- "Post SD = "
   cat(a, post.mean, ",", b, post.var, ",", c, sqrt(post.var), "\n" )
-  newlist <- list(post.mean, post.var, sqrt(post.var))
+  newlist <- tibble(post.mean, post.var, sqrt(post.var))
   return(newlist)
 }
