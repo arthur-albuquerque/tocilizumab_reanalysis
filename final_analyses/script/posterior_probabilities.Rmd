@@ -110,18 +110,7 @@ p1 = crash3_beta %>%
   
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
    stat_halfeye(.width = 0.95,
-               fill = "#4880B8",
-               aes(
-                 fill_ramp = stat(
-                   cut_cdf_qi(cdf,
-                              .width = c(.5, .8, 1),
-                              labels = scales::percent_format()
-                              ))
-                 )
-               ) +
-    # a range from 1 down to 0.2 ensures the fill goes dark to light inside-out
-    # and doesn't get all the way down to white (0) on the lightest color
-  scale_fill_ramp_discrete(range = c(1, 0.3), na.translate = FALSE) +
+               fill = "#4880B8") +
   
     labs(x = "\nMortality risk difference (%)", y  = "Density") +
     scale_x_continuous(breaks = seq(from = -4, to = 1, 1)) +
