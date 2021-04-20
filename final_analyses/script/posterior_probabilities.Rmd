@@ -47,12 +47,23 @@ n = 10e4
 crash3 = data %>% 
   filter(study == "CRASH-3 (2019)")
 
-# Generate random beta distributions from data
-# Assuming a non-informative prior beta(1,1) to use Bayesian inference 
+
 crash3_beta = crash3 %>%
 
-  # create random samples from data, Assuming a non-informative prior beta(1,1)
-  #to use Bayesian inference
+  # To generate posterior probabilities: 
+  
+  # prior beta(alpha1, beta1); likelihood beta(alpha2, beta2)
+  # In this case, alpha1 and beta1 = 1, because I'm using a
+  # non-informative prior: beta(1,1), i.e. an uniform distribution
+  
+  # Formula underlying a beta-distributed posterior probability: 
+  # beta(alpha1 + alpha2, beta1 + beta2)
+  
+  # In this case,
+  # alpha2 = placebo or TA_death / beta2 = placebo or TA_diff
+
+  # Thus, posterior probability formulas:
+  # beta(placebo_death + 1, placebo_diff + 1) / beta(TA_death + 1, TA_diff + 1)
   
   summarise(control = list(rbeta(n, placebo_death + 1, placebo_diff + 1)),
             TA = list(rbeta(n, TA_death + 1, TA_diff + 1))) %>% 
