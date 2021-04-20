@@ -1,0 +1,165 @@
+---
+title: "posterior-probabilities"
+author: "Arthur"
+date: "4/19/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse) # data wrangling and plotting
+library(tidybayes) # to plot distributions
+library(ggdist)
+library(patchwork) # to arrange multiple plots
+library(here) # to find file paths within R project
+library(metafor) # to summarize data for prior
+
+# Function to generate posterior probability
+source(here("final_analyses", "script", "functions", # file path
+            "conjugate_normal_posterior.R"))
+```
+
+```{r}
+data = 
+  tibble(
+    study = c("CRASH-2 (2011)", "Yut et al (2013)", "NCT (2019)", "CRASH-3 (2019)"),
+    placebo_death = c(24, 18, 50, 525),
+    placebo_n = c(137, 120, 285, 3757),
+    TA_death = c(14, 12, 93, 485),
+    TA_n = c(133, 120, 603, 3880)
+  ) %>% 
+  mutate(placebo_diff = placebo_n - placebo_death,
+         TA_diff      = TA_n - TA_death)
+
+data
+```
+
+```{r, fig.height= 2.5, fig.width=5}
+
+set.seed = 123 # set seed for reproducibility (rbeta() function)
+
+n = 10e4
+
+# Filter in CRASH-3
+crash3 = data %>% 
+  filter(study == "CRASH-3 (2019)")
+
+# Generate random beta distributions from data
+# Assuming a non-informative prior beta(1,1) to use Bayesian inference 
+crash3_beta = crash3 %>%
+
+  # create random samples from data, Assuming a non-informative prior beta(1,1)
+  #to use Bayesian inference
+  
+  summarise(control = list(rbeta(n, placebo_death + 1, placebo_diff + 1)),
+            TA = list(rbeta(n, TA_death + 1, TA_diff + 1))) %>% 
+  unnest(control:TA)
+
+# Plot!
+crash3_beta %>%
+  
+    # make it tidy for ggplot
+    pivot_longer(cols = c(control, TA),
+                 names_to = "group", values_to = "samples") %>% 
+
+    ggplot(aes(x=samples, y = fct_rev(group),  fill = stat(abs(x) > 0.13))) + 
+  
+    # https://mjskay.github.io/ggdist/articles/slabinterval.html
+    stat_halfeye(.width = 0.95,
+                 aes(
+                   fill = group,
+                   fill_ramp = stat(cut_cdf_qi(
+                     cdf,
+                     .width = c(.5, 1),
+                     labels = scales::percent_format()
+                   ))
+                 ),
+                 position = "dodge",
+                ) +
+    # a range from 1 down to 0.2 ensures the fill goes dark to light inside-out
+    # and doesn't get all the way down to white (0) on the lightest color
+    scale_fill_ramp_discrete(range = c(1, 0.4), na.translate = FALSE) +
+    scale_fill_manual(values = c("gray50", "firebrick3")) +
+  
+    labs( x = "\nAbsolute mortality risk", y  = "",
+          title = "CRASH-3 trial\n") +
+    scale_x_continuous(breaks = seq(from = 0.1, to = 0.17, 0.01)) +
+    scale_y_discrete(labels=c("control" = "Control ",
+                              "TA" = "Tranexamic\nAcid ")) +
+  
+    theme(axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          panel.background = element_blank(),
+          panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+          plot.title.position = 'plot',
+          legend.position = "none",
+          plot.margin = margin(20, 25, 15, 20))
+```
+
+```{r, fig.width=5, fig.height=2}
+p1 = crash3_beta %>% 
+  
+  # Calculate difference between groups
+  summarise(delta = 100*(TA - control)) %>% 
+  
+  # Plot!
+  ggplot(aes(delta)) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+   stat_halfeye(.width = 0.95,
+               fill = "#4880B8",
+               aes(
+                 fill_ramp = stat(
+                   cut_cdf_qi(cdf,
+                              .width = c(.5, .8, 1),
+                              labels = scales::percent_format()
+                              ))
+                 )
+               ) +
+    # a range from 1 down to 0.2 ensures the fill goes dark to light inside-out
+    # and doesn't get all the way down to white (0) on the lightest color
+  scale_fill_ramp_discrete(range = c(1, 0.3), na.translate = FALSE) +
+  
+    labs(x = "\nMortality risk difference (%)", y  = "Density") +
+    scale_x_continuous(breaks = seq(from = -4, to = 1, 1)) +
+  scale_y_continuous(breaks = NULL) +
+  theme(axis.ticks.x = element_blank(),
+        #axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        legend.position = "none")
+```
+
+```{r}
+p2 = crash3_beta %>% 
+  
+  # Calculate difference between groups
+  summarise(delta = 100*(TA - control)) %>% 
+
+  # Plot!
+  ggplot(aes(delta)) +
+  stat_ecdf(geom = "step") +
+  labs(x = "\nMortality risk difference (%)",
+       y  = "Probability RD \u2264 X\n") +
+  scale_x_continuous(breaks = seq(from = -4, to = 1, .5),
+                     limits = c(-4, 1)) +
+  scale_y_continuous(breaks = seq(from = 0, to = 1, .1)) +
+  theme(axis.ticks.x = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+        plot.title.position = 'plot',
+        legend.position = "none",
+        )
+```
+
+```{r, fig.width=6, fig.height=3}
+p1 + p2 + plot_annotation(
+  title = "CRASH-3 trial",
+  subtitle = "Risk difference between tranexamic acid and control groups"
+)
+```
+
