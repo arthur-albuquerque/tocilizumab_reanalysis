@@ -1,4 +1,4 @@
 - 01_Data_overview: to get an overall view of how each trial will contribute to each outcome
 - 02_RECOVERY:      to quickly check RECOVERY’s data through Bayesian lens
 - 03_Priors:        to quickly check our evidence-based priors
-- 04_PosteriorsL    to thoroughly analyze the RECOVERY's data along with non-informative and evidence-based priors
+- 04_Posteriors:    to thoroughly analyze the RECOVERY's data along with non-informative and evidence-based priors
