@@ -1,6 +1,6 @@
 Repository for the project "A Bayesian Interpretation of Subgroup Analyses: RECOVERY Trial on Tocilizumab and COVID-19".
 
-We pre-registered this project in the [OpenScienceFramework](https://osf.io/qhvcp/).
+We pre-registered this project at https://osf.io/qhvcp/.
 
 Authors:
 Arthur M. Albuquerque
