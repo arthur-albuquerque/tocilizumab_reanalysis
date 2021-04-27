@@ -1,0 +1,204 @@
+---
+title: "brms_test"
+author: "Arthur"
+date: "4/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(hrbrthemes)
+
+library(metafor)
+
+library(brms)
+library(bayesplot)
+library(brmstools)
+library(broom.mixed)
+
+library(here)
+
+source(here("draft", "forest.R")) # Customized forest plot function from https://osf.io/bc3wn/
+
+```
+
+```{r}
+# Load data from the RECOVERY trial on tocilizumab
+
+data = tibble(
+    
+    outcome = "mortality",
+    subgroup = c("no", "noninvasive", "invasive"),
+    toci_event = c(175, 296, 125),
+    toci_total = c(935, 819, 268),
+    control_event = c(202, 350, 142),
+    control_total = c(933, 867, 294)
+    
+              )
+# testing with dexamethasone RECOVERY
+data = tibble(
+    
+    outcome = "mortality",
+    subgroup = c("no", "only", "invasive"),
+    toci_event = c(89, 298, 95),
+    toci_total = c(501, 1279, 324),
+    control_event = c(145, 682, 283),
+    control_total = c(1034, 2604, 683)
+    
+              )
+
+# Check data
+data
+```
+
+
+```{r echo=TRUE}
+# Calculate risk difference and standard error
+
+effect_sizes = 
+    
+    escalc(
+    
+    # control
+    ai = data %>% pull(control_event),
+    n1i = data %>% pull(control_total), 
+    
+    # tocilizumab
+    ci = data %>% pull(toci_event),
+    n2i = data %>% pull(toci_total),
+    
+    data = data,
+    measure = "RD" # risk difference
+    
+                     ) 
+
+effect_sizes =
+    summary(effect_sizes) %>%
+    select(subgroup, yi, sei)
+
+```
+
+
+$$
+\begin{aligned}
+Likelihood\\
+y_{i} &\sim \mathrm{Normal}(\theta_{i}, \sigma_{i}^2) \\
+\\Priors
+\\ \theta_{i}&\sim \mathrm{Normal}(\mu, \tau^2) \\
+\\ \mu &\sim \mathrm{Normal}(0, 1) \\
+\tau&\sim \mathrm{HalfCauchy}(0, 0.1) \\
+\end{aligned}
+$$
+```{r}
+set.seed = 123
+draws = 1000
+
+norm_df = tibble(option_1 = rnorm(draws, mean = 0, sd = 0.05),
+                 option_2 = rnorm(draws, mean = 0, sd = 0.1),
+                 option_3 = rnorm(draws, mean = 0, sd = 0.2)) %>%
+    unnest(option_1:option_3) %>% 
+    pivot_longer(cols = c(option_1, option_2, option_3),
+                 names_to = "prior", values_to = "samples")
+
+norm_df %>% 
+    ggplot(aes(y = fct_rev(prior), x=samples, fill = stat(abs(x) < 0.1))) + 
+    geom_vline(xintercept = c(-0.1,0.1), color="gray70", linetype = 2) + 
+    stat_halfeye(.width = 0.95) +
+    scale_fill_manual(values = c("gray80", "skyblue")) +
+    labs( x = "Risk Difference",
+         y  = "",
+  # https://stackoverflow.com/questions/5293715/how-to-use-greek-symbols-in-ggplot2
+  # https://stackoverflow.com/questions/27690729/greek-letters-symbols-and-line-breaks-inside-a-ggplot-legend-label
+    title = "Potential Priors for \u03BC"  
+        ) +
+    scale_x_continuous(breaks = seq(from = -0.4, to = 0.4, 0.1)) +
+    theme(legend.position = "none")
+```
+
+```{r}
+mod1 = 
+    brm(data = effect_sizes, 
+        family = gaussian,
+        
+        yi | se(sqrt(sei)) ~ 1 + (1 | subgroup),
+        
+        prior = c(prior(normal(0, 1.5), class = Intercept),
+                  prior(exponential(1), class = sd)),
+        
+        warmup = 10000, iter = 30000,
+        cores = parallel::detectCores(), chains = 4,
+        control = list(adapt_delta = 0.999),
+        
+        save_all_pars = T,
+        seed = 15  # setting the seed for reproducibility
+        )
+
+plot(mod1)
+summary(mod1)
+tidy(mod1,parameters = c("^b_", "^sd_"), prob = 0.95) 
+```
+
+
+```{r}
+forest(
+    mod1, grouping = "subgroup", theme_forest = FALSE,
+    show_data = TRUE, sort = FALSE, av_name = "Overall effect size"
+) +
+    theme_ipsum(
+        base_family = "Helvetica",
+        base_size = 10, plot_title_size = 12, axis_text_size = 9
+    ) +
+    xlab("Risk difference") +
+    ylab("") +
+    xlim(-1, 1)
+```
+
+
+```{r}
+# Adapted from https://mvuorre.github.io/posts/2016-09-29-bayesian-meta-analysis/
+library(tidybayes)
+library(ggdist)
+# Subgroup-specific effects are deviations + average
+out_r = spread_draws(mod1, r_subgroup[subgroup,term], b_Intercept) %>% 
+    mutate(b_Intercept = r_subgroup + b_Intercept) 
+# Average effect
+out_f = spread_draws(mod1, b_Intercept) %>% 
+    mutate(subgroup = "Average")
+# Combine average and study-specific effects' data frames
+out_all = bind_rows(out_r, out_f) %>% 
+    ungroup() %>%
+    # Ensure that Average effect is on the bottom of the forest plot
+    mutate(subgroup = fct_relevel(subgroup, "Average")) %>% 
+    # tidybayes garbles names so fix here
+    mutate(subgroup = str_replace_all(subgroup, "\\.", " "))
+# Data frame of summary numbers
+out_all_sum = group_by(out_all, subgroup) %>% 
+    mean_qi(b_Intercept)
+# Draw plot
+out_all %>%   
+    ggplot(aes(b_Intercept, subgroup)) +
+    # Zero!
+    geom_vline(xintercept = 0, size = .25, lty = 2) +
+    stat_halfeye(.width = c(.8, .95), fill = "dodgerblue") +
+    # Add text labels
+    geom_text(
+        data = mutate_if(out_all_sum, is.numeric, round, 2),
+        aes(label = str_glue("{b_Intercept} [{.lower}, {.upper}]"), x = 0.25),
+        hjust = "inward"
+    ) +
+    # Observed as empty points
+    geom_point(
+        data = effect_sizes %>% mutate(subgroup = str_replace_all(subgroup, "\\.", " ")), 
+        aes(x=yi), position = position_nudge(y = -.2), shape = 1 
+    )
+      
+```
+
+```{r}
+
+```
+

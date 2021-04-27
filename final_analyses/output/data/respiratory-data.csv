@@ -1,0 +1,22 @@
+"","trial","outcome","oxygen","events_toci","total_toci","events_control","total_control"
+"1","REMAP-CAP","mortality","non-invasive ventilation",53,242,82,273
+"2","REMAP-CAP","mortality","invasive ventilation",45,108,60,124
+"3","REMAP-CAP","discharge","pooled non-invasive or invasive ventilation",190,353,184,402
+"4","CORIMUNO-19","mortality","pooled simple or non-invasive ventilation",7,63,8,67
+"5","CORIMUNO-19","discharge","pooled simple or non-invasive ventilation",52,63,49,67
+"6","COVACTA","mortality","simple oxygen",9,78,2,44
+"7","COVACTA","mortality","non-invasive ventilation",18,94,12,39
+"8","COVACTA","mortality","invasive ventilation",31,113,14,55
+"9","COVACTA","discharge","simple oxygen",66,78,35,44
+"10","COVACTA","discharge","non-invasive ventilation",56,94,19,39
+"11","COVACTA","discharge","invasive ventilation",35,113,13,55
+"12","TOCIBRAS","mortality","pooled simple, non-invasive or invasive ventilation",14,65,6,64
+"13","TOCIBRAS","discharge","pooled simple, non-invasive or invasive ventilation",42,65,48,64
+"14","Salvarini","mortality","non-invasive ventilation",2,60,1,63
+"15","Salvarini","discharge","non-invasive ventilation",54,60,58,63
+"16","RECOVERY","mortality","simple oxygen",175,935,202,933
+"17","RECOVERY","mortality","non-invasive ventilation",296,819,350,867
+"18","RECOVERY","mortality","invasive ventilation",125,268,142,294
+"19","RECOVERY","discharge","simple oxygen",668,935,602,933
+"20","RECOVERY","discharge","non-invasive ventilation",376,819,341,867
+"21","RECOVERY","discharge","invasive ventilation",49,268,47,294
