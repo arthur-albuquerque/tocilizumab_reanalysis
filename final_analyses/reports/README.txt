@@ -1,5 +1,5 @@
 - 01_Data_overview:                 to get an overall view of how each trial will contribute to each outcome
-- O2_Data_transformation:           to centralize all data manipulation and save()
+- 02_Data_transformation:           to centralize all data manipulation and save()
 - 03_RECOVERY:                      to quickly check RECOVERY’s data through Bayesian lens
 - 04_Evidence-Based_Priors:         to quickly check our evidence-based priors
 - 05_Posteriors_Mortality:          to thoroughly analyze the RECOVERY's data on mortality along multiple priors
