@@ -1,19 +1,27 @@
 Functions created for this project
+
+- conjugate_normal_posterior.R:            to generate normal conjugate posterior probability
   
-- beta_distributions.R:                to generate beta distributions within tibbles
+- cumulative_risk_difference_plot.R:       to plot cumulative probability of risk difference
+  
+- data_prior_posterior_plot.R:             to plot prior, data and posterior distributions side-by-side
+    
+- noninformative_posterior.R:              to generate posteriors distributions from beta distributions using noninformative priors within tibbles  
 
-- risk_comparison_plot.R:              to plot risk distributions side-by-side
+- normal_approximation_multiple_priors.R:  to compile all posteriors into a tibble
+  
+- normal_approximation.R:                  to generate posterior probabilities with multiple priors (it requires "conjugate_normal_posterior.R" )
 
-- risk_difference_plot.R:              to plot risk difference distribution
+- posterior_cumulative_plot.R:             to plot the cumulative probability of posterior distribution
 
-- cumulative_risk_difference_plot.R:   to plot cumulative probability of risk difference
+- posterior_difference_plot.R:             to plot the posterior distribution
 
-- conjugate_normal_posterior.R:        to generate normal conjugate posterior probability
+- risk_comparison_plot.R:                  to plot risk distributions side-by-side
 
-- normal_approximation.R:              to assist in the workflow of the function in "conjugate_normal_posterior.R"
+- risk_difference_plot.R:                  to plot risk difference distribution
 
-- data_prior_posterior_plot.R:         to plot prior, data and posterior distributions side-by-side
+- summary_table_death.R:                   to create a summary table adapted for the mortality outcome
 
-- posterior_difference_plot.R:         to plot the posterior distribution
+- summary_table_discharge.R:               to create a summary table adapted for the hospital discharge outcome
 
-- posterior_cumulative_plot.R:         to plot the cumulative probability of the posterior distribution
+- tibble_all_posteriors.R:                 to compile all posteriors into a tibble

@@ -1,0 +1,894 @@
+---
+title: "02_Data_transformation"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: show
+          toc: yes
+          toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T)
+```
+
+If you are not interested in the code, you can select the "Hide all code" option
+on the upper-right corner.
+
+```{r include=FALSE}
+library(tidyverse) # Data wrangling and plotting
+library(flextable) # To create tables
+library(tidybayes) # To plot distributions
+library(ggdist) # To plot distributions
+library(patchwork) # To arrange multiple plots
+library(here) # To find file paths within R project
+library(metafor) # To create priors from meta-analysis
+
+# to generate posteriors distributions from beta distributions using
+# noninformative priors within tibbles
+
+source(here("final_analyses", "script", "functions", # file path
+            "noninformative_posterior.R"))           # file name
+
+# To generate normal conjugate posterior probabilities
+
+source(here("final_analyses", "script", "functions", # file path
+            "conjugate_normal_posterior.R"))         # file name
+
+# To generate posterior probabilities with an evidence-based prior
+# (it requires "conjugate_normal_posterior.R" )
+
+source(here("final_analyses", "script", "functions", # file path
+            "normal_approximation.R"))               # file name
+
+# To generate posterior probabilities with multiple priors
+# (it requires "conjugate_normal_posterior.R" )
+
+source(here("final_analyses", "script", "functions", # file path
+            "normal_approximation_multiple_priors.R")) # file name
+
+# To compile all posteriors into a tibble
+
+source(here("final_analyses", "script", "functions", # file path
+            "tibble_all_posteriors.R")) # file name
+
+
+```
+
+<br> 
+
+Load data generated in the "01_Data_overview.Rmd" file.
+
+```{r}
+
+d = read.csv((here("final_analyses", "output", "data", # file path
+                   "respiratory-data.csv")),           # file name
+             header = T)
+d = d %>% 
+  as_tibble() %>% 
+  select(!starts_with("X")) %>% 
+  
+  # To create columns with the difference between sample size and events per arm
+  # This will be useful while using Beta distributions,
+  # diff = the Beta (b) parameter in a Beta distribution (a,b)
+  mutate(diff_toci = total_toci - events_toci,
+         diff_control = total_control - events_control)
+```
+
+Filter data to create different objects.
+
+```{r}
+### To create separate objects per subgroup
+# Here I rename columns so these variables are usable in my beta_fun()
+
+# Isolating RECOVERY
+recovery_simple_oxygen = 
+  d %>% 
+  filter(trial == "RECOVERY",
+         oxygen == "simple oxygen") %>% 
+  
+  # Only RECOVERY, so there is no need to sum, just to rename the columns
+  rename(sum_events_toci = "events_toci",
+         sum_total_toci = "total_toci",
+         sum_diff_toci = "diff_toci",
+         sum_events_control = "events_control",
+         sum_total_control = "total_control",
+         sum_diff_control = "diff_control")
+
+recovery_non_invasive = 
+  d %>% 
+  filter(trial == "RECOVERY",
+         oxygen == "non-invasive ventilation") %>% 
+  
+  # Only RECOVERY, so there is no need to sum, just to rename the columns
+  rename(sum_events_toci = "events_toci",
+         sum_total_toci = "total_toci",
+         sum_diff_toci = "diff_toci",
+         sum_events_control = "events_control",
+         sum_total_control = "total_control",
+         sum_diff_control = "diff_control") 
+
+recovery_invasive = 
+  d %>% 
+  filter(trial == "RECOVERY",
+         oxygen == "invasive ventilation") %>% 
+  
+  # Only RECOVERY, so there is no need to sum, just to rename the columns
+  rename(sum_events_toci = "events_toci",
+         sum_total_toci = "total_toci",
+         sum_diff_toci = "diff_toci",
+         sum_events_control = "events_control",
+         sum_total_control = "total_control",
+         sum_diff_control = "diff_control")
+
+## Group all other trials per outcome and sum the events/sample size
+
+trials_simple_oxygen =
+  d %>% 
+  filter(trial != "RECOVERY",
+         oxygen == "simple oxygen") %>% 
+  
+  # Only COVACTA, so no need to sum, just to rename the columns
+  rename(sum_events_toci = "events_toci",
+         sum_total_toci = "total_toci",
+         sum_diff_toci = "diff_toci",
+         sum_events_control = "events_control",
+         sum_total_control = "total_control",
+         sum_diff_control = "diff_control")
+
+trials_non_invasive = 
+  d %>% 
+  filter(trial != "RECOVERY",
+         oxygen == "non-invasive ventilation") %>%
+  group_by(outcome) %>% 
+  summarise(sum_events_toci = sum(events_toci),
+            sum_total_toci = sum(total_toci),
+            sum_diff_toci = sum(diff_toci),
+            sum_events_control = sum(events_control),
+            sum_total_control = sum(total_control),
+            sum_diff_control = sum(diff_control))
+
+trials_invasive = 
+  d %>% 
+  filter(trial != "RECOVERY",
+         oxygen == "invasive ventilation") %>%
+  group_by(outcome) %>% 
+  summarise(sum_events_toci = sum(events_toci),
+            sum_total_toci = sum(total_toci),
+            sum_diff_toci = sum(diff_toci),
+            sum_events_control = sum(events_control),
+            sum_total_control = sum(total_control),
+            sum_diff_control = sum(diff_control))
+```
+
+# Mortality outcome
+
+## Non-informative priors
+
+```{r}
+### Generate posterior beta distributions using a noninformative beta(1,1) prior
+
+set.seed = 123 # set seed for reproducibility (rbeta() function)
+
+n = 10e4 # To determine sampling size
+
+# Here I use the uninformative_posterior_beta() in which you can find in the
+# following path: 
+# here("final_analyses", "script", "functions", "noninformative_posterior.R")
+
+noninformative_recovery_simple_oxygen_death = noninformative_posterior( 
+  recovery_simple_oxygen, # data
+  "mortality" # outcome
+) 
+
+noninformative_recovery_non_invasive_death = noninformative_posterior( 
+  recovery_non_invasive, # data
+  "mortality" # outcome
+) 
+
+noninformative_recovery_invasive_death = noninformative_posterior( 
+  recovery_invasive, # data
+  "mortality" # outcome
+) 
+
+```
+
+### Simple oxygen only subgroup
+
+```{r}
+
+tibble(
+  rows = dim(noninformative_recovery_simple_oxygen_death)[1],
+  columns = dim(noninformative_recovery_simple_oxygen_death)[2]
+  ) %>% 
+  flextable()
+
+head(noninformative_recovery_simple_oxygen_death) %>% flextable()
+```
+
+### Non-invasive ventilation
+
+```{r}
+
+tibble(
+  rows = dim(noninformative_recovery_non_invasive_death)[1],
+  columns = dim(noninformative_recovery_non_invasive_death)[2]
+  ) %>% 
+  flextable()
+
+head(noninformative_recovery_non_invasive_death) %>% flextable()
+```
+
+### Invasive mechanical ventilation subgroup
+
+```{r}
+
+tibble(
+  rows = dim(noninformative_recovery_invasive_death)[1],
+  columns = dim(noninformative_recovery_invasive_death)[2]
+  ) %>% 
+  flextable()
+
+head(noninformative_recovery_invasive_death) %>% flextable()
+```
+
+```{r}
+# Save objects with posterior distributions using non-informative priors
+
+# save(noninformative_recovery_simple_oxygen_death,
+#      noninformative_recovery_non_invasive_death,
+#      noninformative_recovery_invasive_death,
+#      
+#      file = here("final_analyses", "output", "data",
+#                  "noninformative_recovery_death.RData"))
+
+```
+
+## Evidence-based priors
+
+### Simple oxygen only subgroup
+
+```{r, fig.align='center', fig.height=4, fig.width=5}
+priors_simple_oxygen_raw =
+  d %>%
+  filter(
+    trial != "RECOVERY",
+    oxygen == "simple oxygen"
+  )
+
+priors_simple_oxygen_death =
+  rma(
+    # Outcome
+    measure = "RD", # risk difference
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = priors_simple_oxygen_raw %>% filter(outcome == "mortality"),
+
+    slab = paste(trial),
+    method = "REML"
+  )
+
+# Visualize it
+forest(priors_simple_oxygen_death)
+
+```
+
+```{r include=FALSE}
+# Normal approximation function
+
+recovery_simple_oxygen_normal_death = normal_approximation(
+  recovery_simple_oxygen, # Data object with RECOVERY data
+  "mortality", # Outcome (within quotes)
+  priors_simple_oxygen_death, # Output from the rma() in the previous code chunk
+
+  recovery_simple_oxygen_normal # Repeat the name of the object you are creating
+)
+```
+
+```{r}
+recovery_simple_oxygen_normal_death %>% flextable()
+```
+
+### Non-invasive ventilation
+
+```{r, fig.align='center', fig.height=4, fig.width=5}
+priors_noninvasive_raw =
+  d %>%
+  filter(
+    trial != "RECOVERY",
+    oxygen == "non-invasive ventilation"
+  )
+
+priors_noninvasive_death =
+  rma(
+    # Outcome
+    measure = "RD", # risk difference
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = priors_noninvasive_raw %>% filter(outcome == "mortality"),
+
+    slab = paste(trial),
+    method = "REML"
+  )
+
+forest(priors_noninvasive_death)
+```
+
+```{r include=FALSE}
+# Normal approximation function
+
+recovery_noninvasive_normal_death = normal_approximation(
+  recovery_non_invasive, # Data object with RECOVERY data
+  "mortality", # Outcome (within quotes)
+  priors_noninvasive_death, # Output from the rma() in the previous code chunk
+
+  recovery_noninvasive_normal # Repeat the name of the object you are creating
+)
+```
+
+```{r}
+recovery_noninvasive_normal_death %>% flextable()
+```
+
+### Invasive mechanical ventilation subgroup
+
+```{r, fig.align='center', fig.height=4, fig.width=5}
+priors_invasive_raw =
+  d %>%
+  filter(
+    trial != "RECOVERY",
+    oxygen == "invasive ventilation"
+  )
+
+priors_invasive_death =
+  rma(
+    # Outcome
+    measure = "RD", # risk difference
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = priors_invasive_raw %>% filter(outcome == "mortality"),
+
+    slab = paste(trial),
+    method = "REML"
+  )
+
+forest(priors_invasive_death)
+```
+
+```{r include=FALSE}
+# Normal approximation function
+
+recovery_invasive_normal_death = normal_approximation(
+  recovery_invasive, # Data object with RECOVERY data
+  "mortality", # Outcome (within quotes)
+  priors_invasive_death, # Object output from the rma() in the previous code chunk
+
+  recovery_invasive_normal # Repeat the name of the object you are creating
+)
+
+```
+
+```{r}
+recovery_invasive_normal_death %>% flextable()
+```
+
+```{r}
+## Save objects with rma() outputs to show forest plot in other files
+
+# save(priors_simple_oxygen_death,
+#      priors_noninvasive_death,
+#      priors_invasive_death,
+#      
+#      file = here("final_analyses", "output", "data",
+#                  "priors_death.RData"))
+
+```
+
+
+## Alternative priors
+
+### Simple oxygen subgroup
+
+```{r include=FALSE}
+multiple_priors_simple_oxygen_death =
+  normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  recovery_simple_oxygen_normal_death, 
+  "mortality", # Outcome (within quotes)
+  multiple_priors_simple_oxygen_death # Name for the final output with data+prior+posterior
+  )
+```
+
+```{r}
+multiple_priors_simple_oxygen_death %>% flextable() %>% autofit()
+```
+
+
+### Non-invasive ventilation subgroup
+
+```{r include=FALSE}
+multiple_priors_noninvasive_death =
+  normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  recovery_noninvasive_normal_death, 
+  "mortality", # Outcome (within quotes)
+  multiple_priors_noninvasive_death # Name for the final output with data+prior+posterior
+  )
+```
+
+```{r}
+multiple_priors_noninvasive_death %>% flextable() %>% autofit()
+```
+
+### Invasive mechanical ventilation subgroup
+
+```{r include=FALSE}
+multiple_priors_invasive_death =
+  normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  recovery_invasive_normal_death, 
+  "mortality", # Outcome (within quotes)
+  multiple_priors_invasive_death # Name for the final output with data+prior+posterior
+  )
+```
+
+```{r}
+multiple_priors_invasive_death %>% flextable() %>% autofit()
+```
+## Compiling all posteriors
+
+```{r}
+### Compile noninformative prior + other priors into a tibble for summary plot
+
+## Simple oxygen
+all_posteriors_simple_oxygen_death = tibble_all_posteriors(
+  
+  # Output from noninformative_posterior()
+  noninformative_recovery_simple_oxygen_death, 
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_simple_oxygen_death 
+)
+
+## Non-invasive ventilation
+all_posteriors_noninvasive_death = tibble_all_posteriors(
+  
+  # Output from noninformative_posterior()
+  noninformative_recovery_non_invasive_death, 
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_noninvasive_death 
+)
+
+## Invasive mechanical ventilation
+all_posteriors_invasive_death = tibble_all_posteriors(
+  
+  # Output from noninformative_posterior()
+  noninformative_recovery_invasive_death, 
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_invasive_death 
+)
+```
+
+Example of one output with all the posteriors
+
+```{r}
+head(all_posteriors_simple_oxygen_death)%>% flextable() %>% autofit()
+```
+
+
+```{r}
+## Save objects with mean + SD of multiple priors along with
+## RECOVERY data and posterior distributions
+
+# save(multiple_priors_simple_oxygen_death,
+#      multiple_priors_noninvasive_death,
+#      multiple_priors_invasive_death,
+#      
+#      file = here("final_analyses", "output", "data",
+#                  "multiple_priors_death.RData"))
+
+```
+
+```{r}
+## Save objects with all posteriors
+
+# save(all_posteriors_simple_oxygen_death,
+#      all_posteriors_noninvasive_death,
+#      all_posteriors_invasive_death,
+#      
+#      file = here("final_analyses", "output", "data",
+#                  "all_posteriors_death.RData"))
+
+```
+
+# Hospital discharge outome
+
+## Non-informative priors
+
+```{r}
+### Generate posterior beta distributions using a noninformative beta(1,1) prior
+
+set.seed = 123 # set seed for reproducibility (rbeta() function)
+
+n = 10e4 # To determine sampling size
+
+# Here I use the uninformative_posterior_beta() in which you can find in the
+# following path: 
+# here("final_analyses", "script", "functions", "beta_distributions.R")
+
+noninformative_recovery_simple_oxygen_discharge = noninformative_posterior( 
+  recovery_simple_oxygen, # data
+  "discharge" # outcome
+) 
+
+noninformative_recovery_non_invasive_discharge = noninformative_posterior( 
+  recovery_non_invasive, # data
+  "discharge" # outcome
+) 
+
+noninformative_recovery_invasive_discharge = noninformative_posterior( 
+  recovery_invasive, # data
+  "discharge" # outcome
+) 
+```
+
+### Simple oxygen only subgroup
+
+```{r}
+tibble(
+  rows = dim(noninformative_recovery_simple_oxygen_discharge)[1],
+  columns = dim(noninformative_recovery_simple_oxygen_discharge)[2]
+  ) %>% 
+  flextable()
+
+head(noninformative_recovery_simple_oxygen_discharge) %>% flextable()
+```
+
+### Non-invasive ventilation
+
+```{r}
+tibble(
+  rows = dim(noninformative_recovery_non_invasive_discharge)[1],
+  columns = dim(noninformative_recovery_non_invasive_discharge)[2]
+  ) %>% 
+  flextable()
+
+head(noninformative_recovery_non_invasive_discharge) %>% flextable()
+```
+
+### Invasive mechanical ventilation subgroup
+
+```{r}
+tibble(
+  rows = dim(noninformative_recovery_invasive_discharge)[1],
+  columns = dim(noninformative_recovery_invasive_discharge)[2]
+  ) %>% 
+  flextable()
+
+head(noninformative_recovery_invasive_discharge) %>% flextable()
+```
+
+```{r}
+# Save objects for the posterior using non-informative priors
+
+# save(noninformative_recovery_simple_oxygen_discharge,
+#      noninformative_recovery_non_invasive_discharge,
+#      noninformative_recovery_invasive_discharge,
+#      
+#      file = here("final_analyses", "output", "data",
+#                  "noninformative_recovery_discharge.RData"))
+
+```
+
+## Evidence-based priors
+
+### Simple oxygen only subgroup
+
+```{r}
+priors_simple_oxygen_raw =
+  d %>%
+  filter(
+    trial != "RECOVERY",
+    oxygen == "simple oxygen"
+  )
+
+priors_simple_oxygen_discharge =
+  rma(
+    # Outcome
+    measure = "RD", # risk difference
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = priors_simple_oxygen_raw %>% filter(outcome == "discharge"),
+
+    slab = paste(trial),
+    method = "REML"
+  )
+
+forest(priors_simple_oxygen_discharge)
+```
+
+```{r include=FALSE}
+# Normal approximation function
+
+recovery_simple_oxygen_normal_discharge = normal_approximation(
+  recovery_simple_oxygen, # Data object with RECOVERY data
+  "discharge", # Outcome (within quotes)
+  priors_simple_oxygen_discharge, # Output from the rma() in the previous code chunk
+
+  recovery_simple_oxygen_normal_discharge # Repeat the name of the object you are creating
+)
+
+```
+
+```{r}
+recovery_simple_oxygen_normal_discharge %>% flextable()
+```
+
+### Non-invasive ventilation subgroup
+
+```{r, fig.align='center', fig.height=4, fig.width=5}
+
+priors_noninvasive_raw =
+  d %>%
+  filter(
+    trial != "RECOVERY",
+    oxygen == "non-invasive ventilation"
+  )
+
+priors_noninvasive_discharge =
+  rma(
+    # Outcome
+    measure = "RD", # risk difference
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = priors_noninvasive_raw %>% filter(outcome == "discharge"),
+
+    slab = paste(trial),
+    method = "REML"
+  )
+
+forest(priors_noninvasive_discharge)
+```
+
+```{r include=FALSE}
+# Normal approximation function
+
+recovery_noninvasive_normal_discharge = normal_approximation(
+  recovery_non_invasive, # Data object with RECOVERY data
+  "discharge", # Outcome (within quotes)
+  priors_noninvasive_discharge, # Output from the rma() in the previous code chunk
+
+  recovery_noninvasive_normal_discharge # Repeat the name of the object you are creating
+)
+  
+```
+
+```{r}
+recovery_noninvasive_normal_discharge %>% flextable()
+```
+
+### Invasive mechanical ventilation subgroup
+
+```{r, fig.align='center', fig.height=4, fig.width=5}
+
+priors_invasive_raw =
+  d %>%
+  filter(
+    trial != "RECOVERY",
+    oxygen == "invasive ventilation"
+  )
+
+priors_invasive_discharge =
+  rma(
+    # Outcome
+    measure = "RD", # risk difference
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = priors_invasive_raw %>% filter(outcome == "discharge"),
+
+    slab = paste(trial),
+    method = "REML"
+  )
+
+forest(priors_invasive_discharge)
+```
+
+```{r include=FALSE}
+# Normal approximation function
+
+recovery_invasive_normal_discharge = normal_approximation(
+  recovery_invasive, # Data object with RECOVERY data
+  "discharge", # Outcome (within quotes)
+  priors_invasive_discharge, # Object output from the rma() in the previous code chunk
+
+  recovery_invasive_normal # Repeat the name of the object you are creating
+)
+  
+
+```
+
+```{r}
+recovery_invasive_normal_discharge %>% flextable()
+```
+
+```{r}
+## Save objects with rma() outputs to show forest plot in other files
+
+# save(priors_simple_oxygen_discharge,
+#      priors_noninvasive_discharge,
+#      priors_invasive_discharge,
+#      
+#      file = here("final_analyses", "output", "data",
+#                  "priors_discharge.RData"))
+
+```
+
+## Alternative priors
+
+### Simple oxygen subgroup
+
+```{r include=FALSE}
+multiple_priors_simple_oxygen_discharge =
+  normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  recovery_simple_oxygen_normal_discharge, 
+  "discharge", # Outcome (within quotes)
+  multiple_priors_simple_oxygen_discharge # Name for the final output with data+prior+posterior
+  )
+```
+
+```{r}
+multiple_priors_simple_oxygen_discharge %>% flextable() %>% autofit()
+```
+
+
+### Non-invasive ventilation subgroup
+
+```{r include=FALSE}
+multiple_priors_noninvasive_discharge =
+  normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  recovery_noninvasive_normal_discharge, 
+  "discharge", # Outcome (within quotes)
+  multiple_priors_noninvasive_discharge # Name for the final output with data+prior+posterior
+  )
+```
+
+```{r}
+multiple_priors_noninvasive_discharge %>% flextable() %>% autofit()
+```
+
+### Invasive mechanical ventilation subgroup
+
+```{r include=FALSE}
+multiple_priors_invasive_discharge =
+  normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  recovery_invasive_normal_discharge, 
+  "discharge", # Outcome (within quotes)
+  multiple_priors_invasive_discharge # Name for the final output with data+prior+posterior
+  )
+```
+
+```{r}
+multiple_priors_invasive_discharge %>% flextable() %>% autofit()
+```
+
+## Compiling all posteriors
+
+```{r}
+### Compile noninformative prior + other priors into a tibble for summary plot
+
+## Simple oxygen
+all_posteriors_simple_oxygen_discharge = tibble_all_posteriors(
+  
+  # Output from noninformative_posterior()
+  noninformative_recovery_simple_oxygen_discharge, 
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_simple_oxygen_discharge 
+)
+
+## Non-invasive ventilation
+all_posteriors_noninvasive_discharge = tibble_all_posteriors(
+  
+  # Output from noninformative_posterior()
+  noninformative_recovery_non_invasive_discharge, 
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_noninvasive_discharge 
+)
+
+## Invasive mechanical ventilation
+all_posteriors_invasive_discharge = tibble_all_posteriors(
+  
+  # Output from noninformative_posterior()
+  noninformative_recovery_invasive_discharge, 
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_invasive_discharge 
+)
+```
+
+Example of one output with all the posteriors
+
+```{r}
+head(all_posteriors_simple_oxygen_discharge) %>% flextable() %>% autofit()
+```
+
+```{r}
+## Save objects with mean + SD of multiple priors along with
+## RECOVERY data and posterior distributions
+
+# save(multiple_priors_simple_oxygen_discharge,
+#      multiple_priors_noninvasive_discharge,
+#      multiple_priors_invasive_discharge,
+#      
+#      file = here("final_analyses", "output", "data",
+#                  "multiple_priors_discharge.RData"))
+
+```
+
+```{r}
+## Save objects with all posteriors
+
+# save(all_posteriors_simple_oxygen_discharge,
+#      all_posteriors_noninvasive_discharge,
+#      all_posteriors_invasive_discharge,
+#      
+#      file = here("final_analyses", "output", "data",
+#                  "all_posteriors_discharge.RData"))
+
+```
+
+
+<br><br>
+
+```{r echo=TRUE}
+sessionInfo()
+```

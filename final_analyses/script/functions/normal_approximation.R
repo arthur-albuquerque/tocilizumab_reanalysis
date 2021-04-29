@@ -57,7 +57,6 @@ normal_approximation =
       # Apply post.normal.mean() with pmap()
       mutate(posterior = pmap(data2, post.normal.mean)) %>%
       unnest(posterior) %>%
-      as.tibble() %>%
       select("post.mean", "sqrt(post.var)") %>%
       rename("post.sd" = "sqrt(post.var)")
 

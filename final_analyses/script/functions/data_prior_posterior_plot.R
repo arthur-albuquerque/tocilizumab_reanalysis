@@ -1,5 +1,8 @@
 # To plot distributions of the prior, data and posterior side-by-side
 
+set.seed = 123 # set seed for reproducibility (rnorm() function)
+n = 10e4 # sampling size
+
 data_prior_posterior_plot =
   function(data_object, # Output from the normal_approximation()
            # start using quotes

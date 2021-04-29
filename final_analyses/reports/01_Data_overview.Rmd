@@ -29,7 +29,7 @@ d = clean_names(d) # to change the names of columns
 **contribute to our analyses.**
 <br>
 
-Let's check the dimensions of the original data extraction table
+Let's check the dimensions of the original data extraction table.
 ```{r}
 tibble(
   rows = dim(d)[1],
@@ -41,7 +41,7 @@ tibble(
 <br>
 
 Here is a sneak peek into the format of the table. There is one row per
-subgroup/outcome
+subgroup/outcome.
 
 ```{r}
 d %>% 
@@ -125,7 +125,7 @@ d %>%
 <br>
 
 Since we only have data from the RECOVERY trial regarding **"days since symptom onset"**
-subgroups, we will not analyze these in this project.
+subgroups, we **will not further analyze** these in this project.
 
 ```{r}
 d_respiratory = d %>% 
@@ -165,7 +165,7 @@ d_respiratory %>%
 
 <br>
 
-Let's break it down and check what type of data we have from each trial
+Let's break it down and check what type of data we have from each trial.
 
 ```{r}
 d_respiratory %>%
@@ -197,7 +197,7 @@ d_respiratory %>%
 <br>
 
 Lastly, let's check from what trials we have **pooled data available** 
-(in addition to what was described above)
+(in addition to what was described above).
 
 ```{r}
 d_respiratory %>%
