@@ -20,7 +20,7 @@ library(ggdist) # To plot distributions
 library(patchwork) # To arrange multiple plots
 library(here) # To find file paths within R project
 library(metafor) # To create priors from meta-analysis
-library(kableExtra)
+library(kableExtra) # To create nice tables
 ```
 
 ```{r}
@@ -219,7 +219,7 @@ p3 = all_posteriors_invasive_discharge %>%
   coord_cartesian(xlim = c(xlim_inf, xlim_sup))
 ```
 
-```{r, fig.align='center', fig.height=7, fig.width=9}
+```{r, fig.align='center', fig.height=7, fig.width=9, fig.cap="Interval bars depict 50% and 95% credible intervals"}
 p1 + plot_annotation(title = "Posterior distributions on hospital discharge",
                           theme = theme(plot.title = element_text(size = 20)))
 
@@ -241,7 +241,7 @@ table_posterior %>%
   footnote(general = "RD = Risk Difference; SD = Standard Deviation")
 ```
 
-```{r, fig.align='center', fig.height=7, fig.width=9}
+```{r, fig.align='center', fig.height=7, fig.width=9, fig.cap="Interval bars depict 50% and 95% credible intervals"}
 p2
 ```
 
