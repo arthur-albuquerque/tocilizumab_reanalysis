@@ -14,9 +14,9 @@
 "13","TOCIBRAS","discharge","pooled simple, non-invasive or invasive ventilation",42,65,48,64
 "14","Salvarini","mortality","non-invasive ventilation",2,60,1,63
 "15","Salvarini","discharge","non-invasive ventilation",54,60,58,63
-"16","RECOVERY","mortality","simple oxygen",175,935,202,933
-"17","RECOVERY","mortality","non-invasive ventilation",296,819,350,867
-"18","RECOVERY","mortality","invasive ventilation",125,268,142,294
-"19","RECOVERY","discharge","simple oxygen",668,935,602,933
-"20","RECOVERY","discharge","non-invasive ventilation",376,819,341,867
-"21","RECOVERY","discharge","invasive ventilation",49,268,47,294
+"16","RECOVERY","mortality","simple oxygen",180,935,214,933
+"17","RECOVERY","mortality","non-invasive ventilation",310,819,366,867
+"18","RECOVERY","mortality","invasive ventilation",131,268,149,294
+"19","RECOVERY","discharge","simple oxygen",697,935,635,933
+"20","RECOVERY","discharge","non-invasive ventilation",401,819,362,867
+"21","RECOVERY","discharge","invasive ventilation",52,268,47,294

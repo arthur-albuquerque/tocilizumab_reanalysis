@@ -217,10 +217,10 @@ that provide both subgroup and pooled data.
 ```{r}
 # Let's save our output with only data regarding respiratory support
 
-#write.csv(d_respiratory, paste(here(
-#  "final_analyses", "output", "data", # file path
-#  "respiratory-data.csv")) # file name
-#  ) 
+# write.csv(d_respiratory, paste(here(
+#   "final_analyses", "output", "data", # file path
+#   "respiratory-data.csv")) # file name
+#   ) 
 ```
 
 <br><br>

@@ -887,13 +887,6 @@ head(all_posteriors_simple_oxygen_discharge) %>% flextable() %>% autofit()
 
 ```
 
-
-<br><br>
-
-```{r echo=TRUE}
-sessionInfo()
-```
-
 # Corticosteroids subgroup
 
 ```{r include=FALSE}
@@ -1059,6 +1052,7 @@ multiple_priors_using_cortico_death =
 ```{r}
 multiple_priors_using_cortico_death %>% flextable() %>% autofit()
 ```
+
 Compiling all posteriors
 
 ```{r}
@@ -1348,6 +1342,7 @@ multiple_priors_using_cortico_discharge =
 ```{r}
 multiple_priors_using_cortico_discharge %>% flextable() %>% autofit()
 ```
+
 Compiling all posteriors
 
 ```{r}
@@ -1531,4 +1526,10 @@ head(all_posteriors_not_cortico_discharge)%>% flextable() %>% autofit()
 #      file = here("final_analyses", "output", "data",
 #                  "all_posteriors_not_cortico_discharge.RData"))
 
+```
+
+<br><br>
+
+```{r echo=TRUE}
+sessionInfo()
 ```
