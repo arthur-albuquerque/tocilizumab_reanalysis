@@ -42,7 +42,7 @@ tibble(
   ),
   
   
-  "SD of RD" = c(
+  "SD" = c(
     posteriors_table %>%
       pull("Non-informative") %>%
       sd() %>%
