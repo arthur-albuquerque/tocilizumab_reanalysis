@@ -152,22 +152,22 @@ both_posteriors_non_informative =
   # tocilizumab vs. usual care (both using corticosteroids)
   posteriors_group1 %>% 
   select("Non-informative") %>% 
-  rename("using" = "Non-informative") %>% 
+  rename("Using" = "Non-informative") %>% 
   # Posterior distribution on risk differences between patients on
   # tocilizumab vs. usual care (both NOT using corticosteroids)
   bind_cols(posteriors_group2 %>% select("Non-informative")) %>% 
-  rename("not_using" = "Non-informative")
+  rename("Not using" = "Non-informative")
 
 both_posteriors_evidence = 
   # Posterior distribution on risk differences in mortality between patients on
   # tocilizumab vs. usual care (both using corticosteroids)
   posteriors_group1 %>% 
   select("Evidence-based") %>% 
-  rename("using" = "Evidence-based") %>% 
+  rename("Using" = "Evidence-based") %>% 
   # Posterior distribution on risk differences in mortality between patients on
   # tocilizumab vs. usual care (both NOT using corticosteroids)
   bind_cols(posteriors_group2 %>% select("Evidence-based")) %>% 
-  rename("not_using" = "Evidence-based")
+  rename("Not using" = "Evidence-based")
 
 
 #### Plot risk differences side-by-side
@@ -176,8 +176,8 @@ both_posteriors_evidence =
 # https://stackoverflow.com/questions/12774210/
 # how-do-you-specifically-order-ggplot2-x-axis-instead-of-alphabetical-order
 
-level_order = c("not_using",
-                "using")
+level_order = c("Not using",
+                "Using")
 
 a = both_posteriors_non_informative %>%
   
@@ -246,7 +246,7 @@ b = both_posteriors_evidence %>%
   coord_cartesian(xlim = c(xlim_inf_ab, xlim_sup_ab))
 
 p1 = both_posteriors_non_informative %>% 
-  summarise(difference = (using - not_using) * 100) %>% 
+  summarise(difference = (`Using` - `Not using`) * 100) %>% 
   
   ggplot(aes(difference)) +
   
@@ -273,7 +273,7 @@ p1 = both_posteriors_non_informative %>%
   coord_cartesian(xlim = c(xlim_inf_diff, xlim_sup_diff))
 
 p2 = both_posteriors_non_informative %>%
-  summarise(difference = (using - not_using) * 100) %>%
+  summarise(difference = (`Using` - `Not using`) * 100) %>%
   
   ggplot(aes(difference)) +
   stat_ecdf(geom = "step") +
@@ -299,7 +299,7 @@ p2 = both_posteriors_non_informative %>%
   )
 
 p3 = both_posteriors_evidence %>% 
-  summarise(difference = (using - not_using) * 100) %>% 
+  summarise(difference = (`Using` - `Not using`) * 100) %>% 
   
   ggplot(aes(difference)) +
   
@@ -325,7 +325,7 @@ p3 = both_posteriors_evidence %>%
   coord_cartesian(xlim = c(xlim_inf_diff, xlim_sup_diff))
 
 p4 = both_posteriors_evidence %>%
-  summarise(difference = (using - not_using) * 100) %>%
+  summarise(difference = (`Using` - `Not using`) * 100) %>%
   
   ggplot(aes(difference)) +
   stat_ecdf(geom = "step") +
@@ -450,22 +450,22 @@ both_posteriors_non_informative =
   # tocilizumab vs. usual care (both using corticosteroids)
   posteriors_group1 %>% 
   select("Non-informative") %>% 
-  rename("using" = "Non-informative") %>% 
+  rename("Using" = "Non-informative") %>% 
   # Posterior distribution on risk differences between patients on
   # tocilizumab vs. usual care (both NOT using corticosteroids)
   bind_cols(posteriors_group2 %>% select("Non-informative")) %>% 
-  rename("not_using" = "Non-informative")
+  rename("Not using" = "Non-informative")
 
 both_posteriors_evidence = 
   # Posterior distribution on risk differences in mortality between patients on
   # tocilizumab vs. usual care (both using corticosteroids)
   posteriors_group1 %>% 
   select("Evidence-based") %>% 
-  rename("using" = "Evidence-based") %>% 
+  rename("Using" = "Evidence-based") %>% 
   # Posterior distribution on risk differences in mortality between patients on
   # tocilizumab vs. usual care (both NOT using corticosteroids)
   bind_cols(posteriors_group2 %>% select("Evidence-based")) %>% 
-  rename("not_using" = "Evidence-based")
+  rename("Not using" = "Evidence-based")
 
 
 #### Plot risk differences side-by-side
@@ -474,8 +474,8 @@ both_posteriors_evidence =
 # https://stackoverflow.com/questions/12774210/
 # how-do-you-specifically-order-ggplot2-x-axis-instead-of-alphabetical-order
 
-level_order = c("not_using",
-                "using")
+level_order = c("Not using",
+                "Using")
 
 a = both_posteriors_non_informative %>%
   
@@ -544,7 +544,7 @@ b = both_posteriors_evidence %>%
   coord_cartesian(xlim = c(xlim_inf_ab, xlim_sup_ab))
 
 p1 = both_posteriors_non_informative %>% 
-  summarise(difference = (using - not_using) * 100) %>% 
+  summarise(difference = (`Using` - `Not using`) * 100) %>% 
   
   ggplot(aes(difference)) +
   
@@ -571,7 +571,7 @@ p1 = both_posteriors_non_informative %>%
   coord_cartesian(xlim = c(xlim_inf_diff, xlim_sup_diff))
 
 p2 = both_posteriors_non_informative %>%
-  summarise(difference = (using - not_using) * 100) %>%
+  summarise(difference = (`Using` - `Not using`) * 100) %>%
   
   ggplot(aes(difference)) +
   geom_line(aes(y = 1 - ..y..), stat='ecdf') +
@@ -597,7 +597,7 @@ p2 = both_posteriors_non_informative %>%
   )
 
 p3 = both_posteriors_evidence %>% 
-  summarise(difference = (using - not_using) * 100) %>% 
+  summarise(difference = (`Using` - `Not using`) * 100) %>% 
   
   ggplot(aes(difference)) +
   
@@ -623,7 +623,7 @@ p3 = both_posteriors_evidence %>%
   coord_cartesian(xlim = c(xlim_inf_diff, xlim_sup_diff))
 
 p4 = both_posteriors_evidence %>%
-  summarise(difference = (using - not_using) * 100) %>%
+  summarise(difference = (`Using` - `Not using`) * 100) %>%
   
   ggplot(aes(difference)) +
   geom_line(aes(y = 1 - ..y..), stat='ecdf') +
