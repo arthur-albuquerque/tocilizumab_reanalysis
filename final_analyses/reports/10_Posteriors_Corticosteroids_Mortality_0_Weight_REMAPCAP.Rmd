@@ -1,5 +1,5 @@
 ---
-title: "08_Posteriors_Corticosteroids_Hospital_Discharge"
+title: "10_Posteriors_Corticosteroids_Mortality_0_Weight_REMAPCAP"
 author: "Arthur M. Albuquerque"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output: 
@@ -29,35 +29,35 @@ library(kableExtra) # To create nice tables
 ## Load objects with the posterior distributions using non-informative priors
 
 load(here("final_analyses", "output", "data",
-                 "noninformative_recovery_using_cortico_discharge.RData"))
+                 "noninformative_recovery_using_cortico_death.RData"))
 
 load(here("final_analyses", "output", "data",
-                 "noninformative_recovery_not_cortico_discharge.RData"))
+                 "noninformative_recovery_not_cortico_death.RData"))
 
 ## Load objects with rma() outputs for forest plots
 
 load(here("final_analyses", "output", "data",
-                 "priors_using_cortico_discharge.RData"))
+                 "priors_0_using_cortico_death.RData"))
 
 load(here("final_analyses", "output", "data",
-                 "priors_not_cortico_discharge.RData"))
+                 "priors_0_not_cortico_death.RData"))
 
 ## Load objects with mean + SD of multiple priors along with
 ## RECOVERY data and posterior distributions
 
 load(file = here("final_analyses", "output", "data",
-                 "multiple_priors_using_cortico_discharge.RData"))
+                 "multiple_priors_0_using_cortico_death.RData"))
 
 load(file = here("final_analyses", "output", "data",
-                 "multiple_priors_not_cortico_discharge.RData"))
+                 "multiple_priors_0_not_cortico_death.RData"))
 
 ## Load objets with all the posterior for summary plot
 
 load(here("final_analyses", "output", "data",
-                 "all_posteriors_using_cortico_discharge.RData"))
+                 "all_posteriors_0_using_cortico_death.RData"))
 
 load(here("final_analyses", "output", "data",
-                 "all_posteriors_not_cortico_discharge.RData"))
+                 "all_posteriors_0_not_cortico_death.RData"))
 
 ```
 
@@ -67,7 +67,7 @@ load(here("final_analyses", "output", "data",
 # To create summary table
 
 source(here("final_analyses", "script", "functions", # file path
-            "summary_table_discharge.R"))               # file name
+            "summary_table_death.R"))               # file name
 
 
 # To plot risk distributions side-by-side
@@ -107,30 +107,39 @@ source(here("final_analyses", "script", "functions", # file path
 Let's take a look at how many patients we have by trial and subgroup
 
 ```{r warning=FALSE, include=FALSE}
-d = read_csv(here("final_analyses", "data",                      # file path
-                  "corticosteroids_subgroup_extracted-data.csv") # file name
-             )
+d = readxl::read_excel(here("final_analyses", "data", # file path
+                            "corticosteroids_subgroup_extracted-data.xlsx"))
 
 d = clean_names(d)
-
-t = d %>%
-  filter(outcome == "discharge") %>% 
-  select(-outcome) %>% 
-  flextable() %>% 
-  autofit()
 
 ```
 
 ```{r}
-t
+# Create custom function
+multiply50 = function(x){x*0}
+
+remap50 = d %>% 
+  filter(trial == "REMAP-CAP") %>% 
+  # Multiply columns regarding events and sample size using custom function
+  mutate(across(events_toci:total_control, ~ multiply50(.))) %>%
+  # Change name of the trial
+  mutate(trial = "0% REMAP-CAP")
+
+d %>% 
+  bind_rows(remap50) %>% 
+  filter(trial != "REMAP-CAP",
+         outcome == "mortality") %>% 
+  flextable() %>%
+  autofit()
 ```
+
 
 
 The following analyses were not pre-registered.
 
 <br>
 
-**Regarding the hospital discharge outcome, positive risk differences mean benefit.**
+**Regarding the mortality outcome, negative risk differences mean benefit.**
 
 ```{r}
 
@@ -149,7 +158,7 @@ level_order = c("Pessimistic",
                 "Evidence-based",
                 "Non-informative")
 
-p1 = all_posteriors_using_cortico_discharge %>%
+p1 = all_posteriors_0_using_cortico_death %>%
   
   # make it tidy for ggplot
   pivot_longer(
@@ -160,10 +169,10 @@ p1 = all_posteriors_using_cortico_discharge %>%
   ggplot(aes(x = 100 * samples, y = factor(dist, level = level_order))) +
 
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
-  stat_halfeye(aes(fill = stat(x > 0)),
+  stat_halfeye(aes(fill = stat(x < 0)),
                .width = c(0.5, 0.95)
   ) +
-  scale_fill_manual(values = c("#E98A33", "gray90")) +
+  scale_fill_manual(values = c("gray90", "#E98A33")) +
   labs(x = "\nRisk difference (%)",
        y = "Underlying prior\n",
        title = "Using corticosteroids\n"
@@ -184,7 +193,7 @@ p1 = all_posteriors_using_cortico_discharge %>%
 ```
 
 ```{r}
-p2 = all_posteriors_not_cortico_discharge %>%
+p2 = all_posteriors_0_not_cortico_death %>%
   
   # make it tidy for ggplot
   pivot_longer(
@@ -195,7 +204,7 @@ p2 = all_posteriors_not_cortico_discharge %>%
   ggplot(aes(x = 100 * samples, y = factor(dist, level = level_order))) +
 
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
-  stat_halfeye(aes(fill = stat(x > 0)),
+  stat_halfeye(aes(fill = stat(x < 0)),
                .width = c(0.5, 0.95)
   ) +
   scale_fill_manual(values = c("gray90", "#DCA3C2")) +
@@ -217,15 +226,15 @@ p2 = all_posteriors_not_cortico_discharge %>%
   coord_cartesian(xlim = c(xlim_inf, xlim_sup))
 ```
 
-```{r, fig.align='center', fig.height=7, fig.width=9, fig.cap="Interval bars depict 50% and 95% credible intervals"}
-p1 + plot_annotation(title = "Posterior distributions on hospital discharge",
+```{r, fig.align='center', fig.height=7, fig.width=9,fig.cap="Interval bars depict 50% and 95% credible intervals"}
+p1 + plot_annotation(title = "Posterior distributions on mortality",
                           theme = theme(plot.title = element_text(size = 20)))
 
 ```
 
 ```{r}
 # Summary table
-table_posterior = summary_table_discharge(all_posteriors_using_cortico_discharge)
+table_posterior = summary_table_death(all_posteriors_0_using_cortico_death)
 
 # Use kableExtra to have a nice table
 
@@ -234,19 +243,19 @@ table_posterior %>%
   kable_styling(bootstrap_options = "striped", full_width = F) %>% 
   column_spec(7, bold = T, color = "#E98A33") %>%
   add_header_above(c(" " = 3,
-                     "Probability of Harm" = 3,
-                     "Probability of Benefit" = 4)) %>% 
+                     "Probability of Benefit" = 4,
+                     "Probability of Harm" = 3)) %>% 
   footnote(general = "RD = Risk Difference; SD = Standard Deviation")
 ```
 
 
-```{r, fig.align='center', fig.height=7, fig.width=9, fig.cap="Interval bars depict 50% and 95% credible intervals"}
+```{r, fig.align='center', fig.height=7, fig.width=9,fig.cap="Interval bars depict 50% and 95% credible intervals"}
 p2
 ```
 
 ```{r}
 # Summary table
-table_posterior = summary_table_discharge(all_posteriors_not_cortico_discharge)
+table_posterior = summary_table_death(all_posteriors_0_not_cortico_death)
 
 # Use kableExtra to have a nice table
 
@@ -255,8 +264,8 @@ table_posterior %>%
   kable_styling(bootstrap_options = "striped", full_width = F) %>% 
   column_spec(7, bold = T, color = "#A263A9") %>%
   add_header_above(c(" " = 3,
-                     "Probability of Harm" = 3,
-                     "Probability of Benefit" = 4)) %>%  
+                     "Probability of Benefit" = 4,
+                     "Probability of Harm" = 3)) %>%  
   footnote(general = "RD = Risk Difference; SD = Standard Deviation")
 ```
 
@@ -273,7 +282,7 @@ table_posterior %>%
 # I will use my own functions to standardize my plots
 
 risk_comparison_plot(
-  noninformative_recovery_using_cortico_discharge, # Data object
+  noninformative_recovery_using_cortico_death, # Data object
 
   ### start using quotes
   
@@ -285,19 +294,19 @@ risk_comparison_plot(
   
   ### stop using quotes
 
-  42, # X axis inferior limit
-  62, # X axis superior limit
+  24, # X axis inferior limit
+  48, # X axis superior limit
   2 # X axis spacing for ticks
 )
 ```
 
 ```{r, fig.align='center', fig.height=4, fig.width=7}
 xlabel = "\nRisk difference (%)"
-xlim_inf = 0
-xlim_sup = 16
+xlim_inf = -12
+xlim_sup = 0
 
 p1 = risk_difference_plot(
-  noninformative_recovery_using_cortico_discharge, # Data object
+  noninformative_recovery_using_cortico_death, # Data object
 
   ## start using quotes
   "#7EBAC2", # fill color code
@@ -306,16 +315,16 @@ p1 = risk_difference_plot(
 
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  4 # X axis label
+  2 # X axis label
 ) 
 
 p2 = cumulative_risk_difference_plot(
-  noninformative_recovery_using_cortico_discharge, # Data object
+  noninformative_recovery_using_cortico_death, # Data object
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  2, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
   )
 ```
 
@@ -329,7 +338,7 @@ p1 + p2 + plot_annotation(
 ### Evidence-based prior
 
 ```{r, fig.align='center', fig.height=4, fig.width=5, warning=FALSE}
-forest(priors_using_cortico_discharge)
+forest(priors_0_using_cortico_death)
 ```
 
 ```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
@@ -337,7 +346,7 @@ forest(priors_using_cortico_discharge)
 xlabel = "\nRisk difference (%)"
 
 data_prior_posterior_plot(
-  multiple_priors_using_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_using_cortico_death %>% # Output from normal_approximation()
     filter(type == "evidence-based"), 
   
   # start using quotes
@@ -348,7 +357,7 @@ data_prior_posterior_plot(
            "Posterior distribution: RECOVERY + Evidence-based prior", # Title
            "Using corticosteroids", # Subtitle
            # stop using quotes
-           -10, # X axis inferior limit
+           -15, # X axis inferior limit
            20, # X axis superior limit
            5 # Spacing between ticks in X axis
   ) 
@@ -356,11 +365,11 @@ data_prior_posterior_plot(
 ```
 
 ```{r}
-xlim_inf = 0
-xlim_sup = 16
+xlim_inf = -10
+xlim_sup = 0
 
 p1 = posterior_difference_plot(
-  multiple_priors_using_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_using_cortico_death %>% # Output from normal_approximation()
     filter(type == "evidence-based"), 
 
   ## start using quotes
@@ -370,17 +379,17 @@ p1 = posterior_difference_plot(
 
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  4 # Spacing between ticks in X axis
+  2 # Spacing between ticks in X axis
 ) 
 
 p2 = posterior_cumulative_plot(
-  multiple_priors_using_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_using_cortico_death %>% # Output from normal_approximation()
     filter(type == "evidence-based"), 
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  2, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
   )
 ```
 
@@ -400,7 +409,7 @@ xlabel = "\nRisk difference (%)"
 data_prior_posterior_plot(
   
   # Output from normal_approximation_multiple_priors()
-  multiple_priors_using_cortico_discharge %>%
+  multiple_priors_0_using_cortico_death %>%
     filter(type == "skeptical"), 
   
   # start using quotes
@@ -419,12 +428,12 @@ data_prior_posterior_plot(
 ```
 
 ```{r}
-xlim_inf = 0
-xlim_sup = 16
+xlim_inf = -10
+xlim_sup = 0
 
 p1 = posterior_difference_plot(
   
-  multiple_priors_using_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_using_cortico_death %>% # Output from normal_approximation()
     filter(type == "skeptical"), 
 
   ## start using quotes
@@ -434,19 +443,19 @@ p1 = posterior_difference_plot(
 
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  4 # Spacing between ticks in X axis
+  2 # Spacing between ticks in X axis
 ) 
 
 p2 = posterior_cumulative_plot(
   
-  multiple_priors_using_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_using_cortico_death %>% # Output from normal_approximation()
     filter(type == "skeptical"), 
   
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  2, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
   )
 ```
 
@@ -466,7 +475,7 @@ xlabel = "\nRisk difference (%)"
 data_prior_posterior_plot(
   
   # Output from normal_approximation_multiple_priors()
-  multiple_priors_using_cortico_discharge %>%
+  multiple_priors_0_using_cortico_death %>%
     filter(type == "optimistic"), 
   
   # start using quotes
@@ -477,20 +486,20 @@ data_prior_posterior_plot(
   "Posterior distribution: RECOVERY trial + Optimistic prior", # Title
   "Using corticosteroids", # Subtitle
   # stop using quotes
-  -10, # X axis inferior limit
-  20, # X axis superior limit
+  -20, # X axis inferior limit
+  10, # X axis superior limit
   5 # Spacing between ticks in X axis
 ) 
 
 ```
 
 ```{r}
-xlim_inf = 0
-xlim_sup = 16
+xlim_inf = -10
+xlim_sup = 0
 
 p1 = posterior_difference_plot(
   
-  multiple_priors_using_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_using_cortico_death %>% # Output from normal_approximation()
     filter(type == "optimistic"), 
   
   ## start using quotes
@@ -500,19 +509,19 @@ p1 = posterior_difference_plot(
   
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  4 # Spacing between ticks in X axis
+  2 # Spacing between ticks in X axis
 ) 
 
 p2 = posterior_cumulative_plot(
   
-  multiple_priors_using_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_using_cortico_death %>% # Output from normal_approximation()
     filter(type == "optimistic"), 
   
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  2, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
 )
 ```
 
@@ -532,7 +541,7 @@ xlabel = "\nRisk difference (%)"
 data_prior_posterior_plot(
   
   # Output from normal_approximation_multiple_priors()
-  multiple_priors_using_cortico_discharge %>%
+  multiple_priors_0_using_cortico_death %>%
     filter(type == "pessimistic"), 
   
   # start using quotes
@@ -543,20 +552,20 @@ data_prior_posterior_plot(
   "Posterior distribution: RECOVERY trial + Pessimistic prior", # Title
   "Using corticosteroids", # Subtitle
   # stop using quotes
-  -20, # X axis inferior limit
-  15, # X axis superior limit
+  -10, # X axis inferior limit
+  20, # X axis superior limit
   5 # Spacing between ticks in X axis
 ) 
 
 ```
 
 ```{r}
-xlim_inf = 0
-xlim_sup = 16
+xlim_inf = -10
+xlim_sup = 0
 
 p1 = posterior_difference_plot(
   
-  multiple_priors_using_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_using_cortico_death %>% # Output from normal_approximation()
     filter(type == "pessimistic"), 
   
   ## start using quotes
@@ -566,19 +575,19 @@ p1 = posterior_difference_plot(
   
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  4 # Spacing between ticks in X axis
+  2 # Spacing between ticks in X axis
 ) 
 
 p2 = posterior_cumulative_plot(
   
-  multiple_priors_using_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_using_cortico_death %>% # Output from normal_approximation()
     filter(type == "pessimistic"), 
   
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  2, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
 )
 ```
 
@@ -600,7 +609,7 @@ p1 + p2 + plot_annotation(
 # I will use my own functions to standardize my plots
 
 risk_comparison_plot(
-  noninformative_recovery_not_cortico_discharge, # Data object
+  noninformative_recovery_not_cortico_death, # Data object
   
   ### start using quotes
   
@@ -612,19 +621,19 @@ risk_comparison_plot(
   
   ### stop using quotes
   
-  36, # X axis inferior limit
-  58, # X axis superior limit
+  24, # X axis inferior limit
+  48, # X axis superior limit
   2 # X axis spacing for ticks
 )
 ```
 
 ```{r, fig.align='center', fig.height=4, fig.width=7}
 xlabel = "\nRisk difference (%)"
-xlim_inf = -12
-xlim_sup = 12
+xlim_inf = -8
+xlim_sup = 16
 
 p1 = risk_difference_plot(
-  noninformative_recovery_not_cortico_discharge, # Data object
+  noninformative_recovery_not_cortico_death, # Data object
   
   ## start using quotes
   "#7EBAC2", # fill color code
@@ -637,12 +646,12 @@ p1 = risk_difference_plot(
 ) 
 
 p2 = cumulative_risk_difference_plot(
-  noninformative_recovery_not_cortico_discharge, # Data object
+  noninformative_recovery_not_cortico_death, # Data object
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
   2, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  "mortality" # Outcome (within quotes)
 )
 ```
 
@@ -656,7 +665,7 @@ p1 + p2 + plot_annotation(
 ### Evidence-based prior
 
 ```{r, fig.align='center', fig.height=4, fig.width=5, warning=FALSE}
-forest(priors_not_cortico_discharge)
+forest(priors_0_not_cortico_death)
 ```
 
 ```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
@@ -664,7 +673,7 @@ forest(priors_not_cortico_discharge)
 xlabel = "\nRisk difference (%)"
 
 data_prior_posterior_plot(
-  multiple_priors_not_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_not_cortico_death %>% # Output from normal_approximation()
     filter(type == "evidence-based"), 
   
   # start using quotes
@@ -675,19 +684,19 @@ data_prior_posterior_plot(
   "Posterior distribution: RECOVERY + Evidence-based prior", # Title
   "Not using corticosteroids", # Subtitle
   # stop using quotes
-  -10, # X axis inferior limit
-  25, # X axis superior limit
+  -15, # X axis inferior limit
+  15, # X axis superior limit
   5 # Spacing between ticks in X axis
 ) 
 
 ```
 
 ```{r}
-xlim_inf = -12
+xlim_inf = -6
 xlim_sup = 12
 
 p1 = posterior_difference_plot(
-  multiple_priors_not_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_not_cortico_death %>% # Output from normal_approximation()
     filter(type == "evidence-based"), 
   
   ## start using quotes
@@ -697,17 +706,17 @@ p1 = posterior_difference_plot(
   
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  4 # Spacing between ticks in X axis
+  2 # Spacing between ticks in X axis
 ) 
 
 p2 = posterior_cumulative_plot(
-  multiple_priors_not_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_not_cortico_death %>% # Output from normal_approximation()
     filter(type == "evidence-based"), 
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  2, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
 )
 ```
 
@@ -727,7 +736,7 @@ xlabel = "\nRisk difference (%)"
 data_prior_posterior_plot(
   
   # Output from normal_approximation_multiple_priors()
-  multiple_priors_not_cortico_discharge %>%
+  multiple_priors_0_not_cortico_death %>%
     filter(type == "skeptical"), 
   
   # start using quotes
@@ -746,12 +755,12 @@ data_prior_posterior_plot(
 ```
 
 ```{r}
-xlim_inf = -10
-xlim_sup = 8
+xlim_inf = -6
+xlim_sup = 12
 
 p1 = posterior_difference_plot(
   
-  multiple_priors_not_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_not_cortico_death %>% # Output from normal_approximation()
     filter(type == "skeptical"), 
   
   ## start using quotes
@@ -766,14 +775,14 @@ p1 = posterior_difference_plot(
 
 p2 = posterior_cumulative_plot(
   
-  multiple_priors_not_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_not_cortico_death %>% # Output from normal_approximation()
     filter(type == "skeptical"), 
   
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
   1, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  "mortality" # Outcome (within quotes)
 )
 ```
 
@@ -793,7 +802,7 @@ xlabel = "\nRisk difference (%)"
 data_prior_posterior_plot(
   
   # Output from normal_approximation_multiple_priors()
-  multiple_priors_not_cortico_discharge %>%
+  multiple_priors_0_not_cortico_death %>%
     filter(type == "optimistic"), 
   
   # start using quotes
@@ -804,20 +813,20 @@ data_prior_posterior_plot(
   "Posterior distribution: RECOVERY trial + Optimistic prior", # Title
   "Using corticosteroids", # Subtitle
   # stop using quotes
-  -10, # X axis inferior limit
-  20, # X axis superior limit
+  -20, # X axis inferior limit
+  15, # X axis superior limit
   5 # Spacing between ticks in X axis
 ) 
 
 ```
 
 ```{r}
-xlim_inf = -12
-xlim_sup = 12
+xlim_inf = -8
+xlim_sup = 10
 
 p1 = posterior_difference_plot(
   
-  multiple_priors_not_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_not_cortico_death %>% # Output from normal_approximation()
     filter(type == "optimistic"), 
   
   ## start using quotes
@@ -827,19 +836,19 @@ p1 = posterior_difference_plot(
   
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  4 # Spacing between ticks in X axis
+  2 # Spacing between ticks in X axis
 ) 
 
 p2 = posterior_cumulative_plot(
   
-  multiple_priors_not_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_not_cortico_death %>% # Output from normal_approximation()
     filter(type == "optimistic"), 
   
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
-  2, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
 )
 ```
 
@@ -859,7 +868,7 @@ xlabel = "\nRisk difference (%)"
 data_prior_posterior_plot(
   
   # Output from normal_approximation_multiple_priors()
-  multiple_priors_not_cortico_discharge %>%
+  multiple_priors_0_not_cortico_death %>%
     filter(type == "pessimistic"), 
   
   # start using quotes
@@ -870,20 +879,20 @@ data_prior_posterior_plot(
   "Posterior distribution: RECOVERY trial + Pessimistic prior", # Title
   "Not using corticosteroids", # Subtitle
   # stop using quotes
-  -20, # X axis inferior limit
-  10, # X axis superior limit
+  -10, # X axis inferior limit
+  20, # X axis superior limit
   5 # Spacing between ticks in X axis
 ) 
 
 ```
 
 ```{r}
-xlim_inf = -12
-xlim_sup = 8
+xlim_inf = -4
+xlim_sup = 16
 
 p1 = posterior_difference_plot(
   
-  multiple_priors_not_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_not_cortico_death %>% # Output from normal_approximation()
     filter(type == "pessimistic"), 
   
   ## start using quotes
@@ -898,14 +907,14 @@ p1 = posterior_difference_plot(
 
 p2 = posterior_cumulative_plot(
   
-  multiple_priors_not_cortico_discharge %>% # Output from normal_approximation()
+  multiple_priors_0_not_cortico_death %>% # Output from normal_approximation()
     filter(type == "pessimistic"), 
   
   xlabel, # X axis label (in quotes)
   xlim_inf, # X axis inferior limit
   xlim_sup, # X axis superior limit
   2, # Spacing between ticks in X axis
-  "discharge" # Outcome (within quotes)
+  "mortality" # Outcome (within quotes)
 )
 ```
 

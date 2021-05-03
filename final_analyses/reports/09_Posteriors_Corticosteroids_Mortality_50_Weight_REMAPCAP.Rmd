@@ -1,0 +1,933 @@
+---
+title: "09_Posteriors_Corticosteroids_Mortality_50_Weight_REMAPCAP"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: hide
+          toc: yes
+          toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(janitor) # To clean column names
+library(tidyverse) # Data wrangling and plotting
+library(tidybayes) # To plot distributions
+library(ggdist) # To plot distributions
+library(patchwork) # To arrange multiple plots
+library(here) # To find file paths within R project
+library(metafor) # To create priors from meta-analysis
+library(flextable) # To create quick tables
+library(kableExtra) # To create nice tables
+```
+
+```{r}
+## Load objects with the posterior distributions using non-informative priors
+
+load(here("final_analyses", "output", "data",
+                 "noninformative_recovery_using_cortico_death.RData"))
+
+load(here("final_analyses", "output", "data",
+                 "noninformative_recovery_not_cortico_death.RData"))
+
+## Load objects with rma() outputs for forest plots
+
+load(here("final_analyses", "output", "data",
+                 "priors_50_using_cortico_death.RData"))
+
+load(here("final_analyses", "output", "data",
+                 "priors_50_not_cortico_death.RData"))
+
+## Load objects with mean + SD of multiple priors along with
+## RECOVERY data and posterior distributions
+
+load(file = here("final_analyses", "output", "data",
+                 "multiple_priors_50_using_cortico_death.RData"))
+
+load(file = here("final_analyses", "output", "data",
+                 "multiple_priors_50_not_cortico_death.RData"))
+
+## Load objets with all the posterior for summary plot
+
+load(here("final_analyses", "output", "data",
+                 "all_posteriors_50_using_cortico_death.RData"))
+
+load(here("final_analyses", "output", "data",
+                 "all_posteriors_50_not_cortico_death.RData"))
+
+```
+
+```{r}
+## Load functions to plot
+
+# To create summary table
+
+source(here("final_analyses", "script", "functions", # file path
+            "summary_table_death.R"))               # file name
+
+
+# To plot risk distributions side-by-side
+
+source(here("final_analyses", "script", "functions", # file path
+            "risk_comparison_plot.R"))               # file name
+
+# To plot risk difference distribution
+
+source(here("final_analyses", "script", "functions", # file path
+            "risk_difference_plot.R"))               # file name
+
+# To plot cumulative probability of risk difference
+
+source(here("final_analyses", "script", "functions", # file path
+            "cumulative_risk_difference_plot.R"))    # file name
+
+# To plot prior, data and posterior distributions side-by-side
+
+source(here("final_analyses", "script", "functions", # file path
+            "data_prior_posterior_plot.R"))          # file name
+
+# To plot the posterior distribution
+
+source(here("final_analyses", "script", "functions", # file path
+            "posterior_difference_plot.R"))          # file name
+
+# To plot the cumulative probability of the posterior distribution
+
+source(here("final_analyses", "script", "functions", # file path
+            "posterior_cumulative_plot.R"))          # file name
+
+```
+
+# Summary
+
+Let's take a look at how many patients we have by trial and subgroup
+
+```{r warning=FALSE, include=FALSE}
+d = readxl::read_excel(here("final_analyses", "data", # file path
+                            "corticosteroids_subgroup_extracted-data.xlsx"))
+
+d = clean_names(d)
+
+```
+
+```{r}
+# Create custom function
+multiply50 = function(x){x*0.50}
+
+remap50 = d %>% 
+  filter(trial == "REMAP-CAP") %>% 
+  # Multiply columns regarding events and sample size using custom function
+  mutate(across(events_toci:total_control, ~ multiply50(.))) %>%
+  # Change name of the trial
+  mutate(trial = "50% REMAP-CAP")
+
+d %>% 
+  bind_rows(remap50) %>% 
+  filter(trial != "REMAP-CAP",
+         outcome == "mortality") %>% 
+  flextable() %>%
+  autofit()
+```
+
+
+
+The following analyses were not pre-registered.
+
+<br>
+
+**Regarding the mortality outcome, negative risk differences mean benefit.**
+
+```{r}
+
+# X axis
+xlim_inf = -12.5
+xlim_sup = 12.5
+ticks_spacing = 2.5
+
+# Assure subgroup order
+# https://stackoverflow.com/questions/12774210/
+# how-do-you-specifically-order-ggplot2-x-axis-instead-of-alphabetical-order
+
+level_order = c("Pessimistic",
+                "Optimistic",
+                "Skeptical",
+                "Evidence-based",
+                "Non-informative")
+
+p1 = all_posteriors_50_using_cortico_death %>%
+  
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c("Non-informative":"Pessimistic"),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  
+  ggplot(aes(x = 100 * samples, y = factor(dist, level = level_order))) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(aes(fill = stat(x < 0)),
+               .width = c(0.5, 0.95)
+  ) +
+  scale_fill_manual(values = c("gray90", "#E98A33")) +
+  labs(x = "\nRisk difference (%)",
+       y = "Underlying prior\n",
+       title = "Using corticosteroids\n"
+  ) +
+  scale_x_continuous(breaks = seq(from = xlim_inf, to = xlim_sup, ticks_spacing)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(xlim_inf, xlim_sup))
+
+```
+
+```{r}
+p2 = all_posteriors_50_not_cortico_death %>%
+  
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c("Non-informative":"Pessimistic"),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  
+  ggplot(aes(x = 100 * samples, y = factor(dist, level = level_order))) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(aes(fill = stat(x < 0)),
+               .width = c(0.5, 0.95)
+  ) +
+  scale_fill_manual(values = c("gray90", "#DCA3C2")) +
+  labs(x = "\nRisk difference (%)",
+       y = "Underlying prior\n",
+       title = "Not using corticosteroids\n"
+  ) +
+  scale_x_continuous(breaks = seq(from = xlim_inf, to = xlim_sup, ticks_spacing)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(xlim_inf, xlim_sup))
+```
+
+```{r, fig.align='center', fig.height=7, fig.width=9,fig.cap="Interval bars depict 50% and 95% credible intervals"}
+p1 + plot_annotation(title = "Posterior distributions on mortality",
+                          theme = theme(plot.title = element_text(size = 20)))
+
+```
+
+```{r}
+# Summary table
+table_posterior = summary_table_death(all_posteriors_50_using_cortico_death)
+
+# Use kableExtra to have a nice table
+
+table_posterior %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>% 
+  column_spec(7, bold = T, color = "#E98A33") %>%
+  add_header_above(c(" " = 3,
+                     "Probability of Benefit" = 4,
+                     "Probability of Harm" = 3)) %>% 
+  footnote(general = "RD = Risk Difference; SD = Standard Deviation")
+```
+
+
+```{r, fig.align='center', fig.height=7, fig.width=9,fig.cap="Interval bars depict 50% and 95% credible intervals"}
+p2
+```
+
+```{r}
+# Summary table
+table_posterior = summary_table_death(all_posteriors_50_not_cortico_death)
+
+# Use kableExtra to have a nice table
+
+table_posterior %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>% 
+  column_spec(7, bold = T, color = "#A263A9") %>%
+  add_header_above(c(" " = 3,
+                     "Probability of Benefit" = 4,
+                     "Probability of Harm" = 3)) %>%  
+  footnote(general = "RD = Risk Difference; SD = Standard Deviation")
+```
+
+# Per subgroup
+
+## Using corticosteroids
+
+### Non-informative prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+## Plot!
+
+# I will use my own functions to standardize my plots
+
+risk_comparison_plot(
+  noninformative_recovery_using_cortico_death, # Data object
+
+  ### start using quotes
+  
+  "gray50", # Color code for control group
+  "#D3A464", # Color code for other group
+  "\nRisk (%)", # X axis label
+  "RECOVERY trial", # Title
+  "Using corticosteroids\n", # Subtitle
+  
+  ### stop using quotes
+
+  24, # X axis inferior limit
+  48, # X axis superior limit
+  2 # X axis spacing for ticks
+)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7}
+xlabel = "\nRisk difference (%)"
+xlim_inf = -12
+xlim_sup = 0
+
+p1 = risk_difference_plot(
+  noninformative_recovery_using_cortico_death, # Data object
+
+  ## start using quotes
+  "#7EBAC2", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2 # X axis label
+) 
+
+p2 = cumulative_risk_difference_plot(
+  noninformative_recovery_using_cortico_death, # Data object
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Non-informative prior",
+  subtitle = "Risk difference between groups using corticosteroids"
+)
+```
+
+### Evidence-based prior
+
+```{r, fig.align='center', fig.height=4, fig.width=5, warning=FALSE}
+forest(priors_50_using_cortico_death)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nRisk difference (%)"
+
+data_prior_posterior_plot(
+  multiple_priors_50_using_cortico_death %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+  
+  # start using quotes
+           "#364D55", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY + Evidence-based prior", # Title
+           "Using corticosteroids", # Subtitle
+           # stop using quotes
+           -15, # X axis inferior limit
+           20, # X axis superior limit
+           5 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = -10
+xlim_sup = 0
+
+p1 = posterior_difference_plot(
+  multiple_priors_50_using_cortico_death %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+
+  ## start using quotes
+  "#A65041", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2 # Spacing between ticks in X axis
+) 
+
+p2 = posterior_cumulative_plot(
+  multiple_priors_50_using_cortico_death %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Evidence-based prior",
+  subtitle = "Using corticosteroids"
+)
+```
+
+### Skeptical prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nRisk difference (%)"
+
+data_prior_posterior_plot(
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_50_using_cortico_death %>%
+    filter(type == "skeptical"), 
+  
+  # start using quotes
+           "gray60", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY trial + Skeptical prior", # Title
+           "Using corticosteroids", # Subtitle
+           # stop using quotes
+           -15, # X axis inferior limit
+           15, # X axis superior limit
+           5 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = -10
+xlim_sup = 0
+
+p1 = posterior_difference_plot(
+  
+  multiple_priors_50_using_cortico_death %>% # Output from normal_approximation()
+    filter(type == "skeptical"), 
+
+  ## start using quotes
+  "gray50", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2 # Spacing between ticks in X axis
+) 
+
+p2 = posterior_cumulative_plot(
+  
+  multiple_priors_50_using_cortico_death %>% # Output from normal_approximation()
+    filter(type == "skeptical"), 
+  
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Skeptical prior",
+  subtitle = "Using corticosteroids"
+)
+```
+
+### Optimistic prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nRisk difference (%)"
+
+data_prior_posterior_plot(
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_50_using_cortico_death %>%
+    filter(type == "optimistic"), 
+  
+  # start using quotes
+  "#5CA881", # Color for the prior
+  "#7EBAC2", # Color for RECOVERY
+  "#A65041", # Color for the posterior
+  xlabel, # X axis label
+  "Posterior distribution: RECOVERY trial + Optimistic prior", # Title
+  "Using corticosteroids", # Subtitle
+  # stop using quotes
+  -20, # X axis inferior limit
+  10, # X axis superior limit
+  5 # Spacing between ticks in X axis
+) 
+
+```
+
+```{r}
+xlim_inf = -10
+xlim_sup = 0
+
+p1 = posterior_difference_plot(
+  
+  multiple_priors_50_using_cortico_death %>% # Output from normal_approximation()
+    filter(type == "optimistic"), 
+  
+  ## start using quotes
+  "#5CA881", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+  
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2 # Spacing between ticks in X axis
+) 
+
+p2 = posterior_cumulative_plot(
+  
+  multiple_priors_50_using_cortico_death %>% # Output from normal_approximation()
+    filter(type == "optimistic"), 
+  
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Optimistic prior",
+  subtitle = "Using corticosteroids"
+)
+```
+
+### Pessimistic prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nRisk difference (%)"
+
+data_prior_posterior_plot(
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_50_using_cortico_death %>%
+    filter(type == "pessimistic"), 
+  
+  # start using quotes
+  "#523C84", # Color for the prior
+  "#7EBAC2", # Color for RECOVERY
+  "#A65041", # Color for the posterior
+  xlabel, # X axis label
+  "Posterior distribution: RECOVERY trial + Pessimistic prior", # Title
+  "Using corticosteroids", # Subtitle
+  # stop using quotes
+  -10, # X axis inferior limit
+  20, # X axis superior limit
+  5 # Spacing between ticks in X axis
+) 
+
+```
+
+```{r}
+xlim_inf = -10
+xlim_sup = 0
+
+p1 = posterior_difference_plot(
+  
+  multiple_priors_50_using_cortico_death %>% # Output from normal_approximation()
+    filter(type == "pessimistic"), 
+  
+  ## start using quotes
+  "#523C84", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+  
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2 # Spacing between ticks in X axis
+) 
+
+p2 = posterior_cumulative_plot(
+  
+  multiple_priors_50_using_cortico_death %>% # Output from normal_approximation()
+    filter(type == "pessimistic"), 
+  
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Pessimistic prior",
+  subtitle = "Using corticosteroids"
+)
+```
+
+## Not using corticosteroids
+
+### Non-informative prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+## Plot!
+
+# I will use my own functions to standardize my plots
+
+risk_comparison_plot(
+  noninformative_recovery_not_cortico_death, # Data object
+  
+  ### start using quotes
+  
+  "gray50", # Color code for control group
+  "#D3A464", # Color code for other group
+  "\nRisk (%)", # X axis label
+  "RECOVERY trial", # Title
+  "Not using corticosteroids\n", # Subtitle
+  
+  ### stop using quotes
+  
+  24, # X axis inferior limit
+  48, # X axis superior limit
+  2 # X axis spacing for ticks
+)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7}
+xlabel = "\nRisk difference (%)"
+xlim_inf = -8
+xlim_sup = 16
+
+p1 = risk_difference_plot(
+  noninformative_recovery_not_cortico_death, # Data object
+  
+  ## start using quotes
+  "#7EBAC2", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+  
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  4 # X axis label
+) 
+
+p2 = cumulative_risk_difference_plot(
+  noninformative_recovery_not_cortico_death, # Data object
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Non-informative prior",
+  subtitle = "Risk difference between groups not using corticosteroids"
+)
+```
+
+### Evidence-based prior
+
+```{r, fig.align='center', fig.height=4, fig.width=5, warning=FALSE}
+forest(priors_50_not_cortico_death)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nRisk difference (%)"
+
+data_prior_posterior_plot(
+  multiple_priors_50_not_cortico_death %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+  
+  # start using quotes
+  "#364D55", # Color for the prior
+  "#7EBAC2", # Color for RECOVERY
+  "#A65041", # Color for the posterior
+  xlabel, # X axis label
+  "Posterior distribution: RECOVERY + Evidence-based prior", # Title
+  "Not using corticosteroids", # Subtitle
+  # stop using quotes
+  -15, # X axis inferior limit
+  15, # X axis superior limit
+  5 # Spacing between ticks in X axis
+) 
+
+```
+
+```{r}
+xlim_inf = -6
+xlim_sup = 12
+
+p1 = posterior_difference_plot(
+  multiple_priors_50_not_cortico_death %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+  
+  ## start using quotes
+  "#A65041", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+  
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2 # Spacing between ticks in X axis
+) 
+
+p2 = posterior_cumulative_plot(
+  multiple_priors_50_not_cortico_death %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Evidence-based prior",
+  subtitle = "Not using corticosteroids"
+)
+```
+
+### Skeptical prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nRisk difference (%)"
+
+data_prior_posterior_plot(
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_50_not_cortico_death %>%
+    filter(type == "skeptical"), 
+  
+  # start using quotes
+  "gray60", # Color for the prior
+  "#7EBAC2", # Color for RECOVERY
+  "#A65041", # Color for the posterior
+  xlabel, # X axis label
+  "Posterior distribution: RECOVERY trial + Skeptical prior", # Title
+  "Not using corticosteroids", # Subtitle
+  # stop using quotes
+  -15, # X axis inferior limit
+  15, # X axis superior limit
+  5 # Spacing between ticks in X axis
+) 
+
+```
+
+```{r}
+xlim_inf = -6
+xlim_sup = 12
+
+p1 = posterior_difference_plot(
+  
+  multiple_priors_50_not_cortico_death %>% # Output from normal_approximation()
+    filter(type == "skeptical"), 
+  
+  ## start using quotes
+  "gray50", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+  
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2 # Spacing between ticks in X axis
+) 
+
+p2 = posterior_cumulative_plot(
+  
+  multiple_priors_50_not_cortico_death %>% # Output from normal_approximation()
+    filter(type == "skeptical"), 
+  
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Skeptical prior",
+  subtitle = "Not using corticosteroids"
+)
+```
+
+### Optimistic prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nRisk difference (%)"
+
+data_prior_posterior_plot(
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_50_not_cortico_death %>%
+    filter(type == "optimistic"), 
+  
+  # start using quotes
+  "#5CA881", # Color for the prior
+  "#7EBAC2", # Color for RECOVERY
+  "#A65041", # Color for the posterior
+  xlabel, # X axis label
+  "Posterior distribution: RECOVERY trial + Optimistic prior", # Title
+  "Using corticosteroids", # Subtitle
+  # stop using quotes
+  -20, # X axis inferior limit
+  15, # X axis superior limit
+  5 # Spacing between ticks in X axis
+) 
+
+```
+
+```{r}
+xlim_inf = -8
+xlim_sup = 10
+
+p1 = posterior_difference_plot(
+  
+  multiple_priors_50_not_cortico_death %>% # Output from normal_approximation()
+    filter(type == "optimistic"), 
+  
+  ## start using quotes
+  "#5CA881", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+  
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2 # Spacing between ticks in X axis
+) 
+
+p2 = posterior_cumulative_plot(
+  
+  multiple_priors_50_not_cortico_death %>% # Output from normal_approximation()
+    filter(type == "optimistic"), 
+  
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  1, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Optimistic prior",
+  subtitle = "Not using corticosteroids"
+)
+```
+
+### Pessimistic prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nRisk difference (%)"
+
+data_prior_posterior_plot(
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_50_not_cortico_death %>%
+    filter(type == "pessimistic"), 
+  
+  # start using quotes
+  "#523C84", # Color for the prior
+  "#7EBAC2", # Color for RECOVERY
+  "#A65041", # Color for the posterior
+  xlabel, # X axis label
+  "Posterior distribution: RECOVERY trial + Pessimistic prior", # Title
+  "Not using corticosteroids", # Subtitle
+  # stop using quotes
+  -10, # X axis inferior limit
+  20, # X axis superior limit
+  5 # Spacing between ticks in X axis
+) 
+
+```
+
+```{r}
+xlim_inf = -4
+xlim_sup = 16
+
+p1 = posterior_difference_plot(
+  
+  multiple_priors_50_not_cortico_death %>% # Output from normal_approximation()
+    filter(type == "pessimistic"), 
+  
+  ## start using quotes
+  "#523C84", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+  
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  4 # Spacing between ticks in X axis
+) 
+
+p2 = posterior_cumulative_plot(
+  
+  multiple_priors_50_not_cortico_death %>% # Output from normal_approximation()
+    filter(type == "pessimistic"), 
+  
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  2, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+)
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Pessimistic prior",
+  subtitle = "Not using corticosteroids"
+)
+```
+
+<br><br>
+
+```{r}
+sessionInfo()
+```
+
