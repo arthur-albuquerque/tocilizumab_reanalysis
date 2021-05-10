@@ -25,3 +25,5 @@ Functions created for this project
 - summary_table_discharge.R:               to create a summary table adapted for the hospital discharge outcome
 
 - tibble_all_posteriors.R:                 to compile all posteriors into a tibble
+
+The files in the "pooled" folder are adapted versions of the functions mentioned above to pooled analyses.
