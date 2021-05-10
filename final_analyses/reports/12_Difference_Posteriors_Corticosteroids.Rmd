@@ -362,6 +362,8 @@ a / b
 
 ## Hospital discharge outcome
 
+**The baseline risks are very different between groups. Thus, we have decided that the following results are not trustworthy. They will be displayed below  just for the sake of completion, but they will not be included in the final manuscript.**
+
 Each risk difference represents the delta between the effect on tocilizumab minus
 control. Positive risk differences mean benefit.
 

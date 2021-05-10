@@ -2,8 +2,8 @@
 "1","REMAP-CAP","mortality","non-invasive ventilation",53,242,82,273
 "2","REMAP-CAP","mortality","invasive ventilation",45,108,60,124
 "3","REMAP-CAP","discharge","pooled non-invasive or invasive ventilation",190,353,184,402
-"4","CORIMUNO-19","mortality","pooled simple or non-invasive ventilation",7,63,8,67
-"5","CORIMUNO-19","discharge","pooled simple or non-invasive ventilation",52,63,49,67
+"4","CORIMUNO-19","mortality","simple oxygen",7,63,8,67
+"5","CORIMUNO-19","discharge","simple oxygen",52,63,49,67
 "6","COVACTA","mortality","simple oxygen",9,78,2,44
 "7","COVACTA","mortality","non-invasive ventilation",18,94,12,39
 "8","COVACTA","mortality","invasive ventilation",31,113,14,55
