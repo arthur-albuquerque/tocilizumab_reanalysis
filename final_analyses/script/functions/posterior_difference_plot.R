@@ -1,3 +1,5 @@
+seed = 123
+
 posterior_difference_plot = function(data, # Data object
                                       ## start using quotes
                                       color_code, # Fill color code
@@ -6,10 +8,11 @@ posterior_difference_plot = function(data, # Data object
                                       xlim_inf, # X axis inferior limit
                                       xlim_sup, # X axis superior limit
                                       ticks_spacing) # Spacing between ticks in X axis
+  
 {
   data %>%
     summarise(
-      posterior = (list(rnorm(n,
+      posterior = (list(rnorm(10e4,
         mean = post.mean,
         sd = post.sd
       ))

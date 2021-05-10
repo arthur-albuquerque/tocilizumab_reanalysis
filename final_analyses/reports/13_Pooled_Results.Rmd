@@ -1,0 +1,1480 @@
+---
+title: "13_Pooled_Results"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: hide
+          toc: yes
+          toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(tidyverse)
+library(here)
+library(janitor)
+library(flextable)
+library(metafor)
+library(ggdist)
+library(patchwork)
+library(kableExtra)
+```
+
+```{r}
+## Load functions to create posterior distributions 
+
+# to generate posteriors distributions from beta distributions using
+# noninformative priors within tibbles
+
+source(here("final_analyses", "script", "functions", # file path
+            "noninformative_posterior.R"))           # file name
+
+# To generate normal conjugate posterior probabilities
+
+source(here("final_analyses", "script", "functions",           # file path
+            "conjugate_normal_posterior.R"))                   # file name
+
+# To generate posterior probabilities with objects from rma()
+# (it requires "conjugate_normal_posterior.R" )
+
+source(here("final_analyses", "script", "functions", "pooled", # file path
+            "pooled_normal_approximation.R"))                  # file name
+
+# To generate posterior probabilities with multiple priors
+# (it requires "conjugate_normal_posterior.R" )
+
+source(here("final_analyses", "script", "functions", "pooled", # file path
+            "pooled_normal_approximation_multiple_priors.R"))  # file name
+
+# To compile all posteriors into a tibble
+
+source(here("final_analyses", "script", "functions", "pooled", # file path
+            "pooled_tibble_all_posteriors.R"))                 # file name
+```
+
+```{r}
+## Load functions to plot
+
+# To create summary table
+
+source(here("final_analyses", "script", "functions", "pooled", # file path
+            "pooled_summary_table_death.R"))                   # file name
+
+# To create summary table
+
+source(here("final_analyses", "script", "functions", "pooled", # file path
+            "pooled_summary_table_discharge.R"))                   # file name
+
+# To plot risk difference distribution
+
+source(here("final_analyses", "script", "functions", "pooled", # file path
+            "pooled_risk_difference_plot.R"))                  # file name
+
+# To plot cumulative probability of risk difference
+
+source(here("final_analyses", "script", "functions", "pooled", # file path
+            "pooled_cumulative_risk_difference_plot.R"))       # file name
+
+# To plot prior, data and posterior distributions side-by-side
+
+source(here("final_analyses", "script", "functions", "pooled", # file path
+            "pooled_data_prior_posterior_plot.R"))             # file name
+
+# To plot the posterior distribution
+
+source(here("final_analyses", "script", "functions", "pooled", # file path
+            "pooled_posterior_difference_plot.R"))             # file name
+
+# To plot the cumulative probability of the posterior distribution
+
+source(here("final_analyses", "script", "functions", "pooled",  # file path
+            "pooled_cumulative_risk_difference_plot.R"))        # file name
+
+# To plot the cumulative probability of the posterior distribution
+
+source(here("final_analyses", "script", "functions", "pooled",  # file path
+            "pooled_posterior_cumulative_plot.R"))              # file name
+```
+
+
+```{r}
+# Original data extraction table
+
+d = readxl::read_excel(here("final_analyses", "data", # file path
+                            "extracted-data.xlsx"),   # file name
+                       na = "NA")   
+
+# Change name of columns and remove columns related to symptoms
+d = clean_names(d) %>% 
+  select(-starts_with("symptom"))
+```
+
+# Overview
+
+During the data extraction process, we realized that some trials did not provide
+data on separate subgroups. Instead, they would only provide pooled data. Let's check
+how much data we actually have.
+
+<br>
+
+How many distinct **trials** do we have regarding **mortality**?
+
+```{r}
+d %>% 
+  filter(outcome == "mortality") %>% 
+  distinct(trial) %>% 
+  flextable() %>% 
+  autofit()
+```
+How many distinct **trials** do we have regarding **hospital discharge**?
+
+```{r}
+d %>% 
+  filter(outcome == "discharge") %>% 
+  distinct(trial) %>% 
+  flextable() %>% 
+  autofit()
+```
+
+How much data do we have on "pooled subgroups"?
+
+```{r}
+d %>%
+  filter(str_detect(oxygen, "pooled"),
+         outcome == "mortality") %>% 
+  group_by(outcome, trial, oxygen) %>%
+  arrange(oxygen) %>%
+  count() %>%
+  select(-n) %>% 
+  rename("subgroup" = oxygen) %>% 
+  flextable() %>%
+  autofit()
+```
+
+
+```{r}
+d %>%
+  filter(str_detect(oxygen, "pooled"),
+         outcome == "discharge") %>% 
+  group_by(outcome, trial, oxygen) %>%
+  arrange(oxygen) %>%
+  count() %>%
+  select(-n)%>% 
+  rename("subgroup" = oxygen) %>% 
+  flextable() %>%
+  autofit()
+```
+
+
+What distinct trials have data on **pooled** and **separate** subgroups regarding
+**mortality**?
+
+```{r}
+d %>%
+  mutate(pooled = oxygen) %>% 
+  filter(str_detect(pooled, "pooled"),
+         outcome == "mortality") %>% 
+  select(trial, pooled)%>% 
+  distinct(trial) %>% 
+  rename("pooled" = trial)%>% 
+  flextable() %>% 
+  autofit()
+
+d %>%
+  filter(!str_detect(oxygen, "pooled"),
+         outcome == "mortality") %>% 
+  select(trial, oxygen) %>% 
+  distinct(trial) %>% 
+  rename("separate" = trial) %>% 
+  flextable()%>% 
+  autofit()
+
+```
+
+What distinct trials have data on **pooled** and **separate** subgroups regarding
+**hospital discharge**?
+
+```{r}
+d %>%
+  mutate(pooled = oxygen) %>% 
+  filter(str_detect(pooled, "pooled"),
+         outcome == "discharge") %>% 
+  select(trial, pooled)%>% 
+  distinct(trial) %>% 
+  rename("pooled" = trial)%>% 
+  flextable() %>% 
+  autofit()
+
+d %>%
+  filter(!str_detect(oxygen, "pooled"),
+         outcome == "discharge") %>% 
+  select(trial, oxygen) %>% 
+  distinct(trial) %>% 
+  rename("separate" = trial) %>% 
+  flextable()%>% 
+  autofit()
+
+```
+# Mortality outcome
+
+Now, let's **pool all the data** and analyze the **mortality** outcome. I believe
+**odds ratio** is the most appropriate effect size measure since there is great
+**heterogeneity in baseline risk** in each subgroup.
+
+## Prior
+
+```{r}
+not_recovery = 
+  d %>%
+  filter(trial != "RECOVERY") %>% 
+  mutate(oxygen = case_when(
+    oxygen == "simple oxygen" ~ "simple_oxygen",
+    oxygen == "non-invasive ventilation" ~ "non_invasive",
+    oxygen == "invasive ventilation" ~ "invasive",
+    oxygen == "pooled simple or non-invasive ventilation" ~ "POOLED_simple_non-invasive",
+    oxygen == "pooled non-invasive or invasive ventilation" ~ "POOLED_non-invasive_invasive",
+    oxygen == "pooled simple, non-invasive or invasive ventilation" ~ "POOLED_simple_non-invasive_invasive"
+  )) %>% 
+  unite(trial_subgroup, c(trial, oxygen))
+
+
+not_recovery %>% 
+  filter(outcome == "mortality") %>% 
+  select(-outcome) %>% 
+  flextable() %>% 
+  autofit()
+```
+### Version 1: Random-Effect Meta-Analysis
+
+```{r, fig.width=10}
+
+prior_death =
+  rma(
+    # Outcome
+    measure = "OR", # Odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = not_recovery %>% filter(outcome == "mortality"),
+
+    slab = paste(trial_subgroup),
+    method = "REML"
+  )
+
+# Visualize it
+forest(prior_death,
+       showweights = T,
+       atransf=exp)
+
+```
+
+```{r}
+### Using escalc()
+
+# Same results as rma() with random-effects
+
+# effect_sizes =
+#   escalc(
+#     # Outcome
+#     measure = "OR", # risk difference
+#     
+#     # Tocilizumab group
+#     ai = events_toci,
+#     n1i = total_toci,
+# 
+#     # Control group
+#     ci = events_control,
+#     n2i = total_control,
+#     
+#     data = not_recovery %>% filter(outcome == "mortality"),
+# 
+#     slab = paste(trial_subgroup)
+#   )
+# 
+# res <- rma(yi, vi, data=effect_sizes) 
+# 
+# forest(res,
+#        atransf=exp)
+```
+
+### Version 2: Summing up all events + Fixed-Effect MA
+
+```{r, fig.width=10}
+
+total_death = not_recovery %>% 
+  filter(outcome == "mortality") %>% 
+  # Sum all events
+  mutate(across(events_toci:total_control, ~ sum(.x))) %>% 
+  # As all rows are now the same, pick 1
+  slice(1) %>% 
+  # Rename trial as "Total"
+  mutate("trial_subgroup" = "Total")
+
+prior_death_v2 =
+  rma(
+    # Outcome
+    measure = "OR", # Odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = total_death,
+
+    slab = paste(trial_subgroup),
+    method = "REML"
+  )
+
+# Visualize it
+forest(prior_death_v2,
+       atransf=exp)
+
+```
+
+
+## RECOVERY
+
+```{r}
+recovery = 
+  d  %>% 
+  filter(trial == "RECOVERY",
+         oxygen != 'NA') %>% 
+  mutate(oxygen = case_when(
+    oxygen == "simple oxygen" ~ "simple_oxygen",
+    oxygen == "non-invasive ventilation" ~ "non_invasive",
+    oxygen == "invasive ventilation" ~ "invasive")) %>% 
+  unite(trial_subgroup, c(trial, oxygen))
+
+recovery %>% 
+  filter(outcome == "mortality") %>% 
+  select(-outcome) %>% 
+  flextable() %>% 
+  autofit()
+```
+
+### Version 1: Random-Effect Meta-Analysis
+
+```{r, fig.width=10}
+
+recovery_death =
+  rma(
+    # Outcome
+    measure = "OR", # Odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = recovery %>% filter(outcome == "mortality"),
+
+    slab = paste(trial_subgroup),
+    method = "REML"
+  )
+
+# Visualize it
+forest(recovery_death,
+       showweights = T, 
+       atransf=exp)
+
+```
+
+### Version 2: Summing up all events + Fixed-Effect MA
+
+```{r, fig.width=10}
+
+total_death = recovery %>% 
+  filter(outcome == "mortality") %>% 
+  # Sum all events
+  mutate(across(events_toci:total_control, ~ sum(.x))) %>% 
+  # As all rows are now the same, pick 1
+  slice(1) %>% 
+  # Rename trial as "Total"
+  mutate("trial_subgroup" = "Total")
+
+recovery_total_death =
+  rma(
+    # Outcome
+    measure = "OR", # Odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = total_death,
+
+    slab = paste(trial_subgroup),
+    method = "REML"
+  )
+
+# Visualize it
+forest(recovery_total_death,
+       atransf=exp)
+
+```
+
+## Posterior distribution
+
+### Data overview
+
+**Regarding the mortality outcome, odds ratio lower than 1 means benefit.**
+
+I am going to use data from Version 1 analyses. 
+**The effect size here will be log-odds ratio**.
+
+Regarding the **skeptical** prior, its mean is centered in **0**, which is equal to 
+**log(1)**.
+
+Regarding the **optimistic** prior, its mean is centered in **-0.223**,
+which is equal to **log(0.8)**. I chose the value 0.8 because the RECOVERY trial was
+designed to detect a relative risk reduction of 20%.
+
+Regarding the **pessimistic** prior, its mean is centered in **0.223**, which
+is equal to **log(1.25)**. I mirrored the optimistic prior's mean in the
+log-odds ratio scale.
+
+
+```{r include=FALSE}
+recovery_evidence_death = pooled_normal_approximation(
+  recovery_death, # Data object with RECOVERY data
+  "mortality", # Outcome (within quotes)
+  prior_death, # Output from the rma() in the previous code chunk
+
+  recovery_evidence_death # Repeat the name of the object you are creating
+)
+```
+
+```{r include=FALSE}
+multiple_priors_death =
+  pooled_normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  recovery_evidence_death, 
+  "mortality", # Outcome (within quotes)
+  multiple_priors_death # Name for the final output with data+prior+posterior
+  )
+```
+
+```{r}
+multiple_priors_death %>% flextable() %>% autofit()
+```
+
+```{r}
+all_posteriors_death = pooled_tibble_all_posteriors(
+  
+  # Output from rma() with only RECOVERY
+  recovery_death, 
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_death 
+)
+```
+
+
+### Summary
+
+```{r}
+
+# X axis
+xlim_inf = 0.6
+xlim_sup = 1.1
+ticks_spacing = 0.1
+
+# Assure subgroup order
+# https://stackoverflow.com/questions/12774210/
+# how-do-you-specifically-order-ggplot2-x-axis-instead-of-alphabetical-order
+
+level_order = c("Pessimistic",
+                "Optimistic",
+                "Skeptical",
+                "Evidence-based",
+                "Non-informative")
+
+p1 = all_posteriors_death %>%
+  
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c("Non-informative":"Pessimistic"),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  
+  # exp() to transform log-odds ratio into Odds Ratio
+  
+  mutate(samples = exp(samples)) %>% 
+  
+  ggplot(aes(x = samples, y = factor(dist, level = level_order))) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(aes(fill = stat(x < 1)),
+               .width = c(0.5, 0.95)
+  ) +
+  scale_fill_manual(values = c("gray90", "#919C4D")) +
+  labs(x = "\nOdds Ratio",
+       y = "Underlying prior\n",
+       title = "Pooled data from all subgroups"
+  ) +
+  scale_x_continuous(breaks = seq(from = xlim_inf, to = xlim_sup, ticks_spacing)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(xlim_inf, xlim_sup))
+
+```
+
+```{r, fig.align='center', fig.height=5.5, fig.width=7.5,fig.cap="Interval bars depict 50% and 95% credible intervals"}
+p1 + plot_annotation(title = "Posterior distributions on mortality",
+                          theme = theme(plot.title = element_text(size = 20)))
+
+```
+
+```{r}
+# Summary table
+table_posterior = pooled_summary_table_death(all_posteriors_death)
+
+# Use kableExtra to have a nice table
+
+table_posterior %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>% 
+  column_spec(5, bold = T, color = "#919C4D") %>%
+  add_header_above(c(" " = 2,
+                     "Probability of Benefit" = 3,
+                     "Probability of Harm" = 1)) %>% 
+  footnote(general = "OR = Odds Ratio")
+```
+
+<br>
+
+### Non-informative prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7}
+xlabel = "\nOdds Ratio"
+xlim_inf = 0.6
+xlim_sup = 1.1
+
+p1 = pooled_risk_difference_plot(
+  recovery_death, # Data object
+
+  ## start using quotes
+  "#7EBAC2", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # X axis label
+) 
+
+p2 = pooled_cumulative_risk_difference_plot(
+  recovery_death, # Data object
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.05, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Non-informative prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+### Evidence-based prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nLog-Odds Ratio"
+
+pooled_data_prior_posterior_plot(
+  multiple_priors_death %>% # Output from pooled_normal_approximation()
+    filter(type == "evidence-based"), 
+  
+  # start using quotes
+           "#364D55", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY + Evidence-based prior", # Title
+           "Pooled data from all subgroups", # Subtitle
+           # stop using quotes
+           -0.50, # X axis inferior limit
+           0.50, # X axis superior limit
+           0.25 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = 0.6
+xlim_sup = 1.1
+
+p1 = pooled_posterior_difference_plot(
+  multiple_priors_death %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+
+  ## start using quotes
+  "#A65041", # fill color code
+  "Odds Ratio", # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # Spacing between ticks in X axis
+) 
+
+p2 = pooled_posterior_cumulative_plot(
+  multiple_priors_death %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+  "Odds Ratio", # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.05, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Evidence-based prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+### Skeptical prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nLog-Odds Ratio"
+
+pooled_data_prior_posterior_plot(
+  multiple_priors_death %>% # Output from pooled_normal_approximation()
+    filter(type == "skeptical"), 
+  
+  # start using quotes
+           "gray50", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY + Skeptical prior", # Title
+           "Pooled data from all subgroups", # Subtitle
+           # stop using quotes
+           -0.50, # X axis inferior limit
+           0.50, # X axis superior limit
+           0.25 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = 0.6
+xlim_sup = 1.1
+
+p1 = pooled_posterior_difference_plot(
+  multiple_priors_death %>% # Output from normal_approximation()
+    filter(type == "skeptical"), 
+
+  ## start using quotes
+  "gray50", # fill color code
+  "Odds Ratio", # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # Spacing between ticks in X axis
+) 
+
+p2 = pooled_posterior_cumulative_plot(
+  multiple_priors_death %>% # Output from normal_approximation()
+    filter(type == "skeptical"), 
+  "Odds Ratio", # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.05, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Skeptical prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+### Optimistic prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nLog-Odds Ratio"
+
+pooled_data_prior_posterior_plot(
+  multiple_priors_death %>% # Output from pooled_normal_approximation()
+    filter(type == "optimistic"), 
+  
+  # start using quotes
+           "#5CA881", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY + Optimistic prior", # Title
+           "Pooled data from all subgroups", # Subtitle
+           # stop using quotes
+           -0.50, # X axis inferior limit
+           0.50, # X axis superior limit
+           0.25 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = 0.6
+xlim_sup = 1.1
+
+p1 = pooled_posterior_difference_plot(
+  multiple_priors_death %>% # Output from normal_approximation()
+    filter(type == "optimistic"), 
+
+  ## start using quotes
+  "#5CA881", # fill color code
+  "Odds Ratio", # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # Spacing between ticks in X axis
+) 
+
+p2 = pooled_posterior_cumulative_plot(
+  multiple_priors_death %>% # Output from normal_approximation()
+    filter(type == "optimistic"), 
+  "Odds Ratio", # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.05, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Optimistic prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+### Pessimistic prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nLog-Odds Ratio"
+
+pooled_data_prior_posterior_plot(
+  multiple_priors_death %>% # Output from pooled_normal_approximation()
+    filter(type == "pessimistic"), 
+  
+  # start using quotes
+           "#523C84", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY + Pessimistic prior", # Title
+           "Pooled data from all subgroups", # Subtitle
+           # stop using quotes
+           -0.50, # X axis inferior limit
+           0.50, # X axis superior limit
+           0.25 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = 0.6
+xlim_sup = 1.1
+
+p1 = pooled_posterior_difference_plot(
+  multiple_priors_death %>% # Output from normal_approximation()
+    filter(type == "pessimistic"), 
+
+  ## start using quotes
+  "#523C84", # fill color code
+  "Odds Ratio", # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # Spacing between ticks in X axis
+) 
+
+p2 = pooled_posterior_cumulative_plot(
+  multiple_priors_death %>% # Output from normal_approximation()
+    filter(type == "pessimistic"), 
+  "Odds Ratio", # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.05, # Spacing between ticks in X axis
+  "mortality" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Pessimistic prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+# Hospital discharge outcome
+
+Now, let's **pool all the data** and analyze the **hospital discharge** outcome. I believe
+**odds ratio** is the most appropriate effect size measure since there is great
+**heterogeneity in baseline risk** in each subgroup.
+
+## Prior
+
+```{r}
+not_recovery %>% 
+  filter(outcome == "discharge") %>% 
+  select(-outcome) %>% 
+  flextable() %>% 
+  autofit()
+```
+### Version 1: Random-Effect Meta-Analysis
+
+```{r, fig.width=11}
+
+prior_discharge =
+  rma(
+    # Outcome
+    measure = "OR", # Odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = not_recovery %>% filter(outcome == "discharge"),
+
+    slab = paste(trial_subgroup),
+    method = "REML"
+  )
+
+# Visualize it
+forest(prior_discharge,
+       showweights = T,
+       atransf=exp)
+
+```
+
+```{r}
+### Using escalc()
+
+# Same results as rma() with random-effects
+
+# effect_sizes =
+#   escalc(
+#     # Outcome
+#     measure = "OR", # risk difference
+#     
+#     # Tocilizumab group
+#     ai = events_toci,
+#     n1i = total_toci,
+# 
+#     # Control group
+#     ci = events_control,
+#     n2i = total_control,
+#     
+#     data = not_recovery %>% filter(outcome == "discharge"),
+# 
+#     slab = paste(trial_subgroup)
+#   )
+# 
+# res <- rma(yi, vi, data=effect_sizes) 
+# 
+# forest(res,
+#        atransf=exp)
+```
+
+### Version 2: Summing up all events + Fixed-Effect MA
+
+```{r, fig.width=11}
+
+total_discharge = not_recovery %>% 
+  filter(outcome == "discharge") %>% 
+  # Sum all events
+  mutate(across(events_toci:total_control, ~ sum(.x))) %>% 
+  # As all rows are now the same, pick 1
+  slice(1) %>% 
+  # Rename trial as "Total"
+  mutate("trial_subgroup" = "Total")
+
+prior_discharge_v2 =
+  rma(
+    # Outcome
+    measure = "OR", # Odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = total_discharge,
+
+    slab = paste(trial_subgroup),
+    method = "REML"
+  )
+
+# Visualize it
+forest(prior_discharge_v2,
+       atransf=exp)
+
+```
+
+
+## RECOVERY
+
+```{r}
+
+recovery %>% 
+  filter(outcome == "discharge") %>% 
+  select(-outcome) %>% 
+  flextable() %>% 
+  autofit()
+```
+
+### Version 1: Random-Effect Meta-Analysis
+
+```{r, fig.width=11}
+
+recovery_discharge =
+  rma(
+    # Outcome
+    measure = "OR", # Odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = recovery %>% filter(outcome == "discharge"),
+
+    slab = paste(trial_subgroup),
+    method = "REML"
+  )
+
+# Visualize it
+forest(recovery_discharge,
+       showweights = T, 
+       atransf=exp)
+
+```
+
+### Version 2: Summing up all events + Fixed-Effect MA
+
+```{r, fig.width=11}
+
+total_discharge = recovery %>% 
+  filter(outcome == "discharge") %>% 
+  # Sum all events
+  mutate(across(events_toci:total_control, ~ sum(.x))) %>% 
+  # As all rows are now the same, pick 1
+  slice(1) %>% 
+  # Rename trial as "Total"
+  mutate("trial_subgroup" = "Total")
+
+recovery_total_discharge =
+  rma(
+    # Outcome
+    measure = "OR", # Odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = total_discharge,
+
+    slab = paste(trial_subgroup),
+    method = "REML"
+  )
+
+# Visualize it
+forest(recovery_total_discharge,
+       atransf=exp)
+
+```
+
+## Posterior distribution
+
+### Data overview
+
+**Regarding the hospital discharge outcome, odds ratio greater than 1 means benefit.**
+
+I am going to use data from Version 1 analyses. 
+**The effect size here will be log-odds ratio**.
+
+Regarding the **skeptical** prior, its mean is centered in **0**, which is equal to 
+**log(1)**.
+
+Regarding the **optimistic** prior, its mean is centered in **0.223**,
+which is equal to **log(1.25)**. The RECOVERY trial was designed to detect a 
+relative risk reduction of 20% in the primary outcome (mortality). Thus, for the
+hospital discharge outcome, I decided to choose **0.223** for the mean since this
+is the exact opposite of **-0.223**, which in turn is equal to log(0.8). This
+latter value reflects the expected relative risk reduction mentioned above.
+
+Regarding the **pessimistic** prior, its mean is centered in **-0.223**, which
+is equal to **log(0.8)**. I mirrored the optimistic prior's mean in the
+log-odds ratio scale.
+
+
+```{r include=FALSE}
+recovery_evidence_discharge = pooled_normal_approximation(
+  recovery_discharge, # Data object with RECOVERY data
+  "discharge", # Outcome (within quotes)
+  prior_discharge, # Output from the rma() in the previous code chunk
+
+  recovery_evidence_discharge # Repeat the name of the object you are creating
+)
+```
+
+```{r include=FALSE}
+multiple_priors_discharge =
+  pooled_normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  recovery_evidence_discharge, 
+  "discharge", # Outcome (within quotes)
+  multiple_priors_discharge # Name for the final output with data+prior+posterior
+  )
+```
+
+```{r}
+multiple_priors_discharge %>% flextable() %>% autofit()
+```
+
+```{r}
+all_posteriors_discharge = pooled_tibble_all_posteriors(
+  
+  # Output from rma() with only RECOVERY
+  recovery_discharge, 
+  
+  # Output from normal_approximation_multiple_priors()
+  multiple_priors_discharge 
+)
+```
+
+
+### Summary
+
+```{r}
+
+# X axis
+xlim_inf = 1
+xlim_sup = 1.6
+ticks_spacing = 0.1
+
+# Assure subgroup order
+# https://stackoverflow.com/questions/12774210/
+# how-do-you-specifically-order-ggplot2-x-axis-instead-of-alphabetical-order
+
+level_order = c("Pessimistic",
+                "Optimistic",
+                "Skeptical",
+                "Evidence-based",
+                "Non-informative")
+
+p1 = all_posteriors_discharge %>%
+  
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c("Non-informative":"Pessimistic"),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  
+  # exp() to transform log-odds ratio into Odds Ratio
+  
+  mutate(samples = exp(samples)) %>% 
+  
+  ggplot(aes(x = samples, y = factor(dist, level = level_order))) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(aes(fill = stat(x > 1)),
+               .width = c(0.5, 0.95)
+  ) +
+  scale_fill_manual(values = c("gray90", "#5891BF")) +
+  labs(x = "\nOdds Ratio",
+       y = "Underlying prior\n",
+       title = "Pooled data from all subgroups"
+  ) +
+  scale_x_continuous(breaks = seq(from = xlim_inf, to = xlim_sup, ticks_spacing)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(xlim_inf, xlim_sup))
+
+```
+
+```{r, fig.align='center', fig.height=5.5, fig.width=7.5,fig.cap="Interval bars depict 50% and 95% credible intervals"}
+p1 + plot_annotation(title = "Posterior distributions on hospital discharge",
+                          theme = theme(plot.title = element_text(size = 20)))
+
+```
+
+```{r}
+# Summary table
+table_posterior = pooled_summary_table_discharge(all_posteriors_discharge)
+
+# Use kableExtra to have a nice table
+
+table_posterior %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>% 
+  column_spec(3, bold = T, color = "#5891BF") %>%
+  add_header_above(c(" " = 2,
+                     "Probability of Benefit" = 3)) %>% 
+  footnote(general = "OR = Odds Ratio")
+```
+
+<br>
+
+### Non-informative prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7}
+xlabel = "\nOdds Ratio"
+xlim_inf = 1
+xlim_sup = 1.6
+
+p1 = pooled_risk_difference_plot(
+  recovery_discharge, # Data object
+
+  ## start using quotes
+  "#7EBAC2", # fill color code
+  xlabel, # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # X axis label
+) 
+
+p2 = pooled_cumulative_risk_difference_plot(
+  recovery_discharge, # Data object
+  xlabel, # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1, # Spacing between ticks in X axis
+  "discharge" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is less than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Non-informative prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+### Evidence-based prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nLog-Odds Ratio"
+
+pooled_data_prior_posterior_plot(
+  multiple_priors_discharge %>% # Output from pooled_normal_approximation()
+    filter(type == "evidence-based"), 
+  
+  # start using quotes
+           "#364D55", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY + Evidence-based prior", # Title
+           "Pooled data from all subgroups", # Subtitle
+           # stop using quotes
+           -0.50, # X axis inferior limit
+           0.50, # X axis superior limit
+           0.25 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = 1
+xlim_sup = 1.6
+
+p1 = pooled_posterior_difference_plot(
+  multiple_priors_discharge %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+
+  ## start using quotes
+  "#A65041", # fill color code
+  "Odds Ratio", # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # Spacing between ticks in X axis
+) 
+
+p2 = pooled_posterior_cumulative_plot(
+  multiple_priors_discharge %>% # Output from normal_approximation()
+    filter(type == "evidence-based"), 
+  "Odds Ratio", # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1, # Spacing between ticks in X axis
+  "discharge" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is greater than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Evidence-based prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+### Skeptical prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nLog-Odds Ratio"
+
+pooled_data_prior_posterior_plot(
+  multiple_priors_discharge %>% # Output from pooled_normal_approximation()
+    filter(type == "skeptical"), 
+  
+  # start using quotes
+           "gray50", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY + Skeptical prior", # Title
+           "Pooled data from all subgroups", # Subtitle
+           # stop using quotes
+           -0.50, # X axis inferior limit
+           0.50, # X axis superior limit
+           0.25 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = 1
+xlim_sup = 1.6
+
+p1 = pooled_posterior_difference_plot(
+  multiple_priors_discharge %>% # Output from normal_approximation()
+    filter(type == "skeptical"), 
+
+  ## start using quotes
+  "gray50", # fill color code
+  "Odds Ratio", # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # Spacing between ticks in X axis
+) 
+
+p2 = pooled_posterior_cumulative_plot(
+  multiple_priors_discharge %>% # Output from normal_approximation()
+    filter(type == "skeptical"), 
+  "Odds Ratio", # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1, # Spacing between ticks in X axis
+  "discharge" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is greater than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Skeptical prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+### Optimistic prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nLog-Odds Ratio"
+
+pooled_data_prior_posterior_plot(
+  multiple_priors_discharge %>% # Output from pooled_normal_approximation()
+    filter(type == "optimistic"), 
+  
+  # start using quotes
+           "#5CA881", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY + Optimistic prior", # Title
+           "Pooled data from all subgroups", # Subtitle
+           # stop using quotes
+           -0.50, # X axis inferior limit
+           0.50, # X axis superior limit
+           0.25 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = 1
+xlim_sup = 1.6
+
+p1 = pooled_posterior_difference_plot(
+  multiple_priors_discharge %>% # Output from normal_approximation()
+    filter(type == "optimistic"), 
+
+  ## start using quotes
+  "#5CA881", # fill color code
+  "Odds Ratio", # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # Spacing between ticks in X axis
+) 
+
+p2 = pooled_posterior_cumulative_plot(
+  multiple_priors_discharge %>% # Output from normal_approximation()
+    filter(type == "optimistic"), 
+  "Odds Ratio", # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1, # Spacing between ticks in X axis
+  "discharge" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is greater than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Optimistic prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+### Pessimistic prior
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="While the darker shaded area depicts the 50% credible interval (CI), the interval bar depicts the 95% CI."}
+
+xlabel = "\nLog-Odds Ratio"
+
+pooled_data_prior_posterior_plot(
+  multiple_priors_discharge %>% # Output from pooled_normal_approximation()
+    filter(type == "pessimistic"), 
+  
+  # start using quotes
+           "#523C84", # Color for the prior
+           "#7EBAC2", # Color for RECOVERY
+           "#A65041", # Color for the posterior
+           xlabel, # X axis label
+           "Posterior distribution: RECOVERY + Pessimistic prior", # Title
+           "Pooled data from all subgroups", # Subtitle
+           # stop using quotes
+           -0.50, # X axis inferior limit
+           0.50, # X axis superior limit
+           0.25 # Spacing between ticks in X axis
+  ) 
+
+```
+
+```{r}
+xlim_inf = 1
+xlim_sup = 1.6
+
+p1 = pooled_posterior_difference_plot(
+  multiple_priors_discharge %>% # Output from normal_approximation()
+    filter(type == "pessimistic"), 
+
+  ## start using quotes
+  "#523C84", # fill color code
+  "Odds Ratio", # X axis label
+  ### stop using quotes
+
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1 # Spacing between ticks in X axis
+) 
+
+p2 = pooled_posterior_cumulative_plot(
+  multiple_priors_discharge %>% # Output from normal_approximation()
+    filter(type == "pessimistic"), 
+  "Odds Ratio", # X axis label (in quotes)
+  xlim_inf, # X axis inferior limit
+  xlim_sup, # X axis superior limit
+  0.1, # Spacing between ticks in X axis
+  "discharge" # Outcome (within quotes)
+  )
+```
+
+```{r, fig.align='center', fig.height=4, fig.width=7, warning=FALSE, fig.cap="The interval bar depicts the 95% credible interval. The cumulative posterior distribution corresponds to the probabilities that the odds ratio (OR) is greater than or equal to the effect size on the X‐axis."}
+p1 + p2 + plot_annotation(
+  title = "Posterior distribution: RECOVERY trial + Pessimistic prior",
+  subtitle = "Pooled data from all subgroups"
+)
+```
+
+<br><br>
+
+```{r}
+sessionInfo()
+```
+

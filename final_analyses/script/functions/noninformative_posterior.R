@@ -17,8 +17,8 @@ noninformative_posterior = function(data, outcome_type) {
     # beta(placebo_death + 1, placebo_diff + 1) / beta(toci_death + 1, toci_diff + 1)
 
     summarise(
-      control = list(rbeta(n, sum_events_control + 1, sum_diff_control + 1)),
-      toci = list(rbeta(n, sum_events_toci + 1, sum_diff_toci + 1))
+      control = list(rbeta(10e4, sum_events_control + 1, sum_diff_control + 1)),
+      toci = list(rbeta(10e4, sum_events_toci + 1, sum_diff_toci + 1))
     ) %>%
     unnest(control:toci)
 }
