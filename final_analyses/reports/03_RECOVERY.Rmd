@@ -17,7 +17,8 @@ if (!require("pacman")) install.packages("pacman")
 
 # p_load() installs (if necessary) and loads the following packages
 
-pacman::p_load(tidyverse, # Data wrangling and plotting
+pacman::p_load(rio, # to import/export files
+               tidyverse, # Data wrangling and plotting
                kableExtra, # To create tables
                ggdist, # To plot distributions
                here, # To find file paths within R project
@@ -29,7 +30,7 @@ pacman::p_load(tidyverse, # Data wrangling and plotting
 ```{r}
 # Load data
 
-d = read.csv((here("final_analyses", "output", "data", # file path
+d = import((here("final_analyses", "output", "data", # file path
                    "respiratory-data.csv")),           # file name
              header = T)
 d = d %>% 

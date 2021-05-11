@@ -17,7 +17,8 @@ if (!require("pacman")) install.packages("pacman")
 
 # p_load() installs (if necessary) and loads the following packages
 
-pacman::p_load(tidyverse, # Data wrangling and plotting
+pacman::p_load(rio, # to import/export files
+               tidyverse, # Data wrangling and plotting
                here, # To find file paths within R project
                janitor, # To change quickly change names of columns
                flextable # To create tables
@@ -26,7 +27,7 @@ pacman::p_load(tidyverse, # Data wrangling and plotting
 
 ```{r}
 # Load the data
-d = readxl::read_excel(here("final_analyses", "data", # file path
+d = import(here("final_analyses", "data", # file path
                             "extracted-data.xlsx"),   # file name
                        na = "NA")   
 d = clean_names(d) # to change the names of columns
@@ -223,7 +224,7 @@ that provide both subgroup and pooled data.
 ```{r}
 # Let's save our output with only data regarding respiratory support
 
-# write.csv(d_respiratory, paste(here(
+# export(d_respiratory, paste(here(
 #   "final_analyses", "output", "data", # file path
 #   "respiratory-data.csv")) # file name
 #   ) 
