@@ -12,12 +12,17 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r include=FALSE}
-library(tidyverse) # Data wrangling and plotting
-library(kableExtra) # To create tables
-library(tidybayes) # To plot distributions
-library(ggdist) # To plot distributions
-library(here) # To find file paths within R project
-library(metafor) # To create priors from meta-analysis
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(tidyverse, # Data wrangling and plotting
+               kableExtra, # To create tables
+               ggdist, # To plot distributions
+               here, # To find file paths within R project
+               metafor # To create priors from meta-analysis
+               )
 
 ```
 

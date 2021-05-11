@@ -12,10 +12,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r include=FALSE}
-library(tidyverse) # Data wrangling and plotting
-library(here) # To find file paths within R project
-library(janitor) # To change quickly change names of columns
-library(flextable) # To create tables
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(tidyverse, # Data wrangling and plotting
+               here, # To find file paths within R project
+               janitor, # To change quickly change names of columns
+               flextable # To create tables
+               )
 ```
 
 ```{r}

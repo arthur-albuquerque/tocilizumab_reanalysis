@@ -14,15 +14,20 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r include=FALSE}
-library(janitor) # To clean column names
-library(tidyverse) # Data wrangling and plotting
-library(tidybayes) # To plot distributions
-library(ggdist) # To plot distributions
-library(patchwork) # To arrange multiple plots
-library(here) # To find file paths within R project
-library(metafor) # To create priors from meta-analysis
-library(flextable) # To create quick tables
-library(kableExtra) # To create nice tables
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(janitor, # To clean column names
+               tidyverse, # Data wrangling and plotting
+               ggdist, # To plot distributions
+               patchwork, # To arrange multiple plots
+               here, # To find file paths within R project
+               metafor, # To create priors from meta-analysis
+               flextable, # To create quick tables
+               kableExtra # To create nice tables
+               )
 ```
 
 ```{r}

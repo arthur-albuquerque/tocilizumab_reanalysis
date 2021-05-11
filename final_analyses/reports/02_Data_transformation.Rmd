@@ -17,15 +17,20 @@ If you are not interested in the code, you can select the "Hide all code" option
 on the upper-right corner.
 
 ```{r include=FALSE}
-library(tidyverse) # Data wrangling and plotting
-library(flextable) # To create tables
-library(tidybayes) # To plot distributions
-library(ggdist) # To plot distributions
-library(patchwork) # To arrange multiple plots
-library(here) # To find file paths within R project
-library(metafor) # To create priors from meta-analysis
-library(janitor) # To improve column's name
-library(Hmisc) # To use %nin%
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(tidyverse, # Data wrangling and plotting
+               flextable, # To create tables
+               ggdist, # To plot distributions
+               patchwork, # To arrange multiple plots
+               here, # To find file paths within R project
+               metafor, # To create priors from meta-analysis
+               janitor, # To improve column's name
+               Hmisc # To use %nin%
+               )
 
 # to generate posteriors distributions from beta distributions using
 # noninformative priors within tibbles

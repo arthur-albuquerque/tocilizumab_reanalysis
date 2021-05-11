@@ -14,12 +14,18 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r include=FALSE}
-library(janitor)
-library(tidyverse)
-library(ggdist)
-library(rcartocolor)
-library(here)
-library(patchwork)
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(janitor, # To clean column names
+               tidyverse, # Data wrangling and plotting
+               ggdist, # To plot distributions
+               patchwork, # To arrange multiple plots
+               here, # To find file paths within R project
+               rcartocolor # Color palettes
+               )
 ```
 
 ```{r}
