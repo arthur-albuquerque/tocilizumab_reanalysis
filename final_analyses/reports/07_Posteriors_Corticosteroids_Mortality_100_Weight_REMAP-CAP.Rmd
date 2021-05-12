@@ -220,7 +220,7 @@ p2 = all_posteriors_100_not_cortico_death %>%
   coord_cartesian(xlim = c(xlim_inf, xlim_sup))
 ```
 
-```{r, fig.align='center', fig.height=7, fig.width=9,fig.cap="Interval bars depict 50% and 95% credible intervals"}
+```{r, fig.align='center', fig.height=7, fig.width=9,fig.cap="Interval bars depict the 50th and 95th quantiles."}
 p1 + plot_annotation(title = "Posterior distributions on mortality",
                           theme = theme(plot.title = element_text(size = 20)))
 
@@ -243,7 +243,7 @@ table_posterior %>%
 ```
 
 
-```{r, fig.align='center', fig.height=7, fig.width=9,fig.cap="Interval bars depict 50% and 95% credible intervals"}
+```{r, fig.align='center', fig.height=7, fig.width=9,fig.cap="Interval bars depict the 50th and 95th quantiles."}
 p2
 ```
 

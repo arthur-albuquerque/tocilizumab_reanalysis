@@ -10,7 +10,7 @@ posterior_cumulative_plot = function(
 ) {
   data %>%
     summarise(
-      posterior = (list(rnorm(n,
+      posterior = (list(rnorm(10e4,
                               mean = post.mean,
                               sd = post.sd
       ))

@@ -217,8 +217,7 @@ d_respiratory %>%
   autofit()
 ```
 
-As displayed above, there are trials that only provide pooled data and trials
-that provide both subgroup and pooled data.
+As displayed above, while the TOCIBRAS trial only provides pooled data, the REMAP-CAP trial provides both subgroup and pooled data.
 
 
 ```{r}

@@ -19,7 +19,8 @@ if (!require("pacman")) install.packages("pacman")
 
 # p_load() installs (if necessary) and loads the following packages
 
-pacman::p_load(janitor, # To clean column names
+pacman::p_load(rio, # to import/export files
+               janitor, # To clean column names
                tidyverse, # Data wrangling and plotting
                ggdist, # To plot distributions
                patchwork, # To arrange multiple plots
@@ -110,7 +111,7 @@ source(here("final_analyses", "script", "functions", "pooled",  # file path
 ```{r}
 # Original data extraction table
 
-d = readxl::read_excel(here("final_analyses", "data", # file path
+d = import(here("final_analyses", "data", # file path
                             "extracted-data.xlsx"),   # file name
                        na = "NA")   
 

@@ -894,7 +894,7 @@ head(all_posteriors_simple_oxygen_discharge) %>% flextable() %>% autofit()
 
 ```{r include=FALSE}
 
-d = readxl::read_excel(here("final_analyses", "data", # file path
+d = import(here("final_analyses", "data", # file path
                             "corticosteroids_subgroup_extracted-data.xlsx")) 
 
 d = clean_names(d) %>% 
@@ -1249,10 +1249,10 @@ forest(priors_100_not_cortico_death,
 ```{r}
 ## Save objects with rma() outputs to show forest plot in other files
 
-save(priors_100_not_cortico_death,
-     
-     file = here("final_analyses", "output", "data",
-                 "priors_100_not_cortico_death.RData"))
+# save(priors_100_not_cortico_death,
+#      
+#      file = here("final_analyses", "output", "data",
+#                  "priors_100_not_cortico_death.RData"))
 
 ```
 
