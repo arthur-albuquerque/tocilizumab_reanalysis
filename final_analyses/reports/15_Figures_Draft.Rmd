@@ -80,6 +80,22 @@ priors_invasive_raw =
     outcome == "mortality"
   )
 
+recovery_simple_oxygen = d %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         oxygen == "simple oxygen")
+
+recovery_noninvasive = d %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         oxygen == "non-invasive ventilation")
+
+recovery_invasive = d %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         oxygen == "invasive ventilation")
+  
+
 # Load corticosteroids raw data
 
 d_cortico = import(here("final_analyses", "data", # file path
@@ -102,6 +118,16 @@ priors_using =
     corticosteroids == 1,
     outcome == "mortality"
   )
+
+recovery_not_using = d_cortico %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         corticosteroids == 0)
+
+recovery_using = d_cortico %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         corticosteroids == 1)
 
 ## Load objets with all the posterior for sensitivity analyses
 
@@ -190,6 +216,27 @@ t = tibble(
 
   ),
   
+   "Risk (%)" = c(
+    
+    priors_not_using %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    priors_using %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    
+    priors_simple_oxygen_raw %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    priors_noninvasive_raw %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    priors_invasive_raw %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull()
+
+  ),
+  
   # Tocilizumab arm
   
   "Events   " = c(
@@ -222,131 +269,134 @@ t = tibble(
 
   ),
   
+  "Risk (%) " = c(
+  
+  priors_not_using %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+  priors_using %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+  
+  priors_simple_oxygen_raw %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+  priors_noninvasive_raw %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+  priors_invasive_raw %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull()
+  
+),
+  
   ## RECOVERY
   
   # Control arm
   
   "Events" = c(
-    d_cortico %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             corticosteroids == 0) %>% 
+    recovery_not_using %>% 
       select(events_control) %>% pull(),
-    d_cortico %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             corticosteroids == 1) %>% 
+    recovery_using %>% 
       select(events_control) %>% pull(),
     
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "simple oxygen") %>% 
+    recovery_simple_oxygen %>% 
       select(events_control) %>% pull(),
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "non-invasive ventilation") %>% 
+    recovery_noninvasive %>% 
       select(events_control) %>% pull(),
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "invasive ventilation") %>% 
+    recovery_invasive %>% 
       select(events_control) %>% pull()
 
   ),
   
   "Total" = c(
     
-    d_cortico %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             corticosteroids == 0) %>% 
+    recovery_not_using %>% 
       select(total_control) %>% pull(),
-    d_cortico %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             corticosteroids == 1) %>% 
+    recovery_using %>% 
       select(total_control) %>% pull(),
     
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "simple oxygen") %>% 
+    recovery_simple_oxygen %>% 
       select(total_control) %>% pull(),
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "non-invasive ventilation") %>% 
+    recovery_noninvasive %>% 
       select(total_control) %>% pull(),
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "invasive ventilation") %>% 
+    recovery_invasive %>% 
       select(total_control) %>% pull()
+
+  ),
+
+  "Risk (%)  " = c(
+    
+    recovery_not_using %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    recovery_using %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    
+    recovery_simple_oxygen %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    recovery_noninvasive %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    recovery_invasive %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull()
 
   ),
   
   # Tocilizumab arm
   
   "Events " = c(
-    d_cortico %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             corticosteroids == 0) %>% 
+    recovery_not_using %>% 
       select(events_toci) %>% pull(),
-    d_cortico %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             corticosteroids == 1) %>% 
+    recovery_using %>% 
       select(events_toci) %>% pull(),
     
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "simple oxygen") %>% 
+   recovery_simple_oxygen %>% 
       select(events_toci) %>% pull(),
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "non-invasive ventilation") %>% 
+    recovery_noninvasive %>% 
       select(events_toci) %>% pull(),
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "invasive ventilation") %>% 
+   recovery_invasive %>% 
       select(events_toci) %>% pull()
 
   ),
   
   "Total " = c(
     
-    d_cortico %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             corticosteroids == 0) %>% 
+    recovery_not_using %>% 
       select(total_toci) %>% pull(),
-    d_cortico %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             corticosteroids == 1) %>% 
+    recovery_using %>% 
       select(total_toci) %>% pull(),
     
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "simple oxygen") %>% 
+    recovery_simple_oxygen %>% 
       select(total_toci) %>% pull(),
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "non-invasive ventilation") %>% 
+    recovery_noninvasive %>% 
       select(total_toci) %>% pull(),
-    d %>%
-      filter(trial == "RECOVERY",
-             outcome == "mortality",
-             oxygen == "invasive ventilation") %>% 
+    recovery_invasive %>% 
       select(total_toci) %>% pull()
+
+  ),
+
+  "Risk (%)   " = c(
+    
+    recovery_not_using %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+    recovery_using %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+    
+    recovery_simple_oxygen %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+    recovery_noninvasive %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+    recovery_invasive %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull()
 
   )
   
@@ -356,15 +406,16 @@ t = tibble(
 
 t %>% 
   kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  kable_styling(bootstrap_options = "striped", full_width = T) %>%
+  column_spec(c(5,8,11,14), bold = T) %>% 
   add_header_above(c(" " = 2,
-                     "Control" = 2,
-                     "Tocilizumab" = 2,
-                     "Control" = 2,
-                     "Tocilizumab" = 2)) %>% 
+                     "Control" = 3,
+                     "Tocilizumab" = 3,
+                     "Control" = 3,
+                     "Tocilizumab" = 3)) %>% 
   add_header_above(c(" " = 1,
-                     "Priors" = 5,
-                     "RECOVERY" = 4)) %>% 
+                     "Priors" = 7,
+                     "RECOVERY" = 6)) %>% 
   pack_rows("Use of corticosteroids", 1, 2) %>% 
   pack_rows("Respiratory support", 3, 5)
 ```
@@ -1000,7 +1051,7 @@ all_posteriors_invasive_death %>%
                point_interval = median_qi,
                .width = c(0.5, 0.95)
   ) +
-  scale_fill_manual(values = c("gray85", "forestgreen")) +
+  scale_fill_manual(values = c("gray85", "#2a8952")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
