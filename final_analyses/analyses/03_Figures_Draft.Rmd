@@ -39,9 +39,12 @@ load(file = here("final_analyses", "output", "data", "analyses", # file path
 
 ## Load posterior distributions' samples with logOR, OR and RD
 
-load(here("final_analyses", "output", "data","analyses", # file path
-                  "samples_posteriors_death.RData"))      # file name
+# I uploaded these data objects to OSF since the .RData file is 54MB.
+# Here I load all data files directly from OSF without having to download it
+# to my/your PC
 
+samples = url("https://osf.io/3qexw/download?version=1")
+load(gzcon(samples))
 
 # Load original data extraction table
 

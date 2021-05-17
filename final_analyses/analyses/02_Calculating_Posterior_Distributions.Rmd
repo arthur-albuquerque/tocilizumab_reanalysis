@@ -931,6 +931,11 @@ samples_posteriors_invasive_death =
 #      
 #      file = here("final_analyses", "output", "data", "analyses", # file path
 #                  "samples_posteriors_death.RData"))        # file name
+
+# Although I saved this file to my PC, I uploaded it to OSF
+# (https://osf.io/3qexw/), since it is 56MB
+# In the next analysis documents, I will load this file directly from OSF,
+# without the need of downloading it to your PC
 ```
 
 ### Plotting
