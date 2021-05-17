@@ -1073,7 +1073,7 @@ distributions_cortico_posterior %>%
             "Pr >= 2%" = (sum( samples >= 0.02))/ n(),
             "Pr >= 5%" = (sum( samples >= 0.05))/ n()) %>% 
   mutate(across(-Distribution, ~multiply100(.))) %>% 
-  mutate(across(-Distribution, ~round(.,1))) %>% 
+  mutate(across(-Distribution, ~round(.,1))) %>%
   flextable() %>% 
   autofit()
 
@@ -1122,7 +1122,8 @@ distributions_respiratory_posterior %>%
             "Pr >= 2%" = (sum( samples >= 0.02))/ n(),
             "Pr >= 5%" = (sum( samples >= 0.05))/ n()) %>% 
   mutate(across(-Distribution, ~multiply100(.))) %>% 
-  mutate(across(-Distribution, ~round(.,1))) %>% 
+  mutate(across(-Distribution, ~round(.,1))) %>%
+  arrange(desc(Distribution)) %>% 
   flextable() %>% 
   autofit()
 
