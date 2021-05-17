@@ -1,0 +1,1370 @@
+---
+title: "03_Figures_Draft"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          toc: yes
+          toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE) # no code
+```
+
+```{r include=FALSE}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(rio, # To import data
+               here, # To find file paths within R project
+               janitor, # To change column names
+               tidyverse, # Data wrangling and plotting
+               ggdist, # To plot distributions
+               patchwork, # To arrange plots
+               kableExtra, # To create nice tables
+               flextable # To create quick tables
+               )
+```
+
+
+```{r}
+## Load objects with mean + SD of multiple priors along with
+## RECOVERY data and posterior distributions
+
+load(file = here("final_analyses", "output", "data", "analyses", # file path
+                 "data_prior_posteriors_mean_sd_death.RData"))   # file name
+
+## Load posterior distributions' samples with logOR, OR and RD
+
+load(here("final_analyses", "output", "data","analyses", # file path
+                  "samples_posteriors_death.RData"))      # file name
+
+
+# Load original data extraction table
+
+d = import((here("final_analyses", "output", "data", # file path
+                   "respiratory-data.csv")),           # file name
+             header = T)
+d = d %>% 
+  as_tibble() %>% 
+  select(!starts_with("X")) 
+
+# Create different variables per subgroup
+
+priors_simple_oxygen_raw =
+  d %>%
+  filter(
+    trial != "RECOVERY",
+    oxygen == "simple oxygen",
+    outcome == "mortality"
+  )
+
+priors_noninvasive_raw =
+  d %>%
+  filter(
+    trial != "RECOVERY",
+    oxygen == "non-invasive ventilation",
+    outcome == "mortality"
+  )
+
+priors_invasive_raw =
+  d %>%
+  filter(
+    trial != "RECOVERY",
+    oxygen == "invasive ventilation",
+    outcome == "mortality"
+  )
+
+recovery_simple_oxygen = d %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         oxygen == "simple oxygen")
+
+recovery_noninvasive = d %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         oxygen == "non-invasive ventilation")
+
+recovery_invasive = d %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         oxygen == "invasive ventilation")
+  
+
+# Load corticosteroids raw data
+
+d_cortico = import(here("final_analyses", "data", # file path
+                            "corticosteroids_subgroup_extracted-data.xlsx"))
+
+d_cortico = clean_names(d_cortico)
+
+priors_not_using =
+  d_cortico %>%
+  filter(
+    trial != "RECOVERY",
+    corticosteroids == 0,
+    outcome == "mortality"
+  )
+
+priors_using =
+  d_cortico %>%
+  filter(
+    trial != "RECOVERY",
+    corticosteroids == 1,
+    outcome == "mortality"
+  )
+
+recovery_not_using = d_cortico %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         corticosteroids == 0)
+
+recovery_using = d_cortico %>%
+  filter(trial == "RECOVERY",
+         outcome == "mortality",
+         corticosteroids == 1)
+
+```
+
+```{r}
+# Set seed for reproducibility
+
+set.seed = 123 
+```
+
+<br>
+
+**In this document, I will only present data regarding the mortality outcome. Thus, negative risk differences mean benefit.**
+
+## Table 1: Overall view of the data
+
+Here, the primary aim is to give an overall view of how many patients are
+involved in each subgroup and study.
+
+```{r}
+t = tibble(
+  
+  "Subgroup" = c(
+    "Not using",
+    "Using",
+    
+    "Simple oxygen only",
+    "Non-invasive ventilation",
+    "Invasive mechanical ventilation"
+    
+  ),
+  
+  ## Priors
+  
+  "Number of studies" = c(
+    
+    priors_not_using %>%
+      count() %>% pull(),
+    priors_using %>%
+      count() %>% pull(),
+    
+    priors_simple_oxygen_raw %>%
+      count() %>% pull(),
+    priors_noninvasive_raw %>%
+      count() %>% pull(),
+    priors_invasive_raw %>%
+      count() %>% pull()
+    
+  ),
+  
+  # Control arm
+  
+  "Events  " = c(
+    
+    priors_not_using %>%
+    summarise(n = sum(events_control)) %>% pull(),
+    priors_using %>%
+      summarise(n = sum(events_control)) %>% pull(),
+    
+    priors_simple_oxygen_raw %>%
+      summarise(n = sum(events_control)) %>% pull(),
+    priors_noninvasive_raw %>%
+      summarise(n = sum(events_control)) %>% pull(),
+    priors_invasive_raw %>%
+      summarise(n = sum(events_control)) %>% pull()
+
+  ),
+  
+  "Total  " = c(
+    
+    priors_not_using %>%
+      summarise(n = sum(total_control)) %>% pull(),
+    priors_using %>%
+      summarise(n = sum(total_control)) %>% pull(),
+    
+    priors_simple_oxygen_raw %>%
+      summarise(n = sum(total_control)) %>% pull(),
+    priors_noninvasive_raw %>%
+      summarise(n = sum(total_control)) %>% pull(),
+    priors_invasive_raw %>%
+      summarise(n = sum(total_control)) %>% pull()
+
+  ),
+  
+   "Risk (%)" = c(
+    
+    priors_not_using %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    priors_using %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    
+    priors_simple_oxygen_raw %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    priors_noninvasive_raw %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    priors_invasive_raw %>%
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull()
+
+  ),
+  
+  # Tocilizumab arm
+  
+  "Events   " = c(
+    priors_not_using %>%
+      summarise(n = sum(events_toci)) %>% pull(),
+    priors_using %>%
+      summarise(n = sum(events_toci)) %>% pull(),
+    
+    priors_simple_oxygen_raw %>%
+      summarise(n = sum(events_toci)) %>% pull(),
+    priors_noninvasive_raw %>%
+      summarise(n = sum(events_toci)) %>% pull(),
+    priors_invasive_raw %>%
+      summarise(n = sum(events_toci)) %>% pull()
+    
+  ),
+  
+  "Total   " = c(
+    priors_not_using %>%
+      summarise(n = sum(total_toci)) %>% pull(),
+    priors_using %>%
+      summarise(n = sum(total_toci)) %>% pull(),
+    
+    priors_simple_oxygen_raw %>%
+      summarise(n = sum(total_toci)) %>% pull(),
+    priors_noninvasive_raw %>%
+      summarise(n = sum(total_toci)) %>% pull(),
+    priors_invasive_raw %>%
+      summarise(n = sum(total_toci)) %>% pull()
+
+  ),
+  
+  "Risk (%) " = c(
+  
+  priors_not_using %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+  priors_using %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+  
+  priors_simple_oxygen_raw %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+  priors_noninvasive_raw %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+  priors_invasive_raw %>%
+    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull()
+  
+),
+  
+  ## RECOVERY
+  
+  # Control arm
+  
+  "Events" = c(
+    recovery_not_using %>% 
+      select(events_control) %>% pull(),
+    recovery_using %>% 
+      select(events_control) %>% pull(),
+    
+    recovery_simple_oxygen %>% 
+      select(events_control) %>% pull(),
+    recovery_noninvasive %>% 
+      select(events_control) %>% pull(),
+    recovery_invasive %>% 
+      select(events_control) %>% pull()
+
+  ),
+  
+  "Total" = c(
+    
+    recovery_not_using %>% 
+      select(total_control) %>% pull(),
+    recovery_using %>% 
+      select(total_control) %>% pull(),
+    
+    recovery_simple_oxygen %>% 
+      select(total_control) %>% pull(),
+    recovery_noninvasive %>% 
+      select(total_control) %>% pull(),
+    recovery_invasive %>% 
+      select(total_control) %>% pull()
+
+  ),
+
+  "Risk (%)  " = c(
+    
+    recovery_not_using %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    recovery_using %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    
+    recovery_simple_oxygen %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    recovery_noninvasive %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull(),
+    recovery_invasive %>% 
+      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
+      pull()
+
+  ),
+  
+  # Tocilizumab arm
+  
+  "Events " = c(
+    recovery_not_using %>% 
+      select(events_toci) %>% pull(),
+    recovery_using %>% 
+      select(events_toci) %>% pull(),
+    
+   recovery_simple_oxygen %>% 
+      select(events_toci) %>% pull(),
+    recovery_noninvasive %>% 
+      select(events_toci) %>% pull(),
+   recovery_invasive %>% 
+      select(events_toci) %>% pull()
+
+  ),
+  
+  "Total " = c(
+    
+    recovery_not_using %>% 
+      select(total_toci) %>% pull(),
+    recovery_using %>% 
+      select(total_toci) %>% pull(),
+    
+    recovery_simple_oxygen %>% 
+      select(total_toci) %>% pull(),
+    recovery_noninvasive %>% 
+      select(total_toci) %>% pull(),
+    recovery_invasive %>% 
+      select(total_toci) %>% pull()
+
+  ),
+
+  "Risk (%)   " = c(
+    
+    recovery_not_using %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+    recovery_using %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+    
+    recovery_simple_oxygen %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+    recovery_noninvasive %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull(),
+    recovery_invasive %>% 
+      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
+    pull()
+
+  )
+  
+)
+
+# Use kableExtra to have a nice table
+
+t %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = T) %>%
+  column_spec(c(5,8,11,14), bold = T) %>% 
+  add_header_above(c(" " = 2,
+                     "Control" = 3,
+                     "Tocilizumab" = 3,
+                     "Control" = 3,
+                     "Tocilizumab" = 3)) %>% 
+  add_header_above(c(" " = 1,
+                     "Priors" = 7,
+                     "RECOVERY" = 6)) %>% 
+  pack_rows("Use of corticosteroids", 1, 2) %>% 
+  pack_rows("Respiratory support", 3, 5)
+```
+
+<br><br>
+
+## Figure 1: Overall view of the data
+
+Here, the primary aim is to visually present our priors and the RECOVERY.
+I believe it is extremely important to present this data in a figure since
+they are the foundation underlying the posterior distributions in the next
+figures.
+
+```{r}
+# Corticosteroids subgroups
+
+# Create data frame
+
+# Not using corticosteroids subgroup
+
+distributions_not =
+  posteriors_not_using_death %>%
+  filter(type == "evidence-based") %>%
+  summarise(
+    RECOVERY_not = list(rnorm(10e4,
+      mean = data.mean,
+      sd = data.sd
+    )),
+    Prior_not = list(rnorm(10e4,
+      mean = prior.mean,
+      sd = prior.sd
+    ))
+  ) %>%
+  unnest(RECOVERY_not:Prior_not)
+
+# Using corticosteroids subgroup
+
+distributions_u =
+  posteriors_using_death %>%
+  filter(type == "evidence-based") %>%
+  summarise(
+    RECOVERY_u = list(rnorm(10e4,
+      mean = data.mean,
+      sd = data.sd
+    )),
+    Prior_u = list(rnorm(10e4,
+      mean = prior.mean,
+      sd = prior.sd
+    ))
+  ) %>%
+  unnest(RECOVERY_u:Prior_u)
+
+# Bind altogether
+
+distributions_cortico = bind_cols(
+  distributions_not,
+  distributions_u
+  
+)
+    
+```
+
+
+```{r}
+
+# Plot!
+
+p1 = distributions_cortico %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(RECOVERY_not:Prior_u),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  mutate(
+    # Create new column to be able to use facet at the end
+    subgroup = case_when(
+      str_detect(dist, "_u") ~ "Using corticosteroids",
+      str_detect(dist, "_not") ~ "Not using corticosteroids"
+    ),
+
+    # Set order of subgroups
+    subgroup = factor(subgroup,
+      levels = c(
+        "Not using corticosteroids",
+        "Using corticosteroids"
+      )
+    ),
+
+    # Remove "_u" and "_not"
+    dist = case_when(
+      str_detect(dist, "RECOVERY") ~ "RECOVERY",
+      str_detect(dist, "Prior") ~ "Priors",
+    ),
+    # Set order of distributions
+    dist = factor(dist,
+      levels = c(
+        "RECOVERY",
+        "Priors"
+      )
+    )
+  ) %>%
+  ggplot(aes(
+    x = samples, y = dist,
+    fill = dist
+  )) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(position = "dodge",
+               point_interval = median_qi, # Quantile interval 
+               .width = c(0.95)) +
+  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+  scale_fill_manual(' ',
+                    breaks=c("Priors","RECOVERY"),
+                    values = c(
+    "#F8D08D", # Prior
+     "#67B8D5" # RECOVERY
+  )) +
+  labs(
+    x = "\nlog(OR)",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = -1, to = 1, 0.5)) +
+  coord_cartesian(xlim = c(-1, 1),
+                  clip = 'off') +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'right',
+    legend.text = element_text(size=12),
+    legend.key= element_blank(),
+    plot.margin = margin(20, 0, 25, 25)
+  ) +
+  facet_wrap(~subgroup, ncol = 1)
+  
+```
+
+```{r}
+## Respiratory support
+
+# Create data frame
+
+# Simple oxygen subgroup
+
+distributions_s =
+  posteriors_simple_death %>%
+  filter(type == "evidence-based") %>%
+  summarise(
+    RECOVERY_s = list(rnorm(10e4,
+      mean = data.mean,
+      sd = data.sd
+    )),
+    Prior_s = list(rnorm(10e4,
+      mean = prior.mean,
+      sd = prior.sd
+    ))
+  ) %>%
+  unnest(RECOVERY_s:Prior_s)
+
+# Non-invasive ventilation
+
+distributions_n =
+  posteriors_noninvasive_death %>%
+  filter(type == "evidence-based") %>%
+  summarise(
+    RECOVERY_n = list(rnorm(10e4,
+      mean = data.mean,
+      sd = data.sd
+    )),
+    Prior_n = list(rnorm(10e4,
+      mean = prior.mean,
+      sd = prior.sd
+    ))
+  ) %>%
+  unnest(RECOVERY_n:Prior_n)
+
+# Invasive mechanical ventilation subgroup
+
+distributions_i =
+  posteriors_invasive_death %>%
+  filter(type == "evidence-based") %>%
+  summarise(
+    RECOVERY_i = list(rnorm(10e4,
+      mean = data.mean,
+      sd = data.sd
+    )),
+    Prior_i = list(rnorm(10e4,
+      mean = prior.mean,
+      sd = prior.sd
+    ))
+  ) %>%
+  unnest(RECOVERY_i:Prior_i)
+
+# Bind altogether
+
+distributions_respiratory = bind_cols(
+  distributions_i,
+  distributions_n,
+  distributions_s
+)
+```
+
+```{r}
+# Plot!
+
+p2 = distributions_respiratory %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(RECOVERY_i:Prior_s),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  mutate(
+    # Create new column to be able to use facet at the end
+    subgroup = case_when(
+      str_detect(dist, "_s") ~ "Simple oxygen only",
+      str_detect(dist, "_n") ~ "Non-invasive ventilation",
+      str_detect(dist, "_i") ~ "Invasive mechanical ventilation"
+    ),
+
+    # Set order of subgroups
+    subgroup = factor(subgroup,
+      levels = c(
+        "Simple oxygen only",
+        "Non-invasive ventilation",
+        "Invasive mechanical ventilation"
+      )
+    ),
+
+    # Remove "_i", "_n" and "_s"
+    dist = case_when(
+      str_detect(dist, "RECOVERY") ~ "RECOVERY",
+      str_detect(dist, "Prior") ~ "Priors",
+    ),
+    # Set order of distributions
+    dist = factor(dist,
+      levels = c(
+        "RECOVERY",
+        "Priors"
+      )
+    )
+  ) %>%
+  ggplot(aes(
+    x = samples, y = dist,
+    fill = dist
+  )) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(position = "dodge",
+               point_interval = median_qi, # Quantile interval
+               .width = c(0.95)) +
+  scale_fill_manual(values = c(
+    "#67B8D5", # RECOVERY
+    "#F8D08D" # Priors
+  )) +
+  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+  labs(
+    x = "\nlog(OR)",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = -1, to = 1.5, 0.5)) +
+  coord_cartesian(xlim = c(-1, 1.5)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 15, 0, 0)
+  ) +
+  facet_wrap(~subgroup, ncol = 1)
+```
+
+```{r, fig.align='center', fig.width=10, fig.height = 6, fig.cap="Point estimates depict the median and interval bars depict 95th quantiles."}
+p1 + p2 + plot_annotation(tag_levels = 'A')
+```
+
+<br><br>
+
+### Calculations for the manuscript text
+
+Here are the 95% quantile intervals in *odds ratio* of distributions on the use of
+corticosteroids. "_not" means not using and "_u" means using corticosteroids.
+
+```{r echo=TRUE}
+distributions_cortico %>% 
+  # make it tidy to be able to use group_by()
+  pivot_longer(
+    cols = c(RECOVERY_not:Prior_u),
+    names_to = "Distribution", values_to = "samples"
+  ) %>% 
+  # Group by distribution so we can apply median_qi
+  group_by(Distribution) %>% 
+  # Calculate the median and 95% quantile interval in log-odds ratio
+  ggdist::median_qi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  select(Distribution:.upper) %>% 
+  # Exponentiate to transform log-odds ratio into odds ratio
+  mutate(across(samples:.upper, ~exp(.))) %>%
+  mutate(across(samples:.upper, ~round(., 2))) %>%
+  rename("Median" = samples) %>% 
+  flextable()
+```
+
+Here are the 95% quantile intervals in *odds ratio* of distributions on respiratory support.
+"_s" means simple oxygen, "_n" means non-invasive ventilation and "_i" means
+invsasive mechanical ventilation.
+
+```{r echo=TRUE}
+distributions_respiratory %>% 
+  # make it tidy to be able to use group_by()
+  pivot_longer(
+    cols = c(RECOVERY_i:Prior_s),
+    names_to = "Distribution", values_to = "samples"
+  ) %>% 
+  # Group by distribution so we can apply median_qi
+  group_by(Distribution) %>% 
+  # Calculate the median and 95% quantile interval in log-odds ratio
+  ggdist::median_qi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  select(Distribution:.upper) %>% 
+  # Exponentiate to transform log-odds ratio into odds ratio
+  mutate(across(samples:.upper, ~exp(.))) %>% 
+  mutate(across(samples:.upper, ~round(., 2))) %>%
+  rename("Median" = samples) %>% 
+  arrange(desc(Distribution)) %>% 
+  flextable()
+```
+
+## Figure 2: Posterior distributions
+
+In my opinion, this is the most important figure. I decided not to use tables,
+because there are too much data and Panel B and D seem to handle well this
+great amount of data.
+
+```{r}
+# Create data frame
+
+posterior_not_using = 
+  samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  select(`RD`) %>% 
+  rename("RD_not" = `RD`)
+
+posterior_using = 
+  samples_posteriors_using_death %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  select(`RD`) %>% 
+  rename("RD_u" = `RD`)
+
+distributions_cortico_posterior =
+  bind_cols(posterior_not_using,
+            posterior_using)
+```
+
+```{r}
+p1 = distributions_cortico_posterior %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(RD_not:RD_u),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  mutate(
+    # Create new column to be able to use facet at the end
+    subgroup = case_when(
+      str_detect(dist, "_u") ~ "Using corticosteroids",
+      str_detect(dist, "_not") ~ "Not using corticosteroids"
+    ),
+
+    # Set order of subgroups
+    subgroup = factor(subgroup,
+      levels = c(
+        "Not using corticosteroids",
+        "Using corticosteroids"
+      )
+    )) %>%
+  
+  # Plot!
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = 100 * samples, y = dist,
+    fill = subgroup
+  )) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(point_interval = median_hdi, # Highest density interval
+               .width = c(0.50, 0.95)) +
+  scale_fill_manual(values = c("#9EA45B", "#A65041")) +
+  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+  labs(
+    x = "\nRisk Difference (%)",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = -10, to = 10, 2.5)) +
+  coord_cartesian(xlim = c(-10, 10)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 10, 20, 10)
+  ) +
+  facet_wrap(~subgroup, ncol = 1, scales = "free_y")
+```
+
+```{r warning=FALSE, include=FALSE}
+p2 = distributions_cortico_posterior %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(RD_not:RD_u),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  mutate(
+    # Create new column to be able to use facet at the end
+    subgroup = case_when(
+      str_detect(dist, "_u") ~ "Using corticosteroids",
+      str_detect(dist, "_not") ~ "Not using corticosteroids"
+    ),
+
+    # Set order of subgroups
+    subgroup = factor(subgroup,
+      levels = c(
+        "Not using corticosteroids",
+        "Using corticosteroids"
+      )
+    )) %>% 
+  
+# Multiply by 100 to report in percentage
+ggplot(aes(100 * samples, colour = subgroup)) +
+  geom_line(aes(y = 1 - ..y..), stat='ecdf', size = 1.2) +
+  scale_color_manual(' ',
+                    values = c("#9EA45B", "#A65041")) +
+  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+    labs(
+      x = "\nRisk Difference (%)",
+      y = "Probability RD \u2265 X\n"
+      ) +
+    scale_x_continuous(
+      breaks = seq(from = -10, to = 10, 1),
+      limits = c(-10, 10)) +
+    scale_y_continuous(
+      breaks = seq(from = 0, to = 1, .1),
+      expand = c(0, .03)
+    ) +
+  theme(
+      axis.ticks.x = element_blank(),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+      legend.position = 'none',
+      plot.margin = margin(20, 10, 20, 10)
+    )
+```
+
+
+```{r}
+# Create data frame
+
+# Simple oxygen only
+
+posterior_s = 
+  samples_posteriors_simple_death %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  select(`RD`) %>% 
+  rename("RD_s" = `RD`)
+
+# Non-invasive ventilation
+
+posterior_n = 
+  samples_posteriors_noninvasive_death %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  select(`RD`) %>% 
+  rename("RD_n" = `RD`)
+
+# Invasive mechanical ventilation
+
+posterior_i = 
+  samples_posteriors_invasive_death %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  select(`RD`) %>% 
+  rename("RD_i" = `RD`)
+
+# Bind altogether
+
+distributions_respiratory_posterior = bind_cols(
+  posterior_i,
+  posterior_n,
+  posterior_s
+)
+
+```
+
+```{r}
+
+p3 = distributions_respiratory_posterior %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(RD_i:RD_s),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  mutate(
+    # Create new column to be able to use facet at the end
+    subgroup = case_when(
+      str_detect(dist, "_s") ~ "Simple oxygen only",
+      str_detect(dist, "_n") ~ "Non-invasive ventilation",
+      str_detect(dist, "_i") ~ "Invasive mechanical ventilation"
+    ),
+
+    # Set order of subgroups
+    subgroup = factor(subgroup,
+      levels = c(
+        "Simple oxygen only",
+        "Non-invasive ventilation",
+        "Invasive mechanical ventilation"
+      ))
+    ) %>%
+  # Plot!
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = 100 * samples, y = dist,
+    fill = subgroup
+  )) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(point_interval = median_hdi, # Highest density interval
+               .width = c(0.50, 0.95)) +
+  scale_fill_manual(values = c("#D9BC8C", # Simple oxyge
+                               "#9d95c6", # Non-invasive
+                               "#7D8D87") # Invasive
+                    ) +
+  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+  labs(
+    x = "\nRisk Difference (%)",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = -10, to = 10, 2.5)) +
+  coord_cartesian(xlim = c(-10, 10)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 10, 20, 10)
+  ) +
+  facet_wrap(~ subgroup, ncol = 1, scales = "free_y")
+```
+
+```{r warning=FALSE}
+p4 = distributions_respiratory_posterior %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(RD_i:RD_s),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  mutate(
+    # Create new column to be able to use facet at the end
+    subgroup = case_when(
+      str_detect(dist, "_s") ~ "Simple oxygen only",
+      str_detect(dist, "_n") ~ "Non-invasive ventilation",
+      str_detect(dist, "_i") ~ "Invasive mechanical ventilation"
+    ),
+
+    # Set order of subgroups
+    subgroup = factor(subgroup,
+      levels = c(
+        "Simple oxygen only",
+        "Non-invasive ventilation",
+        "Invasive mechanical ventilation"
+      ))
+    ) %>%
+# Multiply by 100 to report in percentage
+ggplot(aes(100*samples, colour = subgroup)) +
+  geom_line(aes(y = 1 - ..y..), stat='ecdf', size = 1.2) +
+  scale_color_manual(' ',
+                    values = c("#D9BC8C", # Simple oxyge
+                               "#9d95c6", # Non-invasive
+                               "#7D8D87") # Invasive
+                    ) +
+  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+    labs(
+      x = "\nRisk Difference (%)",
+      y = "Probability RD \u2265 X\n"
+      ) +
+    scale_x_continuous(
+      breaks = seq(from = -10, to = 10, 1),
+      limits = c(-10, 10)) +
+    scale_y_continuous(
+      breaks = seq(from = 0, to = 1, .1),
+      expand = c(0, .03)
+    ) +
+  theme(
+      axis.ticks.x = element_blank(),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+      legend.position = 'none',
+      plot.margin = margin(20, 10, 20, 10)
+    )
+```
+
+```{r , fig.align='center', fig.width=10, fig.height = 8.5, warning=FALSE, fig.cap="Panels A and C: Point estimates depict the median. Interval bars depict the 50 and 95% credible intervals. Panels B and D: Cumulative posterior distributions correspond to the probabilities that the risk difference (RD) is greater than or equal to the effect size on the X‐axis."}
+(p1 + p2) / (p3 + p4) + plot_annotation(tag_levels = 'A')
+```
+
+<br><br>
+
+### Calculations for the manuscript text
+
+Here are the 95% quantile intervals in *risk difference* of distributions on the use of
+corticosteroids. "_not" means not using and "_u" means using corticosteroids.
+
+```{r echo=TRUE}
+multiply100 = function(x){x*100}
+distributions_cortico_posterior %>% 
+  # make it tidy to be able to use group_by()
+  pivot_longer(
+    cols = c(RD_not:RD_u),
+    names_to = "Distribution", values_to = "samples"
+  ) %>% 
+  # Group by distribution so we can apply median_qi
+  group_by(Distribution) %>% 
+  # Calculate the median and 95% quantile interval in log-odds ratio
+  ggdist::median_qi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  select(Distribution:.upper) %>%
+  mutate(across(samples:.upper, ~multiply100(.))) %>%
+  mutate(across(samples:.upper, ~round(., 2))) %>%
+  rename("Median" = samples) %>% 
+  flextable()
+```
+
+Here are the 95% quantile intervals in *risk difference* of distributions on
+respiratory support. "_s" means simple oxygen, "_n" means non-invasive
+ventilation and "_i" means invsasive mechanical ventilation.
+
+```{r echo=TRUE}
+distributions_respiratory_posterior %>% 
+  # make it tidy to be able to use group_by()
+  pivot_longer(
+    cols = c(RD_i:RD_s),
+    names_to = "Distribution", values_to = "samples"
+  ) %>% 
+  # Group by distribution so we can apply median_qi
+  group_by(Distribution) %>% 
+  # Calculate the median and 95% quantile interval in log-odds ratio
+  ggdist::median_qi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  select(Distribution:.upper) %>%
+  mutate(across(samples:.upper, ~multiply100(.))) %>%
+  mutate(across(samples:.upper, ~round(., 2))) %>%
+  rename("Median" = samples) %>% 
+  arrange(desc(Distribution)) %>% 
+  flextable()
+```
+
+## Figure 3: Posterior distributions; Sensitivity analysis of "invasive mechanical ventilation"
+
+This sensitivity analysis are the ones with the greatest change across priors.
+These changes can actually interfer clinical decision. Thus, I judged that these
+analyses "deserve" their own figure. 
+
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% credible intervals."}
+
+level_order = c("Pessimistic",
+                "Optimistic",
+                "Skeptical",
+                "Evidence-based",
+                "Non-informative")
+
+samples_posteriors_invasive_death %>%
+  
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = 100 * RD,
+    y = factor(`Underlying_Prior`, level = level_order),
+    fill = `Underlying_Prior`)) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+    stat_halfeye(aes(fill = stat(x > 0)),
+                 position = "dodge",
+               point_interval = median_hdi, # Highest density interval
+               .width = c(0.5, 0.95)
+  ) +
+  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  labs(x = "\nRisk Difference (%)",
+       y = "Underlying Prior\n"
+  ) +
+  scale_x_continuous(breaks = seq(from = -10, to = 10, 2.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(-10, 11))
+```
+
+<br><br>
+
+### Calculations for the manuscript text
+
+Here are the 95% quantile intervals in *risk difference* of each distribution.
+
+```{r echo=TRUE}
+samples_posteriors_invasive_death %>%
+  select("Underlying_Prior", "RD") %>% 
+  # Group by distribution so we can apply median_qi
+  group_by(`Underlying_Prior`) %>% 
+  # Calculate the median and 95% quantile interval in log-odds ratio
+  ggdist::median_qi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  select("Underlying_Prior":.upper) %>%
+  mutate(across(RD:.upper, ~multiply100(.))) %>%
+  mutate(across(RD:.upper, ~round(., 2))) %>%
+  rename("Median" = RD) %>%
+  flextable()
+```
+
+## Table 2: Posterior distributions; Sensitivity analysis of "invasive mechanical ventilation"
+
+This table complements Figure 3.
+
+```{r}
+
+# Please note that I multiplied all samples by -1 because I wanted to report
+# negative risk differences as benefit (for the mortality outcome)
+
+t = tibble(
+  
+  "Underlying Prior" = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ),
+  
+  
+  "Pr(< -5%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100
+                  ),
+  
+  "Pr(< -2%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100
+                  ),
+  
+  "Pr(< -1%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100
+                  ),
+  
+  
+  "Pr(> 0%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD > 0) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD > 0) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD > 0) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD > 0) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD > 0) / n()) %>%
+                           pull()), 2) * 100
+                  ),
+  
+  "Pr(> 1%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD > 0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD > 0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD > 0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD > 0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD > 0.01) / n()) %>%
+                           pull()), 2) * 100
+                  ),
+  
+  "Pr(> 2%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD > 0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD > 0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD > 0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD > 0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD > 0.02) / n()) %>%
+                           pull()), 2) * 100
+                  ),
+  
+  "Pr(> 5%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD > 0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD > 0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD > 0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD > 0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD > 0.05) / n()) %>%
+                           pull()), 2) * 100
+                  )
+) 
+
+t %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  add_header_above(c(" " = 1,
+                     "Probability of Harm" = 3,
+                     "Probability of Benefit" = 4))
+```
+

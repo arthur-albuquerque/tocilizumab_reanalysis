@@ -1,0 +1,1137 @@
+---
+title: "02_Calculating_Posterior_Distributions"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: show
+          toc: yes
+          toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+In this document, we will provide the rationale underlying the **effect sizes**
+used in our project. We will focus on the **mortality outcome**.
+
+First, we will load the data and calculate the **log-odds ratio** of the RECOVERY
+trial and its corresponding prior. Then, we will calculate the
+**posterior distributions** in log-odds ratio scale. Lastly, we will derive the
+**risk differences** from these posterior distributions.
+
+If you are not interested in the code, you can select the "Hide all code" option
+on the upper-right corner.
+
+```{r}
+# Load packages
+
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(plyr, # for the Varying baseline risk calculations
+               magrittr, # same as above
+               rio, # to import/export files
+               tidyverse, # Data wrangling and plotting
+               kableExtra, # To create tables
+               flextable, # To create tables
+               here, # To find file paths within R project
+               metafor, # To create priors from meta-analysis
+               janitor, # To change column names
+               ggdist, # To plot distributions
+               patchwork # To arrange plots
+               )
+
+# Load data on respiratory support subgroups
+
+d1 = import((here("final_analyses", "output", "data", # file path
+                   "respiratory-data.csv")),           # file name
+             header = T)
+
+# Load data on corticosteroids subgroups
+
+d2 = import(here("final_analyses", "data", # file path
+                            "corticosteroids_subgroup_extracted-data.xlsx")) 
+
+d2 = clean_names(d2)
+```
+
+# Log-odds ratio, then odds ratio, then risk difference
+
+Our ultimate goal in this project is to report posterior distributions of risk
+difference (RD) for each subgroup. We will eventually compile multiple studies
+in our analyses and each have their own baseline risk (BR). Notably, RD is
+intrinsically related to BR. Therefore, different studies with
+distinct RDs are not comparable between each other.
+
+To overcome this limitation regarding RD, we have decided to use a fixed
+BR for each subgroup. We will use the BR in the respective
+control group from the RECOVERY trial. 
+
+[Doi et al.](https://www.jclinepi.com/article/S0895-4356(20)31171-9/fulltext)
+stated that RD should be derived from the odds ratio (OR). Thus, in combination
+with a fixed BR, we will calculate RDs from OR. Here is the formula provided by
+Doi et al., where $R D$ is risk difference, $B R$ is baseline risk from the
+control group (no-exposure) and $O R$ is odds ratio.
+
+$$R D=\frac{B R * \left(B R-1\right)* \left(O R-1\right)}{B R*O R-B R+1}$$
+
+First, we will calculate the log-odds ratio for the RECOVERY trial and its
+corresponding prior in each subgroup.
+
+## Use of corticosteroids subgroups
+
+### Not using 
+
+First, let's calculate and visualize the **log-odds ratio** from the
+RECOVERY trial.
+
+```{r}
+
+logOR_recovery_not_using =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d2 %>% filter(outcome == "mortality",
+                         corticosteroids == 0,
+                         trial == "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_recovery_not_using)
+```
+
+Now, let's calculate and visualize the **log-odds ratio** from the
+other trials. The pooled result from this random-effect meta-analysis will be
+used as the estimate for the distribution of prior regarding this subgroup.
+
+```{r}
+
+# Simple oxygen
+
+logOR_prior_not_using =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d2 %>% filter(outcome == "mortality",
+                         corticosteroids == 0,
+                         trial != "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_prior_not_using)
+```
+
+### Using 
+
+Let's calculate and visualize the **log-odds ratio** from the
+RECOVERY trial.
+
+```{r}
+
+logOR_recovery_using =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d2 %>% filter(outcome == "mortality",
+                         corticosteroids == 1,
+                         trial == "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_recovery_using)
+```
+
+Now, let's calculate and visualize the **log-odds ratio** from the
+other trials. The pooled result from this random-effect meta-analysis will be
+used as the estimate for the distribution of prior regarding this subgroup.
+
+```{r}
+
+# Simple oxygen
+
+logOR_prior_using =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d2 %>% filter(outcome == "mortality",
+                         corticosteroids == 1,
+                         trial != "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_prior_using)
+```
+
+## Respiratory support subgroups
+
+### Simple oxygen only
+
+Let's calculate and visualize the **log-odds ratio** from the
+RECOVERY trial.
+
+```{r}
+
+logOR_recovery_simple =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d1 %>% filter(outcome == "mortality",
+                         oxygen == "simple oxygen",
+                         trial == "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_recovery_simple)
+```
+
+Now, let's calculate and visualize the **log-odds ratio** from the
+other trials. The pooled result from this random-effect meta-analysis will be
+used as the estimate for the distribution of prior regarding this subgroup.
+
+```{r}
+
+logOR_prior_simple =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d1 %>% filter(outcome == "mortality",
+                         oxygen == "simple oxygen",
+                         trial != "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_prior_simple)
+```
+
+### Non-invasive ventilation
+
+Let's calculate and visualize the **log-odds ratio** from the
+RECOVERY trial.
+
+```{r}
+
+logOR_recovery_noninvasive =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d1 %>% filter(outcome == "mortality",
+                         oxygen == "non-invasive ventilation",
+                         trial == "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_recovery_noninvasive)
+```
+
+Now, let's calculate and visualize the **log-odds ratio** from the
+other trials. The pooled result from this random-effect meta-analysis will be
+used as the estimate for the distribution of prior regarding this subgroup.
+
+```{r}
+
+logOR_prior_noninvasive =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d1 %>% filter(outcome == "mortality",
+                         oxygen == "non-invasive ventilation",
+                         trial != "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_prior_noninvasive)
+```
+
+### Invasive mechanical ventilation
+
+Let's calculate and visualize the **log-odds ratio** from the
+RECOVERY trial.
+
+```{r}
+
+logOR_recovery_invasive =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d1 %>% filter(outcome == "mortality",
+                         oxygen == "invasive ventilation",
+                         trial == "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_recovery_invasive)
+```
+
+Now, let's calculate and visualize the **log-odds ratio** from the
+other trials. The pooled result from this random-effect meta-analysis will be
+used as the estimate for the distribution of prior regarding this subgroup.
+
+```{r}
+
+logOR_prior_invasive =
+  rma(
+    # Outcome
+    measure = "OR", # Log-odds ratio
+    
+    # Tocilizumab group
+    ai = events_toci,
+    n1i = total_toci,
+
+    # Control group
+    ci = events_control,
+    n2i = total_control,
+    
+    data = d1 %>% filter(outcome == "mortality",
+                         oxygen == "invasive ventilation",
+                         trial != "RECOVERY"),
+    
+     method = "REML",
+
+    slab = paste(trial)
+  )
+
+forest(logOR_prior_invasive)
+```
+
+## Calculating Posterior Distributions
+
+Now, we will first calculate the posterior distributions from log-odds ratio.
+We will combine mean and variance from likelihood (RECOVERY) and prior in a
+conjugate normal analysis to get the posterior distributions
+([Spiegelhalter et al., 2004](https://onlinelibrary.wiley.com/doi/book/10.1002/0470092602)).
+
+Assuming each prior is normal distributed
+
+$$N(\theta,\sigma^2)$$
+
+and so is the data (likelihood).
+
+$$N(\hat{\theta},\hat{\sigma}^2)$$
+The mean and variance of the posterior distributions can be estimated by the
+following formulas:
+
+* Mean
+
+$$\frac{\frac{\theta}{\sigma^2} + \frac{\hat\theta}{\hat\sigma^2}}{\frac{1}{\sigma^2}+\frac{1}{\hat\sigma^2}}$$
+
+* Variance 
+
+$$\frac{1}{\frac{1}{\sigma^2}+\frac{1}{\hat\sigma^2}}$$
+
+We will first load custom functions. You can find these in the
+[GitHub repository](https://github.com/arthur-albuquerque/tocilizumab_reanalysis/tree/master/final_analyses/script)
+of this project.
+
+```{r}
+## Load custom functions
+
+# To generate normal conjugate posterior probabilities
+
+source(here("final_analyses", "script", "functions", "analyses", # file path
+            "conjugate_normal_posterior.R"))                     # file name
+
+# To generate posterior probabilities with an evidence-based prior
+# (it requires "conjugate_normal_posterior.R" )
+
+source(here("final_analyses", "script", "functions", "analyses", # file path
+            "normal_approximation_logOR.R"))                     # file name
+
+# To generate posterior probabilities with multiple priors
+# (it requires "conjugate_normal_posterior.R" )
+
+source(here("final_analyses", "script", "functions", "analyses", # file path
+            "logOR_normal_approximation_multiple_priors.R"))     # file name
+
+# To compile all posteriors into a tibble
+
+source(here("final_analyses", "script", "functions", "analyses", # file path
+            "tibble_all_posteriors_logOR.R"))                      # file name
+```
+
+
+```{r include=FALSE}
+### Apply custom functions
+
+## Use of corticosteroids
+
+# Not using
+posterior_not_using_death = normal_approximation_logOR(
+  logOR_recovery_not_using, # Data object with RECOVERY data
+  logOR_prior_not_using, # Output from the rma() in the previous code chunk
+
+  posterior_not_using_death # Repeat the name of the object you are creating
+)
+
+# Using
+posterior_using_death = normal_approximation_logOR(
+  logOR_recovery_using, # Data object with RECOVERY data
+  logOR_prior_using, # Output from the rma() in the previous code chunk
+
+  posterior_using_death # Repeat the name of the object you are creating
+)
+
+## Respiratory support
+
+# Simple oxygen only
+posterior_simple_death = normal_approximation_logOR(
+  logOR_recovery_simple, # Data object with RECOVERY data
+  logOR_prior_simple, # Output from the rma() in the previous code chunk
+
+  posterior_simple_death # Repeat the name of the object you are creating
+)
+
+# Non-invasive ventilation
+posterior_noninvasive_death = normal_approximation_logOR(
+  logOR_recovery_noninvasive, # Data object with RECOVERY data
+  logOR_prior_noninvasive, # Output from the rma() in the previous code chunk
+
+  posterior_noninvasive_death # Repeat the name of the object you are creating
+)
+
+# Invasive mechanical ventilation
+posterior_invasive_death = normal_approximation_logOR(
+  logOR_recovery_invasive, # Data object with RECOVERY data
+  logOR_prior_invasive, # Output from the rma() in the previous code chunk
+
+  posterior_invasive_death # Repeat the name of the object you are creating
+)
+
+```
+
+We also [pre-planned](https://osf.io/qhvcp/) to perform **sensitivity analyses**
+using different priors. In addition to the ones calculated above (hereafter,
+**evidence-based priors**), we will also generate posterior distributions using
+four extra priors: **non-informative, skeptical, optimistic and pessimistic**.
+
+The non-informative and skeptical priors' mean equals to $0$ ( = *log(1)* ).
+The optimistic prior's mean equals to $-0.223$ ( = *log(0.8)* ).
+The pessimistic prior's mean equals to $0.223$ ( = *log(1.25)* ).
+
+We decided to use *log(0.8)* as the mean for the **optimistic** prior because the
+RECOVERY trial was designed to be well-powered for 20% relative risk reduction.
+In turn, we used the symmetrical opposite from *log(0.8)* in the log scale for
+the pessimistic mean, which is *log(1.25)*.
+
+Of note, these priors are normally distributed, thus they are described by a mean
+and a variance. We also pre-planned to use the respective **evidence-based prior's**
+**variance** for the variance in all other prior distributions, but the
+non-informative. Instead, the latter will have a variance of $10,000$.
+
+Now, let's calculate the posterior distributions using these extra priors. 
+
+```{r message=FALSE, warning=FALSE}
+## Use of corticosteroids
+
+# Not using
+posteriors_not_using_death =
+  logOR_normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  posterior_not_using_death, 
+  "mortality", # Outcome (within quotes)
+  posteriors_not_using_death # Name for the final output with data+prior+posterior
+  )
+
+# Using
+posteriors_using_death =
+  logOR_normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  posterior_using_death, 
+  "mortality", # Outcome (within quotes)
+  posteriors_using_death # Name for the final output with data+prior+posterior
+  )
+
+## Respiratory support
+
+# Simple oxygen only
+posteriors_simple_death =
+  logOR_normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  posterior_simple_death, 
+  "mortality", # Outcome (within quotes)
+  posteriors_simple_death # Name for the final output with data+prior+posterior
+  )
+
+# Non-invasive ventilation
+posteriors_noninvasive_death =
+  logOR_normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  posterior_noninvasive_death, 
+  "mortality", # Outcome (within quotes)
+  posteriors_noninvasive_death # Name for the final output with data+prior+posterior
+  )
+
+# Invasive mechanical ventilation
+posteriors_invasive_death =
+  logOR_normal_approximation_multiple_priors(
+  # Data object with evidence-based posterior from normal_approximation()
+  posterior_invasive_death, 
+  "mortality", # Outcome (within quotes)
+  posteriors_invasive_death # Name for the final output with data+prior+posterior
+  )
+
+```
+
+```{r include=FALSE}
+## Save 
+
+# save(posteriors_not_using_death,
+#      posteriors_using_death,
+#      posteriors_simple_death,
+#      posteriors_noninvasive_death,
+#      posteriors_invasive_death,
+#      
+#      file = here("final_analyses", "output", "data", "analyses", # file path
+#                  "data_prior_posteriors_mean_sd_death.RData"))   # file name
+```
+
+
+Here is an example from one subgroup:
+
+```{r}
+posteriors_not_using_death %>% flextable()
+```
+
+Notably, the data (likelihood), priors and posteriors are normal-distributed.
+Thus, we will get the mean and variance from each posterior distribution and
+draw 100,000 samples. I will store these results in one data-frame per subgroup.
+
+```{r}
+## Use of corticosteroids
+
+# Not using
+samples_logOR_posteriors_not_using_death = 
+  tibble_all_posteriors_logOR(posteriors_not_using_death)
+
+# Using
+samples_logOR_posteriors_using_death = 
+  tibble_all_posteriors_logOR(posteriors_using_death)
+
+## Respiratory support
+
+# Simple oxygen only
+samples_logOR_posteriors_simple_death = 
+  tibble_all_posteriors_logOR(posteriors_simple_death)
+
+# Non-invasive ventilation
+samples_logOR_posteriors_noninvasive_death = 
+  tibble_all_posteriors_logOR(posteriors_noninvasive_death)
+
+# Invasive mechanical ventilation
+samples_logOR_posteriors_invasive_death = 
+  tibble_all_posteriors_logOR(posteriors_invasive_death)
+```
+
+Here is an example of a data-frame using head(), in which there is one sample
+per row:
+
+```{r}
+samples_logOR_posteriors_not_using_death %>% head() %>% flextable() %>% autofit()
+```
+
+### Calculating risk difference
+
+As mentioned before, we will use the formula provided by [Doi et al.](https://www.jclinepi.com/article/S0895-4356(20)31171-9/fulltext)
+to calculate the risk difference (RD) from a fixed baseline risk (BR) and odds
+ratio (OR).
+
+$$R D=\frac{B R * \left(B R-1\right)* \left(O R-1\right)}{B R*O R-B R+1}$$
+
+In the sections before, we calculated the log-odds ratio for the RECOVEY trial
+and prior distributions in each subgroup. We then calculated the posterior
+distributions in the log-odds ratio scale. 
+
+Now, we will exponentiate these values to obtain the odds ratio for the
+posterior distributions. We will first get the data frames (wide format) from
+the section before and transform them into the long format.
+
+```{r}
+## Use of corticosteroids
+
+# Not using
+samples_posteriors_not_using_death = 
+  samples_logOR_posteriors_not_using_death %>% 
+  pivot_longer(
+    cols = c('Non-informative':'Pessimistic'),
+    names_to = "Underlying_Prior", values_to = "log(OR)"
+  )
+
+# Using
+samples_posteriors_using_death = 
+  samples_logOR_posteriors_using_death %>% 
+  pivot_longer(
+    cols = c('Non-informative':'Pessimistic'),
+    names_to = "Underlying_Prior", values_to = "log(OR)"
+  )
+
+## Respiratory support
+
+# Simple oxygen only
+samples_posteriors_simple_death = 
+  samples_logOR_posteriors_simple_death %>% 
+  pivot_longer(
+    cols = c('Non-informative':'Pessimistic'),
+    names_to = "Underlying_Prior", values_to = "log(OR)"
+  )
+
+# Non-invasive ventilation
+samples_posteriors_noninvasive_death = 
+  samples_logOR_posteriors_noninvasive_death %>% 
+  pivot_longer(
+    cols = c('Non-informative':'Pessimistic'),
+    names_to = "Underlying_Prior", values_to = "log(OR)"
+  )
+
+# Invasive mechanical ventilation
+samples_posteriors_invasive_death = 
+  samples_logOR_posteriors_invasive_death %>% 
+  pivot_longer(
+    cols = c('Non-informative':'Pessimistic'),
+    names_to = "Underlying_Prior", values_to = "log(OR)"
+  )
+  
+```
+
+We will now calculate the odds ratio from log(OR) with the exponentiation
+function.
+
+```{r}
+## Use of corticosteroids
+
+# Not using
+samples_posteriors_not_using_death = 
+  samples_posteriors_not_using_death %>% 
+  mutate(OR = exp(`log(OR)`))
+
+# Using
+samples_posteriors_using_death = 
+  samples_posteriors_using_death %>% 
+  mutate(OR = exp(`log(OR)`))
+
+## Respiratory support
+
+# Simple oxygen only
+samples_posteriors_simple_death = 
+  samples_posteriors_simple_death %>% 
+  mutate(OR = exp(`log(OR)`))
+
+# Non-invasive ventilation
+samples_posteriors_noninvasive_death = 
+  samples_posteriors_noninvasive_death %>% 
+  mutate(OR = exp(`log(OR)`))
+
+# Invasive mechanical ventilation
+samples_posteriors_invasive_death = 
+  samples_posteriors_invasive_death %>% 
+  mutate(OR = exp(`log(OR)`))
+  
+```
+
+Here is an example of a data-frame using head()
+
+```{r}
+samples_posteriors_not_using_death %>% head() %>% flextable() %>% autofit()
+```
+
+Lastly, we will apply the formula mentioned above to calculate the corresponding
+risk difference for each odds ratio.
+
+$$R D=\frac{B R * \left(B R-1\right)* \left(O R-1\right)}{B R*O R-B R+1}$$
+
+As you can see, we have to set a fixed baseline risk (BR) to calculate the risk
+difference from odds ratio.
+
+In this project, we are analyzing 2 different subgroups regarding use of
+corticosteroids: not using and using. We are also analyzing 3 different
+subgroups regarding respiratory support: simple oxygen only, non-invasive
+ventilation and invasive mechanical ventilation.
+
+We have decided that we will use the BRs from the respective control group in the
+RECOVERY trial as our references. You can see these BRs below:
+
+```{r echo=FALSE}
+tibble(
+  
+  "Subgroup" = c("Not using",
+                 "Using",
+                 
+                 "Simple oxygen only",
+                 "Non-invasive ventilation",
+                 "Invasive mechanical"
+                 ),
+  
+  "Baseline Risk in Control Group (%)" = c(
+    
+    d2 %>% 
+    filter(trial == "RECOVERY",
+           corticosteroids == 0,
+           outcome == "mortality") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull(),
+    d2 %>% 
+    filter(trial == "RECOVERY",
+           corticosteroids == 1,
+           outcome == "mortality") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull(),
+    
+    d1 %>% 
+    filter(trial == "RECOVERY",
+           oxygen == "simple oxygen",
+           outcome == "mortality") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull(),
+    d1 %>% 
+    filter(trial == "RECOVERY",
+           oxygen == "non-invasive ventilation",
+           outcome == "mortality") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull(),
+    d1 %>% 
+    filter(trial == "RECOVERY",
+           oxygen == "invasive ventilation",
+           outcome == "mortality") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull()
+  )
+  
+) %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  pack_rows("Use of corticosteroids", 1, 2) %>% 
+  pack_rows("Respiratory support", 3, 5)
+```
+
+Let's apply the formula from Doi et al., 2020 to derive the posterior
+distributions in the risk difference scale.
+
+```{r}
+# BR = Baseline Risk
+# OR = Odds Ratio
+
+RD_fun = function(BR,OR)
+  {
+( BR*(BR-1)*(OR-1) ) / ( BR*OR - BR+1)
+}
+```
+
+
+```{r}
+# Calculating the risk differences
+
+### Use of corticosteroids
+
+## Not using
+
+# Define baseline risk
+BR_not_using = d2 %>% 
+    filter(trial == "RECOVERY",
+           corticosteroids == 0, # Not using
+           outcome == "mortality") %>% 
+      summarise(n = events_control/total_control) %>%
+      pull()
+
+samples_posteriors_not_using_death = 
+  samples_posteriors_not_using_death %>% 
+  # Apply formula from Doi et al., 2020
+  mutate(RD = RD_fun(BR_not_using,
+                     OR))
+
+## Using
+
+# Define baseline risk
+BR_using = d2 %>% 
+    filter(trial == "RECOVERY",
+           corticosteroids == 1, # Using
+           outcome == "mortality") %>% 
+      summarise(n = events_control/total_control) %>%
+      pull()
+
+samples_posteriors_using_death = 
+  samples_posteriors_using_death %>% 
+  # Apply formula from Doi et al., 2020
+  mutate(RD = RD_fun(BR_using,
+                     OR))
+
+### Respiratory support
+
+## Simple oxygen
+
+# Define baseline risk
+BR_simple = d1 %>% 
+    filter(trial == "RECOVERY",
+           oxygen == "simple oxygen",
+           outcome == "mortality") %>% 
+      summarise(n = events_control/total_control) %>% 
+      pull()
+
+samples_posteriors_simple_death = 
+  samples_posteriors_simple_death %>% 
+  # Apply formula from Doi et al., 2020
+  mutate(RD = RD_fun(BR_simple,
+                     OR))
+
+## Non-invasive
+
+# Define baseline risk
+BR_noninvasive = d1 %>% 
+    filter(trial == "RECOVERY",
+           oxygen == "non-invasive ventilation",
+           outcome == "mortality") %>% 
+      summarise(n = events_control/total_control) %>% 
+      pull()
+
+samples_posteriors_noninvasive_death = 
+  samples_posteriors_noninvasive_death %>% 
+  # Apply formula from Doi et al., 2020
+  mutate(RD = RD_fun(BR_noninvasive,
+                     OR))
+
+## Invasive mechanical ventilation
+
+# Define baseline risk
+BR_invasive = d1 %>% 
+    filter(trial == "RECOVERY",
+           oxygen == "invasive ventilation",
+           outcome == "mortality") %>% 
+      summarise(n = events_control/total_control) %>% 
+      pull()
+
+samples_posteriors_invasive_death = 
+  samples_posteriors_invasive_death %>% 
+  # Apply formula from Doi et al., 2020
+  mutate(RD = RD_fun(BR_invasive,
+                     OR))
+```
+
+```{r include=FALSE}
+## Save 
+
+# save(samples_posteriors_not_using_death,
+#      samples_posteriors_using_death,
+#      samples_posteriors_simple_death,
+#      samples_posteriors_noninvasive_death,
+#      samples_posteriors_invasive_death,
+#      
+#      file = here("final_analyses", "output", "data", "analyses", # file path
+#                  "samples_posteriors_death.RData"))        # file name
+```
+
+### Plotting
+
+To display some of our calculations, we will now plot the posterior distributions
+for log-odds ratio, odds ratio and risk difference for a single subgroup
+(not using corticosteroids).
+
+We note that **log-odds ratios** *less* than $0$, **odds-ratios** *less* than $1$
+and **risk differences** *larger* than $0$ mean benefit for the mortality
+outcome.
+
+
+```{r echo=FALSE}
+# Underlying a Non-informative prior
+
+p1 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Non-informative") %>% 
+  ggplot(aes(`log(OR)`)) +
+  stat_halfeye(fill = "#C7CCF4") +
+  labs(x = "log(OR)", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.5, 0.8, 0.25)) +
+  coord_cartesian(x = c(-0.5, 0.8)) 
+
+p2 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Non-informative") %>% 
+  ggplot(aes(`OR`)) +
+  stat_halfeye(fill = "#C7CCF4") +
+  labs(x = "OR", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(0.5, 2.5, 0.5)) +
+  coord_cartesian(x = c(0.5, 2.5)) 
+
+p3 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Non-informative") %>% 
+  ggplot(aes(`RD`)) +
+  stat_halfeye(fill = "#C7CCF4") +
+  labs(x = "RD", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.2, 0.1, 0.05)) +
+  coord_cartesian(x = c(-0.2, 0.1)) 
+
+```
+
+```{r echo=FALSE}
+# Underlying an Evidence-based prior
+
+p4 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  ggplot(aes(`log(OR)`)) +
+  stat_halfeye(fill = "#E7B03C") +
+  labs(x = "log(OR)", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.5, 0.8, 0.25)) +
+  coord_cartesian(x = c(-0.5, 0.8)) 
+
+p5 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  ggplot(aes(`OR`)) +
+  stat_halfeye(fill = "#E7B03C") +
+  labs(x = "OR", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(0.5, 2.5, 0.5)) +
+  coord_cartesian(x = c(0.5, 2.5)) 
+
+p6 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  ggplot(aes(`RD`)) +
+  stat_halfeye(fill = "#E7B03C") +
+  labs(x = "RD", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.2, 0.1, 0.05)) +
+  coord_cartesian(x = c(-0.2, 0.1)) 
+
+```
+
+```{r echo=FALSE}
+# Underlying an Skeptical prior
+
+p7 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Skeptical") %>% 
+  ggplot(aes(`log(OR)`)) +
+  stat_halfeye() +
+  labs(x = "log(OR)", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.5, 0.8, 0.25)) +
+  coord_cartesian(x = c(-0.5, 0.8)) 
+
+p8 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Skeptical") %>% 
+  ggplot(aes(`OR`)) +
+  stat_halfeye() +
+  labs(x = "OR", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(0.5, 2.5, 0.5)) +
+  coord_cartesian(x = c(0.5, 2.5)) 
+
+p9 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Skeptical") %>% 
+  ggplot(aes(`RD`)) +
+  stat_halfeye() +
+  labs(x = "RD", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.2, 0.1, 0.05)) +
+  coord_cartesian(x = c(-0.2, 0.1)) 
+
+```
+
+```{r echo=FALSE}
+# Underlying an Optimistic prior
+
+p10 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Optimistic") %>% 
+  ggplot(aes(`log(OR)`)) +
+  stat_halfeye(fill = "#479D8B") +
+  labs(x = "log(OR)", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.5, 0.8, 0.25)) +
+  coord_cartesian(x = c(-0.5, 0.8)) 
+
+p11 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Optimistic") %>% 
+  ggplot(aes(`OR`)) +
+  stat_halfeye(fill = "#479D8B") +
+  labs(x = "OR", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(0.5, 2.5, 0.5)) +
+  coord_cartesian(x = c(0.5, 2.5)) 
+
+p12 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Optimistic") %>% 
+  ggplot(aes(`RD`)) +
+  stat_halfeye(fill = "#479D8B") +
+  labs(x = "RD", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.2, 0.1, 0.05)) +
+  coord_cartesian(x = c(-0.2, 0.1)) 
+
+```
+
+```{r echo=FALSE}
+# Underlying an Pessimistic prior
+
+p13 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Pessimistic") %>% 
+  ggplot(aes(`log(OR)`)) +
+  stat_halfeye(fill = "#D36883") +
+  labs(x = "log(OR)", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.5, 0.8, 0.25)) +
+  coord_cartesian(x = c(-0.5, 0.8)) 
+
+p14 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Pessimistic") %>% 
+  ggplot(aes(`OR`)) +
+  stat_halfeye(fill = "#D36883") +
+  labs(x = "OR", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(0.5, 2.5, 0.5)) +
+  coord_cartesian(x = c(0.5, 2.5)) 
+
+p15 = samples_posteriors_not_using_death %>% 
+  filter(`Underlying_Prior` == "Pessimistic") %>% 
+  ggplot(aes(`RD`)) +
+  stat_halfeye(fill = "#D36883") +
+  labs(x = "RD", y = " ") +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  scale_x_continuous(breaks = seq(-0.2, 0.1, 0.05)) +
+  coord_cartesian(x = c(-0.2, 0.1)) 
+
+```
+
+```{r echo=FALSE, fig.align='center', fig.height=2, fig.width=8}
+(p1 + p2 + p3) +  plot_annotation(
+  title = "Posterior distributions using a non-informative prior")
+
+(p4 + p5 + p6) +  plot_annotation(
+  title = "Posterior distributions using an evidence-based prior")
+
+(p7 + p8 + p9) +  plot_annotation(
+  title = "Posterior distributions using a skeptical prior")
+
+(p10 + p11 + p12) +  plot_annotation(
+  title = "Posterior distributions using an optimistic prior")
+
+(p13 + p14 + p15) +  plot_annotation(
+  title = "Posterior distributions using a pessimistic prior")
+```
