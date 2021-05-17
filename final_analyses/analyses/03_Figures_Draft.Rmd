@@ -423,7 +423,10 @@ t %>%
 Here, the primary aim is to visually present our priors and the RECOVERY.
 I believe it is extremely important to present this data in a figure since
 they are the foundation underlying the posterior distributions in the next
-figures.
+figures. I note that the x axis in Panel B is still "in construction". I want
+to maintain the scale on Odds Ratio, but the prior for simple oxygen only is
+very uncertain, ranging from ~0.49 to ~3.8. So I am trying to simulate an axis
+break.
 
 ```{r}
 # Corticosteroids subgroups
@@ -513,8 +516,9 @@ p1 = distributions_cortico %>%
       )
     )
   ) %>%
+  # exp() to convert log-odds ratio into odds ratio
   ggplot(aes(
-    x = samples, y = dist,
+    x = exp(samples), y = dist,
     fill = dist
   )) +
 
@@ -522,7 +526,7 @@ p1 = distributions_cortico %>%
   stat_halfeye(position = "dodge",
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
-  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+  geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
   scale_fill_manual(' ',
                     breaks=c("Priors","RECOVERY"),
                     values = c(
@@ -530,11 +534,11 @@ p1 = distributions_cortico %>%
      "#67B8D5" # RECOVERY
   )) +
   labs(
-    x = "\nlog(OR)",
+    x = "\nOdds Ratio",
     y = " "
   ) +
-  scale_x_continuous(breaks = seq(from = -1, to = 1, 0.5)) +
-  coord_cartesian(xlim = c(-1, 1),
+  scale_x_continuous(breaks = seq(from = 0.25, to = 1.75, 0.25)) +
+  coord_cartesian(xlim = c(0.25, 1.75),
                   clip = 'off') +
   scale_y_discrete(expand = c(0, 0.5)) +
   theme(
@@ -621,6 +625,7 @@ distributions_respiratory = bind_cols(
 ```
 
 ```{r}
+
 # Plot!
 
 p2 = distributions_respiratory %>%
@@ -659,8 +664,9 @@ p2 = distributions_respiratory %>%
       )
     )
   ) %>%
+  # exp() to convert log-odds ratio into odds ratio
   ggplot(aes(
-    x = samples, y = dist,
+    x = exp(samples), y = dist,
     fill = dist
   )) +
 
@@ -672,13 +678,19 @@ p2 = distributions_respiratory %>%
     "#67B8D5", # RECOVERY
     "#F8D08D" # Priors
   )) +
-  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+  geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
   labs(
-    x = "\nlog(OR)",
+    x = "\nOdds Ratio",
     y = " "
   ) +
-  scale_x_continuous(breaks = seq(from = -1, to = 1.5, 0.5)) +
-  coord_cartesian(xlim = c(-1, 1.5)) +
+  scale_x_continuous(breaks = c(0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75),
+                     labels = c("0,25","0.50", "0.75", "1.00",
+                                "1.25",
+                                "   1.50  / /",
+                                "3.60")) +
+  geom_vline(xintercept = 1.6, linetype = 1, size = 0.4, color = "gray80") +
+  geom_vline(xintercept = 1.66, linetype = 1, size = 0.4, color = "gray80") +
+  coord_cartesian(xlim = c(0.25, 1.75)) +
   scale_y_discrete(expand = c(0, 0.5)) +
   theme(
     strip.background = element_rect(fill = "#E4E6E7"),
@@ -979,6 +991,7 @@ p3 = distributions_respiratory_posterior %>%
     plot.margin = margin(20, 10, 20, 10)
   ) +
   facet_wrap(~ subgroup, ncol = 1, scales = "free_y")
+
 ```
 
 ```{r warning=FALSE}
@@ -1042,8 +1055,33 @@ ggplot(aes(100*samples, colour = subgroup)) +
 
 ### Calculations for the manuscript text
 
-Here are the 95% HDI in *risk difference* of distributions on the use of
+Here are the posterior probabilities of distributions on the use of
 corticosteroids. "_not" means not using and "_u" means using corticosteroids.
+
+```{r}
+multiply100 = function(x){x*100}
+
+distributions_cortico_posterior %>%
+  # make it tidy to be able to use group_by()
+  pivot_longer(
+    cols = c(RD_not:RD_u),
+    names_to = "Distribution", values_to = "samples"
+  ) %>% 
+  group_by(Distribution) %>% 
+  summarise("Pr >= 0%" = (sum( samples >= 0))/ n(),
+            "Pr >= 1%" = (sum( samples >= 0.01))/ n(),
+            "Pr >= 2%" = (sum( samples >= 0.02))/ n(),
+            "Pr >= 5%" = (sum( samples >= 0.05))/ n()) %>% 
+  mutate(across(-Distribution, ~multiply100(.))) %>% 
+  mutate(across(-Distribution, ~round(.,1))) %>% 
+  flextable() %>% 
+  autofit()
+
+```
+
+
+Here are the 95% HDI in *risk difference* of distributions on the use of
+corticosteroids. 
 
 ```{r}
 multiply100 = function(x){x*100}
@@ -1063,6 +1101,31 @@ distributions_cortico_posterior %>%
   mutate(across(samples:.upper, ~round(., 2))) %>%
   rename("Median" = samples) %>% 
   flextable()
+```
+
+Here are the posterior probabilities of distributions on
+respiratory support. "_s" means simple oxygen, "_n" means non-invasive
+ventilation and "_i" means invsasive mechanical ventilation.
+
+```{r}
+multiply100 = function(x){x*100}
+
+distributions_respiratory_posterior %>%
+  # make it tidy to be able to use group_by()
+  pivot_longer(
+    cols = c(RD_i:RD_s),
+    names_to = "Distribution", values_to = "samples"
+  ) %>% 
+  group_by(Distribution) %>% 
+  summarise("Pr >= 0%" = (sum( samples >= 0))/ n(),
+            "Pr >= 1%" = (sum( samples >= 0.01))/ n(),
+            "Pr >= 2%" = (sum( samples >= 0.02))/ n(),
+            "Pr >= 5%" = (sum( samples >= 0.05))/ n()) %>% 
+  mutate(across(-Distribution, ~multiply100(.))) %>% 
+  mutate(across(-Distribution, ~round(.,1))) %>% 
+  flextable() %>% 
+  autofit()
+
 ```
 
 Here are the 95% HDI in *risk difference* of distributions on
