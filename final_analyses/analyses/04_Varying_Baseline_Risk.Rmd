@@ -566,7 +566,7 @@ p1 = benefit_not_using_death %>%
     names_to = "RD", values_to = "Probabilities"
   ) %>%
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD)) +
+  geom_line(aes(color = RD), size = 1.15) +
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_not_using_death[[21,1]]*100, linetype = 2) +
@@ -574,9 +574,10 @@ p1 = benefit_not_using_death %>%
                      seq((benefit_not_using_death[[1,1]]*100),
                          (benefit_not_using_death[[41,1]]*100),
                          5)) +
+  scale_y_continuous("Posterior Probability of Benefit (%)\n",
+                     seq(0, 100, 10))+
   coord_cartesian(y = c(0, 100)) +
-  labs(title = "Not using",
-       y = "Posterior Probability of Benefit (%)\n") +
+  labs(title = "Not using") +
   
   theme(legend.position = 'none',
         plot.title.position = 'plot',
@@ -592,27 +593,27 @@ p1 = benefit_not_using_death %>%
   
 
 p2 = benefit_using_death %>%
-  rename("0%" = Pr_0,
-         "1%" = Pr_0.01,
-         "2%" = Pr_0.02,
-         "5%" = Pr_0.05,
-         "10%" = Pr_0.1) %>% 
+  rename("\u2265 0%" = Pr_0,
+         "\u2265 1%" = Pr_0.01,
+         "\u2265 2%" = Pr_0.02,
+         "\u2265 5%" = Pr_0.05,
+         "\u2265 10%" = Pr_0.1) %>% 
   # Make it tidy for ggplot
   pivot_longer(
-    cols = "0%":last_col(),
+    cols = "\u2265 0%":last_col(),
     names_to = "RD", values_to = "Probabilities"
   ) %>%
   mutate(RD = factor(RD,
       levels = c(
-        "0%",
-        "1%",
-        "2%",
-        "5%",
-        "10%"
+        "\u2265 0%",
+        "\u2265 1%",
+        "\u2265 2%",
+        "\u2265 5%",
+        "\u2265 10%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD))+
+  geom_line(aes(color = RD), size = 1.15)+
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_using_death[[21,1]]*100, linetype = 2) +
@@ -620,7 +621,8 @@ p2 = benefit_using_death %>%
                      seq((benefit_using_death[[1,1]]*100),
                          (benefit_using_death[[41,1]]*100),
                          5)) +
-  labs(y = "") +
+  scale_y_continuous(" ",
+                     seq(0, 100, 10))+
   coord_cartesian(y = c(0, 100)) +
   labs(title = "Using",
        y = " ") +
@@ -644,7 +646,7 @@ p3 = benefit_simple_death %>%
     names_to = "RD", values_to = "Probabilities"
   ) %>%
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD)) +
+  geom_line(aes(color = RD), size = 1.15) +
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_simple_death[[21,1]]*100, linetype = 2) +
@@ -652,9 +654,10 @@ p3 = benefit_simple_death %>%
                      seq((benefit_simple_death[[1,1]]*100),
                          (benefit_simple_death[[41,1]]*100),
                          8)) +
+  scale_y_continuous("Posterior Probability of Benefit (%)\n",
+                     seq(0, 100, 10))+
   theme(legend.position = 'none') +
-  labs(title = "Simple oxygen",
-       y = "Posterior Probability of Benefit (%)\n") +
+  labs(title = "Simple oxygen") +
   
   theme(legend.position = 'none',
         plot.title.position = 'plot',
@@ -675,7 +678,7 @@ p4 = benefit_noninvasive_death %>%
     names_to = "RD", values_to = "Probabilities"
   ) %>%
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD)) +
+  geom_line(aes(color = RD), size = 1.15) +
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_noninvasive_death[[21,1]]*100, linetype = 2) +
@@ -683,9 +686,10 @@ p4 = benefit_noninvasive_death %>%
                      seq((benefit_noninvasive_death[[1,1]]*100),
                          (benefit_noninvasive_death[[41,1]]*100),
                          8)) +
+  scale_y_continuous(" ",
+                     seq(0, 100, 10))+
   theme(legend.position = 'none') +
-  labs(title = "Non-invasive",
-       y = " ") +
+  labs(title = "Non-invasive") +
   
   theme(legend.position = 'none',
         plot.title.position = 'plot',
@@ -700,27 +704,27 @@ p4 = benefit_noninvasive_death %>%
         panel.grid.major.y = element_line(color = "gray80", size = 0.3))
 
 p5 = benefit_invasive_death %>% 
-  rename("0%" = Pr_0,
-         "1%" = Pr_0.01,
-         "2%" = Pr_0.02,
-         "5%" = Pr_0.05,
-         "10%" = Pr_0.1) %>%
+  rename("\u2265 0%" = Pr_0,
+         "\u2265 1%" = Pr_0.01,
+         "\u2265 2%" = Pr_0.02,
+         "\u2265 5%" = Pr_0.05,
+         "\u2265 10%" = Pr_0.1) %>%
   # Make it tidy for ggplot
   pivot_longer(
-    cols = "0%":last_col(),
+    cols = "\u2265 0%":last_col(),
     names_to = "RD", values_to = "Probabilities"
   ) %>%
   mutate(RD = factor(RD,
       levels = c(
-        "0%",
-        "1%",
-        "2%",
-        "5%",
-        "10%"
+        "\u2265 0%",
+        "\u2265 1%",
+        "\u2265 2%",
+        "\u2265 5%",
+        "\u2265 10%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD)) +
+  geom_line(aes(color = RD), size = 1.15) +
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_invasive_death[[21,1]]*100, linetype = 2) +
@@ -728,8 +732,9 @@ p5 = benefit_invasive_death %>%
                      seq((benefit_invasive_death[[1,1]]*100),
                          (benefit_invasive_death[[41,1]]*100),
                          8)) +
-  labs(title = "Invasive",
-       y = " ") +
+  scale_y_continuous(" ",
+                     seq(0, 100, 10))+
+  labs(title = "Invasive") +
   coord_cartesian(y = c(0, 100)) +
   
   theme(legend.key = element_blank(),
