@@ -945,7 +945,7 @@ for log-odds ratio, odds ratio and risk difference for a single subgroup
 (not using corticosteroids).
 
 We note that **log-odds ratios** *less* than $0$, **odds-ratios** *less* than $1$
-and **risk differences** *larger* than $0$ mean benefit for the mortality
+and **risk differences** *greater* than $0$ mean benefit for the mortality
 outcome.
 
 

@@ -140,7 +140,7 @@ set.seed = 123
 
 <br>
 
-**In this document, I will only present data regarding the mortality outcome. Thus, negative risk differences mean benefit.**
+**In this document, I will only present data regarding the mortality outcome. Thus, positive risk differences mean benefit.**
 
 ## Table 1: Overall view of the data
 
@@ -706,7 +706,7 @@ p1 + p2 + plot_annotation(tag_levels = 'A')
 Here are the 95% quantile intervals in *odds ratio* of distributions on the use of
 corticosteroids. "_not" means not using and "_u" means using corticosteroids.
 
-```{r echo=TRUE}
+```{r}
 distributions_cortico %>% 
   # make it tidy to be able to use group_by()
   pivot_longer(
@@ -730,7 +730,7 @@ Here are the 95% quantile intervals in *odds ratio* of distributions on respirat
 "_s" means simple oxygen, "_n" means non-invasive ventilation and "_i" means
 invsasive mechanical ventilation.
 
-```{r echo=TRUE}
+```{r}
 distributions_respiratory %>% 
   # make it tidy to be able to use group_by()
   pivot_longer(
@@ -1034,7 +1034,7 @@ ggplot(aes(100*samples, colour = subgroup)) +
     )
 ```
 
-```{r , fig.align='center', fig.width=10, fig.height = 8.5, warning=FALSE, fig.cap="Panels A and C: Point estimates depict the median. Interval bars depict the 50 and 95% credible intervals. Panels B and D: Cumulative posterior distributions correspond to the probabilities that the risk difference (RD) is greater than or equal to the effect size on the X‐axis."}
+```{r , fig.align='center', fig.width=10, fig.height = 8.5, warning=FALSE, fig.cap="Panels A and C: Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals. Panels B and D: Cumulative posterior distributions correspond to the probabilities that the risk difference (RD) is greater than or equal to the effect size on the X‐axis."}
 (p1 + p2) / (p3 + p4) + plot_annotation(tag_levels = 'A')
 ```
 
@@ -1042,10 +1042,10 @@ ggplot(aes(100*samples, colour = subgroup)) +
 
 ### Calculations for the manuscript text
 
-Here are the 95% quantile intervals in *risk difference* of distributions on the use of
+Here are the 95% HDI in *risk difference* of distributions on the use of
 corticosteroids. "_not" means not using and "_u" means using corticosteroids.
 
-```{r echo=TRUE}
+```{r}
 multiply100 = function(x){x*100}
 distributions_cortico_posterior %>% 
   # make it tidy to be able to use group_by()
@@ -1053,10 +1053,10 @@ distributions_cortico_posterior %>%
     cols = c(RD_not:RD_u),
     names_to = "Distribution", values_to = "samples"
   ) %>% 
-  # Group by distribution so we can apply median_qi
+  # Group by distribution so we can apply median_hdi
   group_by(Distribution) %>% 
   # Calculate the median and 95% quantile interval in log-odds ratio
-  ggdist::median_qi(.width = 0.95) %>% 
+  ggdist::median_hdi(.width = 0.95) %>% 
   # Select only the relevant columns
   select(Distribution:.upper) %>%
   mutate(across(samples:.upper, ~multiply100(.))) %>%
@@ -1065,21 +1065,23 @@ distributions_cortico_posterior %>%
   flextable()
 ```
 
-Here are the 95% quantile intervals in *risk difference* of distributions on
+Here are the 95% HDI in *risk difference* of distributions on
 respiratory support. "_s" means simple oxygen, "_n" means non-invasive
 ventilation and "_i" means invsasive mechanical ventilation.
 
-```{r echo=TRUE}
+```{r}
+multiply100 = function(x){x*100}
+
 distributions_respiratory_posterior %>% 
   # make it tidy to be able to use group_by()
   pivot_longer(
     cols = c(RD_i:RD_s),
     names_to = "Distribution", values_to = "samples"
   ) %>% 
-  # Group by distribution so we can apply median_qi
+  # Group by distribution so we can apply median_hdi
   group_by(Distribution) %>% 
   # Calculate the median and 95% quantile interval in log-odds ratio
-  ggdist::median_qi(.width = 0.95) %>% 
+  ggdist::median_hdi(.width = 0.95) %>% 
   # Select only the relevant columns
   select(Distribution:.upper) %>%
   mutate(across(samples:.upper, ~multiply100(.))) %>%
@@ -1095,7 +1097,7 @@ This sensitivity analysis are the ones with the greatest change across priors.
 These changes can actually interfer clinical decision. Thus, I judged that these
 analyses "deserve" their own figure. 
 
-```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% credible intervals."}
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
 
 level_order = c("Pessimistic",
                 "Optimistic",
@@ -1142,16 +1144,26 @@ samples_posteriors_invasive_death %>%
 
 ### Calculations for the manuscript text
 
-Here are the 95% quantile intervals in *risk difference* of each distribution.
+Here are the 95% HDI in *risk difference* of each distribution.
 
-```{r echo=TRUE}
+```{r}
+multiply100 = function(x){x*100}
+
 samples_posteriors_invasive_death %>%
   select("Underlying_Prior", "RD") %>% 
-  # Group by distribution so we can apply median_qi
+  # Group by distribution so we can apply median_hdi
   group_by(`Underlying_Prior`) %>% 
   # Calculate the median and 95% quantile interval in log-odds ratio
-  ggdist::median_qi(.width = 0.95) %>% 
+  ggdist::median_hdi(.width = 0.95) %>% 
   # Select only the relevant columns
+  # Arrange order
+  arrange(factor(`Underlying_Prior`, levels = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+    ))) %>% 
   select("Underlying_Prior":.upper) %>%
   mutate(across(RD:.upper, ~multiply100(.))) %>%
   mutate(across(RD:.upper, ~round(., 2))) %>%
