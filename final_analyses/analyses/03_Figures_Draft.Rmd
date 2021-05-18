@@ -1250,9 +1250,6 @@ This table complements Figure 3.
 
 ```{r}
 
-# Please note that I multiplied all samples by -1 because I wanted to report
-# negative risk differences as benefit (for the mortality outcome)
-
 t = tibble(
   
   "Underlying Prior" = c(

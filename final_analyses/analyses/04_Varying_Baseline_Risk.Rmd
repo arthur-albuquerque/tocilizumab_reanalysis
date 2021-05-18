@@ -4,12 +4,12 @@ author: "Arthur M. Albuquerque"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output: 
   html_document:
-          code_folding: show
+          code_folding: hide
           toc: yes
           toc_float: yes
 ---
 
-If you are not interested in the code, you can select the "Hide all code" option
+If you are interested in the code, you can select the "Show all code" option
 on the upper-right corner.
 
 ```{r setup, include=FALSE}
@@ -27,7 +27,8 @@ pacman::p_load(rio, # To import data
                janitor, # To change column names
                tidyverse, # Data wrangling and plotting
                flextable, # For tables
-               patchwork # To arrange plots
+               patchwork, # To arrange plots
+               kableExtra # To make tables
                )
 ```
 
@@ -307,25 +308,25 @@ RD_fun_mod = function(x) {
 
 # Load the files from the code chunks above
 
-# multiple_baseline_risks_not_using_death = 
-#   readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-#                     "multiple_baseline_risks_not_using_death.rds"))
-# 
-# multiple_baseline_risks_using_death = 
-# readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-#                     "multiple_baseline_risks_using_death.rds"))
-# 
-# multiple_baseline_risks_simple_death = 
-#   readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-#                     "multiple_baseline_risks_simple_death.rds"))
-# 
-# multiple_baseline_risks_noninvasive_death = 
-#   readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-#                     "multiple_baseline_risks_noninvasive_death.rds"))
-# 
-# multiple_baseline_risks_invasive_death = 
-#   readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-#                     "multiple_baseline_risks_invasive_death.rds"))
+multiple_baseline_risks_not_using_death = 
+  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_not_using_death.rds"))
+
+multiple_baseline_risks_using_death = 
+readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_using_death.rds"))
+
+multiple_baseline_risks_simple_death = 
+  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_simple_death.rds"))
+
+multiple_baseline_risks_noninvasive_death = 
+  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_noninvasive_death.rds"))
+
+multiple_baseline_risks_invasive_death = 
+  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_invasive_death.rds"))
 ```
 
 ```{r}
@@ -336,23 +337,25 @@ RD_fun_mod = function(x) {
 # I adapted the code from https://osf.io/73thx/ to be able to load files in
 # OSF into RStudio without having to download it
 
-# This should take some time, since each file have ~165MB
+# This should take some time, since each file has ~165MB
+# If it the loading "times out", try it again, it should work
+# If it doesn't work, then download the files from OSF and run the code chunk above
 
 ## Use of corticosteroids
 
 # Not using
 
-not_using = url("https://osf.io/fwj2y/download?version=1")
+#not_using = url("https://osf.io/fwj2y/download?version=1")
 
-multiple_baseline_risks_not_using_death = readRDS(gzcon(not_using))
+#multiple_baseline_risks_not_using_death = readRDS(gzcon(not_using))
 ```
 
 ```{r}
 # Using
 
-using = url("https://osf.io/bn6tf/download?version=1")
+#using = url("https://osf.io/bn6tf/download?version=1")
 
-multiple_baseline_risks_using_death = readRDS(gzcon(using))
+#multiple_baseline_risks_using_death = readRDS(gzcon(using))
 ```
 
 ```{r}
@@ -360,26 +363,26 @@ multiple_baseline_risks_using_death = readRDS(gzcon(using))
 
 # Simple oxygen only
 
-simple = url("https://osf.io/cqea9/download?version=1")
+#simple = url("https://osf.io/cqea9/download?version=1")
 
-multiple_baseline_risks_simple_death = readRDS(gzcon(simple))
+#multiple_baseline_risks_simple_death = readRDS(gzcon(simple))
 
 ```
 
 ```{r}
 # Non-invasive ventilation
 
-noninvasive = url("https://osf.io/bhfwr/download?version=1")
+#noninvasive = url("https://osf.io/bhfwr/download?version=1")
 
-multiple_baseline_risks_noninvasive_death = readRDS(gzcon(noninvasive))
+#multiple_baseline_risks_noninvasive_death = readRDS(gzcon(noninvasive))
 ```
 
 ```{r}
 # Invasive mechanical ventilation
 
-invasive = url("https://osf.io/7t4hm/download?version=1")
+#invasive = url("https://osf.io/7t4hm/download?version=1")
 
-multiple_baseline_risks_invasive_death = readRDS(gzcon(invasive))
+#multiple_baseline_risks_invasive_death = readRDS(gzcon(invasive))
 ```
 
 
@@ -757,6 +760,222 @@ p1 + p2 + plot_annotation(title = "Use of corticosteroids subgroups\n")
 ```{r, fig.align='center', fig.height=5, fig.width=8, fig.cap="RD: Risk Difference"}
 p3 + p4 + p5 + plot_annotation(title = "Respiratory support subgroups\n")
 ```
+
+## Tables
+
+Next, we are going to put in tables what are the minimum + maximum "Posterior
+Probability of Benefit" and their corresponding "Baseline Risk" for each RD
+cutoff.
+
+```{r}
+# Create function to make tables
+
+values = tibble(Values = c("Min", "Max"))
+multiply100 = function(x){x*100}
+
+tables_fun = function(data){ # Data object
+  
+t1 = data %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0") %>%
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  # Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+t2 = data %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0.01") %>% 
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  # Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+t3 = data %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0.02") %>% 
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  #Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+t4 = data %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0.05") %>% 
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  # Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+t5 = data %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0.1") %>% 
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  # Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+tt = bind_rows(t1,t2)
+tt = bind_rows(tt,t3)
+tt = bind_rows(tt,t4)
+tt = bind_rows(tt,t5) %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+return(tt)
+}
+```
+
+### Not using corticosteroids
+
+```{r}
+tables_fun(benefit_not_using_death)
+```
+
+### Using corticosteroids
+
+```{r}
+tables_fun(benefit_using_death)
+```
+
+### Simple oxygen only
+
+```{r}
+tables_fun(benefit_simple_death)
+```
+
+### Non-invasive ventilation
+
+```{r}
+tables_fun(benefit_noninvasive_death)
+```
+
+### Invasive mechanical ventilation
+
+```{r}
+tables_fun(benefit_invasive_death)
+```
+
 
 # Verification
 
