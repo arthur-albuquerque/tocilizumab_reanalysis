@@ -891,7 +891,9 @@ ggplot(aes(100 * samples, colour = subgroup)) +
       panel.grid.major.y = element_line(color = "gray80", size = 0.3),
       legend.position = 'none',
       plot.margin = margin(20, 10, 20, 10)
-    )
+     ) +
+  coord_cartesian(x = c(-0.1,10))
+  
 ```
 
 
@@ -1044,7 +1046,8 @@ ggplot(aes(100*samples, colour = subgroup)) +
       panel.grid.major.y = element_line(color = "gray80", size = 0.3),
       legend.position = 'none',
       plot.margin = margin(20, 10, 20, 10)
-    )
+    ) +
+  coord_cartesian(x = c(-0.1,10))
 ```
 
 ```{r , fig.align='center', fig.width=10, fig.height = 8.5, warning=FALSE, fig.cap="Panels A and C: Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals. Panels B and D: Cumulative posterior distributions correspond to the probabilities that the risk difference (RD) is greater than or equal to the effect size on the X‐axis."}
