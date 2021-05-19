@@ -713,55 +713,83 @@ p1 + p2 + plot_annotation(tag_levels = 'A')
 
 <br><br>
 
-### Calculations for the manuscript text
-
-Here are the 95% quantile intervals in *odds ratio* of distributions on the use of
-corticosteroids. "_not" means not using and "_u" means using corticosteroids.
+Here are the 95% quantile intervals in *odds ratio* for each distribution from
+the figure above.
 
 ```{r}
 distributions_cortico %>% 
   # make it tidy to be able to use group_by()
   pivot_longer(
     cols = c(RECOVERY_not:Prior_u),
-    names_to = "Distribution", values_to = "samples"
+    names_to = "Subgroup", values_to = "samples"
   ) %>% 
   # Group by distribution so we can apply median_qi
-  group_by(Distribution) %>% 
+  group_by(Subgroup) %>% 
   # Calculate the median and 95% quantile interval in log-odds ratio
   ggdist::median_qi(.width = 0.95) %>% 
   # Select only the relevant columns
-  select(Distribution:.upper) %>% 
+  select(Subgroup:.upper) %>% 
   # Exponentiate to transform log-odds ratio into odds ratio
   mutate(across(samples:.upper, ~exp(.))) %>%
   mutate(across(samples:.upper, ~round(., 2))) %>%
-  rename("Median" = samples) %>% 
-  flextable()
+  mutate(
+    Subgroup = case_when(
+      str_detect(Subgroup, "_u") ~ "Using",
+      str_detect(Subgroup, "_not") ~ "Not using"
+    )) %>%
+  rename("Median" = samples,
+         "Upper limit" = .upper,
+         "Lower limit" = .lower) %>%
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  pack_rows("Priors", 1, 2) %>% 
+  pack_rows("RECOVERY", 3, 4) %>% 
+  add_header_above(c("Use of corticosteroids" = 4))
 ```
 
-Here are the 95% quantile intervals in *odds ratio* of distributions on respiratory support.
-"_s" means simple oxygen, "_n" means non-invasive ventilation and "_i" means
-invsasive mechanical ventilation.
+<br>
 
 ```{r}
+# https://stackoverflow.com/questions/26548495/reorder-rows-using-custom-order
+# create a vector with letters in the desired order
+x = c("Prior_s", "Prior_n", "Prior_i",
+      "RECOVERY_s", "RECOVERY_n", "RECOVERY_i")
+
 distributions_respiratory %>% 
   # make it tidy to be able to use group_by()
   pivot_longer(
     cols = c(RECOVERY_i:Prior_s),
-    names_to = "Distribution", values_to = "samples"
+    names_to = "Subgroup", values_to = "samples"
   ) %>% 
   # Group by distribution so we can apply median_qi
-  group_by(Distribution) %>% 
+  group_by(Subgroup) %>% 
   # Calculate the median and 95% quantile interval in log-odds ratio
   ggdist::median_qi(.width = 0.95) %>% 
   # Select only the relevant columns
-  select(Distribution:.upper) %>% 
+  select(Subgroup:.upper) %>% 
   # Exponentiate to transform log-odds ratio into odds ratio
   mutate(across(samples:.upper, ~exp(.))) %>% 
   mutate(across(samples:.upper, ~round(., 2))) %>%
-  rename("Median" = samples) %>% 
-  arrange(desc(Distribution)) %>% 
-  flextable()
+  # Define order
+  mutate(Subgroup = factor(Subgroup, levels = x)) %>% 
+  arrange(Subgroup) %>% 
+  mutate(
+    Subgroup = case_when(
+      str_detect(Subgroup, "_s") ~ "Simple oxygen only",
+      str_detect(Subgroup, "_n") ~ "Non-invasive ventilation",
+      str_detect(Subgroup, "_i") ~ "Invasive mechanical ventilation"
+    )) %>% 
+  rename("Median" = samples,
+         "Upper limit" = .upper,
+         "Lower limit" = .lower) %>%
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  pack_rows("Priors", 1, 3) %>% 
+  pack_rows("RECOVERY", 4, 6) %>% 
+  add_header_above(c("Respiratory support" = 4))
 ```
+
+<br><br>
 
 ## Figure 2: Posterior distributions
 
@@ -888,6 +916,7 @@ ggplot(aes(100 * samples, colour = subgroup)) +
     ) +
   theme(
       axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
       panel.background = element_blank(),
       panel.grid.major.x = element_line(color = "gray80", size = 0.3),
       panel.grid.major.y = element_line(color = "gray80", size = 0.3),
@@ -1045,6 +1074,7 @@ ggplot(aes(100*samples, colour = subgroup)) +
     ) +
   theme(
       axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
       panel.background = element_blank(),
       panel.grid.major.x = element_line(color = "gray80", size = 0.3),
       panel.grid.major.y = element_line(color = "gray80", size = 0.3),
@@ -1060,107 +1090,139 @@ ggplot(aes(100*samples, colour = subgroup)) +
 
 <br><br>
 
-### Calculations for the manuscript text
-
-Here are the posterior probabilities of distributions on the use of
-corticosteroids. "_not" means not using and "_u" means using corticosteroids.
-
 ```{r}
 multiply100 = function(x){x*100}
 
-distributions_cortico_posterior %>%
+t1 = distributions_cortico_posterior %>%
   # make it tidy to be able to use group_by()
   pivot_longer(
     cols = c(RD_not:RD_u),
-    names_to = "Distribution", values_to = "samples"
+    names_to = "Subgroup", values_to = "samples"
   ) %>% 
-  group_by(Distribution) %>% 
-  summarise("Pr >= 0%" = (sum( samples >= 0))/ n(),
-            "Pr >= 1%" = (sum( samples >= 0.01))/ n(),
-            "Pr >= 2%" = (sum( samples >= 0.02))/ n(),
-            "Pr >= 5%" = (sum( samples >= 0.05))/ n()) %>% 
-  mutate(across(-Distribution, ~multiply100(.))) %>% 
-  mutate(across(-Distribution, ~round(.,1))) %>%
-  flextable() %>% 
-  autofit()
+  group_by(Subgroup) %>% 
+  summarise("Pr(\u2265 0%)" = (sum( samples >= 0))/ n(),
+            "Pr(\u2265 1%)" = (sum( samples >= 0.01))/ n(),
+            "Pr(\u2265 2%)" = (sum( samples >= 0.02))/ n(),
+            "Pr(\u2265 5%)" = (sum( samples >= 0.05))/ n()) %>% 
+  mutate(across(-Subgroup, ~multiply100(.))) %>% 
+  mutate(across(-Subgroup, ~round(.,1))) %>% 
+  mutate(
+    Subgroup = case_when(
+      str_detect(Subgroup, "_u") ~ "Using",
+      str_detect(Subgroup, "_not") ~ "Not using"
+    ))
 
 ```
 
 
-Here are the 95% HDI in *risk difference* of distributions on the use of
-corticosteroids. 
-
 ```{r}
 multiply100 = function(x){x*100}
-distributions_cortico_posterior %>% 
+t2 = distributions_cortico_posterior %>% 
   # make it tidy to be able to use group_by()
   pivot_longer(
     cols = c(RD_not:RD_u),
-    names_to = "Distribution", values_to = "samples"
+    names_to = "Subgroup", values_to = "samples"
   ) %>% 
   # Group by distribution so we can apply median_hdi
-  group_by(Distribution) %>% 
+  group_by(Subgroup) %>% 
   # Calculate the median and 95% quantile interval in log-odds ratio
   ggdist::median_hdi(.width = 0.95) %>% 
   # Select only the relevant columns
-  select(Distribution:.upper) %>%
+  select(Subgroup:.upper) %>%
   mutate(across(samples:.upper, ~multiply100(.))) %>%
   mutate(across(samples:.upper, ~round(., 2))) %>%
-  rename("Median" = samples) %>% 
-  flextable()
+  rename("Median" = samples,
+         "Upper limit" = .upper,
+         "Lower limit" = .lower) %>% 
+  mutate(
+    Subgroup = case_when(
+      str_detect(Subgroup, "_u") ~ "Using",
+      str_detect(Subgroup, "_not") ~ "Not using"
+    ))
 ```
-
-Here are the posterior probabilities of distributions on
-respiratory support. "_s" means simple oxygen, "_n" means non-invasive
-ventilation and "_i" means invsasive mechanical ventilation.
 
 ```{r}
 multiply100 = function(x){x*100}
 
-distributions_respiratory_posterior %>%
+t3 = distributions_respiratory_posterior %>%
   # make it tidy to be able to use group_by()
   pivot_longer(
     cols = c(RD_i:RD_s),
-    names_to = "Distribution", values_to = "samples"
+    names_to = "Subgroup", values_to = "samples"
   ) %>% 
-  group_by(Distribution) %>% 
-  summarise("Pr >= 0%" = (sum( samples >= 0))/ n(),
-            "Pr >= 1%" = (sum( samples >= 0.01))/ n(),
-            "Pr >= 2%" = (sum( samples >= 0.02))/ n(),
-            "Pr >= 5%" = (sum( samples >= 0.05))/ n()) %>% 
-  mutate(across(-Distribution, ~multiply100(.))) %>% 
-  mutate(across(-Distribution, ~round(.,1))) %>%
-  arrange(desc(Distribution)) %>% 
-  flextable() %>% 
-  autofit()
+  group_by(Subgroup) %>% 
+  summarise("Pr(\u2265 0%)" = (sum( samples >= 0))/ n(),
+            "Pr(\u2265 1%)" = (sum( samples >= 0.01))/ n(),
+            "Pr(\u2265 2%)" = (sum( samples >= 0.02))/ n(),
+            "Pr(\u2265 5%)" = (sum( samples >= 0.05))/ n()) %>% 
+  mutate(across(-Subgroup, ~multiply100(.))) %>% 
+  mutate(across(-Subgroup, ~round(.,1))) %>%
+  arrange(desc(Subgroup)) %>% 
+  mutate(
+    Subgroup = case_when(
+      str_detect(Subgroup, "_s") ~ "Simple oxygen only",
+      str_detect(Subgroup, "_n") ~ "Non-invasive ventilation",
+      str_detect(Subgroup, "_i") ~ "Invasive mechanical ventilation"
+    ))
 
 ```
-
-Here are the 95% HDI in *risk difference* of distributions on
-respiratory support. "_s" means simple oxygen, "_n" means non-invasive
-ventilation and "_i" means invsasive mechanical ventilation.
 
 ```{r}
 multiply100 = function(x){x*100}
 
-distributions_respiratory_posterior %>% 
+t4 = distributions_respiratory_posterior %>% 
   # make it tidy to be able to use group_by()
   pivot_longer(
     cols = c(RD_i:RD_s),
-    names_to = "Distribution", values_to = "samples"
+    names_to = "Subgroup", values_to = "samples"
   ) %>% 
   # Group by distribution so we can apply median_hdi
-  group_by(Distribution) %>% 
+  group_by(Subgroup) %>% 
   # Calculate the median and 95% quantile interval in log-odds ratio
   ggdist::median_hdi(.width = 0.95) %>% 
   # Select only the relevant columns
-  select(Distribution:.upper) %>%
+  select(Subgroup:.upper) %>%
   mutate(across(samples:.upper, ~multiply100(.))) %>%
   mutate(across(samples:.upper, ~round(., 2))) %>%
-  rename("Median" = samples) %>% 
-  arrange(desc(Distribution)) %>% 
-  flextable()
+  rename("Median" = samples,
+         "Upper limit" = .upper,
+         "Lower limit" = .lower) %>% 
+  arrange(desc(Subgroup)) %>% 
+  mutate(
+    Subgroup = case_when(
+      str_detect(Subgroup, "_s") ~ "Simple oxygen only",
+      str_detect(Subgroup, "_n") ~ "Non-invasive ventilation",
+      str_detect(Subgroup, "_i") ~ "Invasive mechanical ventilation"
+    ))
 ```
+
+Here are the posterior probabilities for each posterior distribution.
+
+```{r}
+bind_rows(t1,t3) %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  pack_rows("Use of corticosteroids", 1, 2) %>% 
+  pack_rows("Respiratory support", 3, 5) %>% 
+  add_header_above(c(" " = 1,
+                     "Probability of Risk Difference \u2265 X%" = 4))
+```
+
+<br><br>
+
+Here are the 95% HDI in *risk difference* of each posterior distribution.
+
+```{r}
+bind_rows(t2,t4) %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  pack_rows("Use of corticosteroids", 1, 2) %>% 
+  pack_rows("Respiratory support", 3, 5) %>% 
+  add_header_above(c(" " = 1,
+                     "95% Highest Density Interval" = 3))
+```
+
+<br><br>
 
 ## Figure 3: Posterior distributions; Sensitivity analysis of "invasive mechanical ventilation"
 
@@ -1215,8 +1277,6 @@ samples_posteriors_invasive_death %>%
 
 <br><br>
 
-### Calculations for the manuscript text
-
 Here are the 95% HDI in *risk difference* of each distribution.
 
 ```{r}
@@ -1240,9 +1300,17 @@ samples_posteriors_invasive_death %>%
   select("Underlying_Prior":.upper) %>%
   mutate(across(RD:.upper, ~multiply100(.))) %>%
   mutate(across(RD:.upper, ~round(., 2))) %>%
-  rename("Median" = RD) %>%
-  flextable()
+  rename("Underlying Prior" = Underlying_Prior,
+         "Median" = RD,
+         "Upper limit" = .upper,
+         "Lower limit" = .lower) %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  add_header_above(c(" " = 1,
+                     "95% Highest Density Interval" = 3))
 ```
+
+<br><br>
 
 ## Table 2: Posterior distributions; Sensitivity analysis of "invasive mechanical ventilation"
 
