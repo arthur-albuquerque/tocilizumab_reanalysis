@@ -1,0 +1,1177 @@
+---
+title: "07_Hospital_Discharge_Varying_Baseline_Risk"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: hide
+          toc: yes
+          toc_float: yes
+---
+
+If you are interested in the code, you can select the "Show all code" option
+on the upper-right corner.
+
+In this document, we will show sensitivity analyses on the hospital discharge
+outcome. We will re-calculate the posterior distribution in risk difference while
+varying the baseline risk. Please check this document regarding the mortality
+outcome for further explanation.
+
+**Of note, for the hospital discharge outcome, negative risk differences mean benefit.**
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set()
+```
+
+```{r include=FALSE}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(rio, # To import data
+               here, # To find file paths within R project
+               janitor, # To change column names
+               tidyverse, # Data wrangling and plotting
+               flextable, # For tables
+               patchwork, # To arrange plots
+               kableExtra, # To make tables
+               ggdist, # To plot distributions
+               Cairo # To export PDF files
+               )
+```
+
+
+```{r}
+
+## Load posterior distributions' samples with logOR, OR and RD
+
+# I uploaded these data objects to OSF since the .RData file is 54MB.
+# Here I load all data files directly from OSF without having to download it
+# to my/your PC
+
+samples = url("https://osf.io/7t32f/download?version=1")
+load(gzcon(samples))
+
+
+# Load original data extraction table
+
+d1 = import((here("final_analyses", "output", "data", # file path
+                                "respiratory-data.csv")),           # file name
+                          header = T)
+d1 = d1 %>% 
+  as_tibble() %>% 
+  select(!starts_with("X")) 
+
+# Load corticosteroids raw data
+
+d2 = import(here("final_analyses", "data", # file path
+                            "corticosteroids_subgroup_extracted-data.xlsx"))
+
+d2 = clean_names(d2)
+
+```
+
+```{r}
+
+# Adapted function version to be able to apply it in the code chunk below
+RD_fun_mod = function(x) {
+  z = ( BR*(BR-1)*(x$OR-1) ) / ( BR*x$OR - BR+1)
+  z
+}
+
+```
+
+```{r}
+##### BE AWARE THESE ARE A LOT OF CALCULATIONS AND IT MIGHT TAKE SOME TIME
+# I suppressed this code chunk after I ran it for the first time and
+# saved the outputs. Feel free to run it.
+
+# I will first assign the original fixed baseline risk
+# Then, I will use this baseline risk as a reference to create a range -20/+20%
+# Lastly, I will apply the function above to create a new data frame with
+# separate columns for risk differences, one from each of these baseline risk.
+# These new columns will be named "RD_'baseline risk used'", for example:
+# RD_0.30, RD_0.31... etc
+
+
+# I asked for help to the R4DS Online Learning Community on Slack
+# Thus, who solved the script in this code chunk was ARNAB PANJA (thank you)
+
+# Let's do this cycle of calculations for each of the subgroups
+
+#  ### Use of corticosteroids
+
+# Not using
+  
+#   original_fixed_BR =  d2 %>% 
+#       filter(trial == "RECOVERY",
+#              corticosteroids == 0, # Not using
+#              outcome == "discharge") %>% 
+#         summarise(n = events_control/total_control) %>%
+#         pull()
+#   
+#   # Range from ~20% below and ~20% above the original fixed Baseline Risk (BR)
+#   lower_range = round(original_fixed_BR - 0.2, 2)
+#   upper_range = round(original_fixed_BR + 0.2,2)
+#   
+#   # Vector with multiples BRs
+#   BR = seq(lower_range, upper_range, 0.01)
+#   
+#   # Select only the OR column from the original tibble and transform into DF
+#   d = samples_posteriors_not_using_discharge %>% select(OR) %>% as.data.frame()
+#   
+#   # Run the function (lots of calculations)
+#   dBR = plyr::adply(.data = d, 
+#               .margins = 1, 
+#               .fun = function(x) RD_fun_mod(x)) %>% 
+#     setNames(c(colnames(d)[1], paste0("RD_", BR)))
+#   
+#   # Get the "Underlying_Prior" and "log(OR)" columns back again and bind with dBR
+#   multiple_baseline_risks_not_using_discharge = 
+#     bind_cols(samples_posteriors_not_using_discharge[1:2] %>% as.data.frame(),
+#               dBR)
+#   
+#   # Using
+#     
+#   original_fixed_BR =  d2 %>% 
+#       filter(trial == "RECOVERY",
+#              corticosteroids == 1, # Using
+#              outcome == "discharge") %>% 
+#         summarise(n = events_control/total_control) %>%
+#         pull()
+#   
+#   # Range from ~20% below and ~20% above the original fixed Baseline Risk (BR)
+#   lower_range = round(original_fixed_BR - 0.2, 2)
+#   upper_range = round(original_fixed_BR + 0.2,2)
+#   
+#   # Vector with multiples BRs
+#   BR = seq(lower_range, upper_range, 0.01)
+#   
+#   # Select only the OR column from the original tibble and transform into DF
+#   d = samples_posteriors_using_discharge %>% select(OR) %>% as.data.frame()
+#   
+#   # Run the function (lots of calculations)
+#   dBR = plyr::adply(.data = d, 
+#               .margins = 1, 
+#               .fun = function(x) RD_fun_mod(x)) %>% 
+#     setNames(c(colnames(d)[1], paste0("RD_", BR)))
+#   
+#   # Get the "Underlying_Prior" and "log(OR)" columns back again and bind with dBR
+#   multiple_baseline_risks_using_discharge = 
+#     bind_cols(samples_posteriors_using_discharge[1:2] %>% as.data.frame(),
+#               dBR)
+#   
+#   ## Respiratory support
+#   
+#   # Simple oxygen only
+#   
+#   original_fixed_BR = d1 %>% 
+#     filter(trial == "RECOVERY",
+#            oxygen == "simple oxygen",
+#            outcome == "discharge") %>% 
+#     summarise(n = events_control/total_control) %>%
+#     pull()
+#   
+#   # Range from ~20% below and ~20% above the original fixed Baseline Risk (BR)
+#   lower_range = round(original_fixed_BR - 0.2, 2)
+#   upper_range = round(original_fixed_BR + 0.2,2)
+#   
+#   # Vector with multiples BRs
+#   BR = seq(lower_range, upper_range, 0.01)
+#   
+#   # Select only the OR column from the original tibble and transform into DF
+#   d = samples_posteriors_simple_discharge %>% select(OR) %>% as.data.frame()
+#   
+#   # Run the function (lots of calculations)
+#   dBR = plyr::adply(.data = d, 
+#               .margins = 1, 
+#               .fun = function(x) RD_fun_mod(x)) %>% 
+#     setNames(c(colnames(d)[1], paste0("RD_", BR)))
+#   
+#   # Get the "Underlying_Prior" and "log(OR)" columns back again and bind with dBR
+#   multiple_baseline_risks_simple_discharge = 
+#     bind_cols(samples_posteriors_simple_discharge[1:2] %>% as.data.frame(),
+#               dBR)
+#   
+#   # Non-invasive ventilation
+#   
+#   original_fixed_BR = d1 %>% 
+#     filter(trial == "RECOVERY",
+#            oxygen == "non-invasive ventilation",
+#            outcome == "discharge") %>% 
+#     summarise(n = events_control/total_control) %>%
+#     pull()
+#   
+#   # Range from ~20% below and ~20% above the original fixed Baseline Risk (BR)
+#   lower_range = round(original_fixed_BR - 0.2, 2)
+#   upper_range = round(original_fixed_BR + 0.2,2)
+#   
+#   # Vector with multiples BRs
+#   BR = seq(lower_range, upper_range, 0.01)
+#   
+#   # Select only the OR column from the original tibble and transform into DF
+#   d = samples_posteriors_noninvasive_discharge %>% select(OR) %>% as.data.frame()
+#   
+#   # Run the function (lots of calculations)
+#   dBR = plyr::adply(.data = d, 
+#               .margins = 1, 
+#               .fun = function(x) RD_fun_mod(x)) %>% 
+#     setNames(c(colnames(d)[1], paste0("RD_", BR)))
+#   
+#   # Get the "Underlying_Prior" and "log(OR)" columns back again and bind with dBR
+#   multiple_baseline_risks_noninvasive_discharge = 
+#     bind_cols(samples_posteriors_noninvasive_discharge[1:2] %>% as.data.frame(),
+#               dBR)
+#   
+#   # Invasive mechanical ventilation
+#   
+#   original_fixed_BR = d1 %>% 
+#     filter(trial == "RECOVERY",
+#            oxygen == "invasive ventilation",
+#            outcome == "discharge") %>% 
+#     summarise(n = events_control/total_control) %>%
+#     pull()
+#   
+#   # Range from ~20% below and ~20% above the original fixed Baseline Risk (BR)
+#   lower_range = round(original_fixed_BR - 0.2, 2)
+#   upper_range = round(original_fixed_BR + 0.2,2)
+#   
+#   # Vector with multiples BRs
+#   BR = seq(lower_range, upper_range, 0.01)
+#   
+#   # Select only the OR column from the original tibble and transform into DF
+#   d = samples_posteriors_invasive_discharge %>% select(OR) %>% as.data.frame()
+#   
+#   # Run the function (lots of calculations)
+#   dBR = plyr::adply(.data = d, 
+#               .margins = 1, 
+#               .fun = function(x) RD_fun_mod(x)) %>% 
+#     setNames(c(colnames(d)[1], paste0("RD_", BR)))
+#   
+#   # Get the "Underlying_Prior" and "log(OR)" columns back again and bind with dBR
+#   multiple_baseline_risks_invasive_discharge = 
+#     bind_cols(samples_posteriors_invasive_discharge[1:2] %>% as.data.frame(),
+#               dBR)
+
+#  Remove large objects with samples that was loaded in this document and has no
+#  use after this code chunk
+
+#  rm(samples_posteriors_not_using_discharge,
+#     samples_posteriors_using_discharge,
+#     samples_posteriors_simple_discharge,
+#     samples_posteriors_noninvasive_discharge,
+#     samples_posteriors_invasive_discharge)
+```
+
+```{r}
+# Code to save the output from above in different files since
+# they are huge data frames
+
+# saveRDS(multiple_baseline_risks_not_using_discharge,
+#         file = here("final_analyses", "output", "data", "analyses", # file path
+#                     "multiple_baseline_risks_not_using_discharge.rds"))
+# saveRDS(multiple_baseline_risks_using_discharge,
+#         file = here("final_analyses", "output", "data", "analyses", # file path
+#                     "multiple_baseline_risks_using_discharge.rds"))
+# saveRDS(multiple_baseline_risks_simple_discharge,
+#         file = here("final_analyses", "output", "data", "analyses", # file path
+#                     "multiple_baseline_risks_simple_discharge.rds"))
+# saveRDS(multiple_baseline_risks_noninvasive_discharge,
+#         file = here("final_analyses", "output", "data", "analyses", # file path
+#                     "multiple_baseline_risks_noninvasive_discharge.rds"))
+# saveRDS(multiple_baseline_risks_invasive_discharge,
+#         file = here("final_analyses", "output", "data", "analyses", # file path
+#                     "multiple_baseline_risks_invasive_discharge.rds"))
+```
+
+```{r}
+## I uploaded all the .rds files above into OSF
+## here is the link for one of them https://osf.io/7t4hm/
+
+## Run this code chunk if you have downloaded the files from OSF into your PC
+
+
+# Load the files from the code chunks above
+
+multiple_baseline_risks_not_using_discharge = 
+  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_not_using_discharge.rds"))
+
+multiple_baseline_risks_using_discharge = 
+readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_using_discharge.rds"))
+
+multiple_baseline_risks_simple_discharge = 
+  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_simple_discharge.rds"))
+
+multiple_baseline_risks_noninvasive_discharge = 
+  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_noninvasive_discharge.rds"))
+
+multiple_baseline_risks_invasive_discharge = 
+  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
+                    "multiple_baseline_risks_invasive_discharge.rds"))
+```
+
+```{r}
+# In case you did not download the files from OSF, run this code chunk 
+# Here, you can load the .rds files directly from OSF, without having to
+# download it
+
+# I adapted the code from https://osf.io/73thx/ to be able to load files in
+# OSF into RStudio without having to download it
+
+# This should take some time, since each file has ~165MB
+# If it the loading "times out", try it again, it should work
+# If it doesn't work, then download the files from OSF and run the code chunk above
+
+## Use of corticosteroids
+
+# Not using
+
+#not_using = url("https://osf.io/vja24/download?version=1")
+
+#multiple_baseline_risks_not_using_discharge = readRDS(gzcon(not_using))
+```
+
+```{r}
+# Using
+
+#using = url("https://osf.io/p8nes/download?version=1")
+
+#multiple_baseline_risks_using_discharge = readRDS(gzcon(using))
+```
+
+```{r}
+## Respiratory support
+
+# Simple oxygen only
+
+#simple = url("https://osf.io/q25z4/download?version=1")
+
+#multiple_baseline_risks_simple_discharge = readRDS(gzcon(simple))
+
+```
+
+```{r}
+# Non-invasive ventilation
+
+#noninvasive = url("https://osf.io/muxaj/download?version=1")
+
+#multiple_baseline_risks_noninvasive_discharge = readRDS(gzcon(noninvasive))
+```
+
+```{r}
+# Invasive mechanical ventilation
+
+#invasive = url("https://osf.io/y8ruc/download?version=1")
+
+#multiple_baseline_risks_invasive_discharge = readRDS(gzcon(invasive))
+```
+
+## Plotting
+
+For our primary analyses, we used the baseline risks below for each subgroup to
+derive the posterior distribution in the risk difference scale.
+
+```{r echo=FALSE}
+tibble(
+  
+  "Subgroup" = c("Not using",
+                 "Using",
+                 
+                 "Simple oxygen only",
+                 "Non-invasive ventilation",
+                 "Invasive mechanical"
+                 ),
+  
+  "Baseline Risk in Control Group (%)" = c(
+    
+    d2 %>% 
+    filter(trial == "RECOVERY",
+           corticosteroids == 0,
+           outcome == "discharge") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull(),
+    d2 %>% 
+    filter(trial == "RECOVERY",
+           corticosteroids == 1,
+           outcome == "discharge") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull(),
+    
+    d1 %>% 
+    filter(trial == "RECOVERY",
+           oxygen == "simple oxygen",
+           outcome == "discharge") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull(),
+    d1 %>% 
+    filter(trial == "RECOVERY",
+           oxygen == "non-invasive ventilation",
+           outcome == "discharge") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull(),
+    d1 %>% 
+    filter(trial == "RECOVERY",
+           oxygen == "invasive ventilation",
+           outcome == "discharge") %>% 
+      summarise(n = 100*(events_control/total_control)) %>% 
+      round(., 1) %>% 
+      pull()
+  )
+  
+) %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  pack_rows("Use of corticosteroids", 1, 2) %>% 
+  pack_rows("Respiratory support", 3, 5)
+```
+
+```{r}
+plot_baseline_risks = function(data, # Data Object
+                               title_text # Title (within quotes)
+                               ){
+
+t1 = data %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  select(starts_with("RD")) %>% 
+  pivot_longer(
+     cols = everything(),
+     names_to = "Baseline_risk", values_to = "Risk_difference"
+   ) %>%
+   # Isolate the Baseline risk from the string (it takes a long time)
+   separate(Baseline_risk,
+     sep = "_",
+     c(NA, "Baseline_risk")
+   ) %>% 
+  # as.numeric to be able to multiply by 100
+  mutate(Baseline_risk = as.numeric(Baseline_risk)) %>% 
+  mutate(Baseline_risk = Baseline_risk*100) %>% 
+  # as.character to be able to use stat_pointinterval()
+  mutate(Baseline_risk = as.character(Baseline_risk))
+  
+  # Plot!
+  t1 %>% 
+  ggplot(aes(x = 100*Risk_difference, y = Baseline_risk))+
+  stat_pointinterval(point_interval = median_hdi, # Highest density interval
+                     .width = c(0.5, 0.95)) +
+  geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
+  labs(x = "Risk Difference (%)",
+       y = "Baseline Risk (%) \n",
+       title = title_text) +
+    
+  theme(plot.title.position = 'plot',
+      axis.title.x = element_text(size = 12),
+      axis.title.y = element_text(size = 12),
+      axis.text.y = element_text(size = 12),
+      axis.text.x = element_text(size = 10),
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3)) +
+    scale_x_continuous(breaks = seq(-16, 16, 4))+
+    coord_cartesian(x = c(-16,16))
+  
+}
+```
+
+Now, let's plot the posterior distributions for all subgroups using 40 different
+baseline risks
+
+```{r}
+p1 = plot_baseline_risks(multiple_baseline_risks_not_using_discharge,
+                         "Not using corticosteroids")
+```
+
+```{r}
+p2 = plot_baseline_risks(multiple_baseline_risks_using_discharge,
+                         "Using corticosteroids")
+```
+
+```{r}
+p3 = plot_baseline_risks(multiple_baseline_risks_simple_discharge,
+                         "Simple oxygen only")
+```
+
+```{r}
+p4 = plot_baseline_risks(multiple_baseline_risks_noninvasive_discharge,
+                         "Non-invasive ventilation")
+```
+
+```{r}
+# Full code in this code chunk because I had to add an extra line to set the order
+p5 = multiple_baseline_risks_invasive_discharge %>% 
+  filter(`Underlying_Prior` == "Evidence-based") %>% 
+  select(starts_with("RD")) %>%
+  pivot_longer(
+     cols = everything(),
+     names_to = "Baseline_risk", values_to = "Risk_difference"
+   ) %>%
+  # Remove negative/zero baseline risks
+  filter(!str_detect(Baseline_risk, "-"),
+         Baseline_risk != "RD_0") %>% 
+   # Isolate the Baseline risk from the string (it takes a long time)
+   separate(Baseline_risk,
+     sep = "_",
+     c(NA, "Baseline_risk")
+   ) %>% 
+  mutate(Baseline_risk = as.numeric(Baseline_risk)) %>% 
+  mutate(Baseline_risk = Baseline_risk*100) %>% 
+  mutate(Baseline_risk = as.character(Baseline_risk)) %>% 
+  # Set order
+  mutate(Baseline_risk = factor(Baseline_risk, levels = seq(1, 36, 1))) %>% 
+  
+  ggplot(aes(x = 100*Risk_difference, y = Baseline_risk))+
+  stat_pointinterval(point_interval = median_hdi, # Highest density interval
+                     .width = c(0.5, 0.95)) +
+  geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
+  labs(x = "Risk Difference (%)",
+       y = "Baseline Risk (%) \n",
+       title = "Invasive mechanical ventilation") +
+    
+  theme(plot.title.position = 'plot',
+      axis.title.x = element_text(size = 12),
+      axis.title.y = element_text(size = 12),
+      axis.text.y = element_text(size = 12),
+      axis.text.x = element_text(size = 10),
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3)) +
+    scale_x_continuous(breaks = seq(-16, 16, 4))+
+    coord_cartesian(x = c(-16,16))
+```
+
+```{r, fig.width = 10, fig.height=6.5}
+p1 + p2 
+```
+
+```{r}
+# ggsave(width = 10,
+#        height = 6.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure21_discharge_varying_baseline_risk_difference_corticosteroids.pdf")) # # File name
+```
+
+
+```{r, fig.width = 10, fig.height=6.5}
+p3 + p4 + p5
+```
+
+```{r}
+# ggsave(width = 10,
+#        height = 6.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure22_discharge_varying_baseline_risk_difference_respiratory.pdf"# )) # File # name
+```
+
+```{r}
+# Function to generate tibble with probability of benefit vs. baseline risk
+
+probability_by_baseline_risk = function(data, # "multiple_baseline_risks..." data object
+                                         type, # Underlying Prior (within quotes)
+                                         all_probs # Tibble output name
+) {
+  prob1 = data %>%
+    # Filter by underlying prior
+    filter(`Underlying_Prior` == type) %>%
+    # Remove Underlying Prior, log(OR) and OR columns
+    select(-(`Underlying_Prior`:OR)) %>%
+    # To calculate proportion of values lower than the assigned risk difference
+    # This is analogous to the (posterior) probability of benefit, since
+    # RD > 0 equals benefit
+    mutate(across(everything(), ~ sum(. < 0) / n())) %>%
+    # Select just the first row, since all rows are now equal to each other
+    slice(1) %>%
+    # Transform into long format
+    pivot_longer(
+      cols = everything(),
+      names_to = "Baseline_risk", values_to = "Pr_0"
+    ) %>%
+    # Isolate the Baseline risk from the string
+    separate(Baseline_risk,
+      sep = "_",
+      c(NA, "Baseline_risk")
+    ) %>%
+    # Transform this column into "double" for ggplot() later
+    mutate(Baseline_risk = as.numeric(Baseline_risk))
+
+  # Now repeat the process several times, just changing the cutoff
+  prob2 = data %>%
+    filter(`Underlying_Prior` == type) %>%
+    select(-(`Underlying_Prior`:OR)) %>%
+    mutate(across(everything(), ~ sum(. < -0.01) / n())) %>%
+    slice(1) %>%
+    pivot_longer(
+      cols = everything(),
+      names_to = "Baseline_risk", values_to = "Pr_0.01"
+    ) %>%
+    separate(Baseline_risk,
+      sep = "_",
+      c(NA, "Baseline_risk")
+    ) %>%
+    mutate(Baseline_risk = as.numeric(Baseline_risk))
+
+  prob3 = data %>%
+    filter(`Underlying_Prior` == type) %>%
+    select(-(`Underlying_Prior`:OR)) %>%
+    mutate(across(everything(), ~ sum(. < -0.02) / n())) %>%
+    slice(1) %>%
+    pivot_longer(
+      cols = everything(),
+      names_to = "Baseline_risk", values_to = "Pr_0.02"
+    ) %>%
+    separate(Baseline_risk,
+      sep = "_",
+      c(NA, "Baseline_risk")
+    ) %>%
+    mutate(Baseline_risk = as.numeric(Baseline_risk))
+
+  prob4 = data %>%
+    filter(`Underlying_Prior` == type) %>%
+    select(-(`Underlying_Prior`:OR)) %>%
+    mutate(across(everything(), ~ sum(. < -0.05) / n())) %>%
+    slice(1) %>%
+    pivot_longer(
+      cols = everything(),
+      names_to = "Baseline_risk", values_to = "Pr_0.05"
+    ) %>%
+    separate(Baseline_risk,
+      sep = "_",
+      c(NA, "Baseline_risk")
+    ) %>%
+    mutate(Baseline_risk = as.numeric(Baseline_risk))
+
+  prob5 = data %>%
+    filter(`Underlying_Prior` == type) %>%
+    select(-(`Underlying_Prior`:OR)) %>%
+    mutate(across(everything(), ~ sum(. < -0.1) / n())) %>%
+    slice(1) %>%
+    pivot_longer(
+      cols = everything(),
+      names_to = "Baseline_risk", values_to = "Pr_0.1"
+    ) %>%
+    separate(Baseline_risk,
+      sep = "_",
+      c(NA, "Baseline_risk")
+    ) %>%
+    mutate(Baseline_risk = as.numeric(Baseline_risk))
+
+  # Join all data frames just adding the columns "Pr_..."
+  all_probs = left_join(prob1, prob2)
+
+  all_probs = left_join(all_probs, prob3)
+
+  all_probs = left_join(all_probs, prob4)
+
+  all_probs = left_join(all_probs, prob5)
+}
+```
+
+```{r message=FALSE, warning=FALSE}
+# Generate tibbles per subgroup
+
+## Use of corticosteroids
+
+# Not using
+
+benefit_not_using_discharge =
+  probability_by_baseline_risk(
+  multiple_baseline_risks_not_using_discharge, # data object
+  "Evidence-based", # Underlying Prior (within quotes)
+  benefit_not_using_discharge) # Tibble output name
+
+# Using
+
+benefit_using_discharge =
+  probability_by_baseline_risk(
+  multiple_baseline_risks_using_discharge, # data object
+  "Evidence-based", # Underlying Prior (within quotes)
+  benefit_using_discharge) # Tibble output name
+
+## Respiratory support
+
+# Simple oxygen only
+
+benefit_simple_discharge =
+  probability_by_baseline_risk(
+  multiple_baseline_risks_simple_discharge, # data object
+  "Evidence-based", # Underlying Prior (within quotes)
+  benefit_simple_discharge) # Tibble output name
+
+# Non-invasive ventilation
+
+benefit_noninvasive_discharge =
+  probability_by_baseline_risk(
+  multiple_baseline_risks_noninvasive_discharge, # data object
+  "Evidence-based", # Underlying Prior (within quotes)
+  benefit_noninvasive_discharge) # Tibble output name
+
+# Invasive mechanical ventilation
+
+benefit_invasive_discharge =
+  probability_by_baseline_risk(
+  multiple_baseline_risks_invasive_discharge, # data object
+  "Evidence-based", # Underlying Prior (within quotes)
+  benefit_invasive_discharge) # Tibble output name
+```
+
+```{r}
+# Plot!
+
+p1 = benefit_not_using_discharge %>% 
+  # Make it tidy for ggplot
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "RD", values_to = "Probabilities"
+  ) %>%
+  ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
+  geom_line(aes(color = RD), size = 1.15) +
+  # Dashed line corresponding to the fixed baseline risk used in the primary
+  # analyses
+  geom_vline(xintercept = benefit_not_using_discharge[[21,1]]*100, linetype = 2) +
+  scale_x_continuous("Baseline Risk (%)",
+                     seq((benefit_not_using_discharge[[1,1]]*100),
+                         (benefit_not_using_discharge[[41,1]]*100),
+                         5)) +
+  scale_y_continuous("Posterior Probability of Benefit (%)\n",
+                     seq(0, 100, 10))+
+  coord_cartesian(y = c(0, 100)) +
+  labs(title = "Not using") +
+  
+  theme(legend.position = 'none',
+        plot.title.position = 'plot',
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 11),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+  
+
+p2 = benefit_using_discharge %>%
+  rename("\u2264 0%" = Pr_0,
+         "\u2264 -1%" = Pr_0.01,
+         "\u2264 -2%" = Pr_0.02,
+         "\u2264 -5%" = Pr_0.05,
+         "\u2264 -10%" = Pr_0.1) %>% 
+  # Make it tidy for ggplot
+  pivot_longer(
+    cols = "\u2264 0%":last_col(),
+    names_to = "RD", values_to = "Probabilities"
+  ) %>%
+  mutate(RD = factor(RD,
+      levels = c(
+        "\u2264 0%",
+        "\u2264 -1%",
+        "\u2264 -2%",
+        "\u2264 -5%",
+        "\u2264 -10%"
+        )
+    )) %>% 
+  ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
+  geom_line(aes(color = RD), size = 1.15)+
+  # Dashed line corresponding to the fixed baseline risk used in the primary
+  # analyses
+  geom_vline(xintercept = benefit_using_discharge[[21,1]]*100, linetype = 2) +
+  scale_x_continuous("Baseline Risk (%)", 
+                     seq((benefit_using_discharge[[1,1]]*100),
+                         (benefit_using_discharge[[41,1]]*100),
+                         5)) +
+  scale_y_continuous(" ",
+                     seq(0, 100, 10))+
+  coord_cartesian(y = c(0, 100)) +
+  labs(title = "Using",
+       y = " ") +
+  
+  theme(legend.key = element_blank(),
+        plot.title.position = 'plot',
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 13.5),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+
+p3 = benefit_simple_discharge %>% 
+  # Make it tidy for ggplot
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "RD", values_to = "Probabilities"
+  ) %>%
+  ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
+  geom_line(aes(color = RD), size = 1.15) +
+  # Dashed line corresponding to the fixed baseline risk used in the primary
+  # analyses
+  geom_vline(xintercept = benefit_simple_discharge[[21,1]]*100, linetype = 2) +
+  scale_x_continuous("Baseline Risk (%)",
+                     seq((benefit_simple_discharge[[1,1]]*100),
+                         (benefit_simple_discharge[[41,1]]*100),
+                         8)) +
+  scale_y_continuous("Posterior Probability of Benefit (%)\n",
+                     seq(0, 100, 10))+
+  theme(legend.position = 'none') +
+  labs(title = "Simple oxygen") +
+  
+  theme(legend.position = 'none',
+        plot.title.position = 'plot',
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 11),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+
+p4 = benefit_noninvasive_discharge %>% 
+  # Make it tidy for ggplot
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "RD", values_to = "Probabilities"
+  ) %>%
+  ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
+  geom_line(aes(color = RD), size = 1.15) +
+  # Dashed line corresponding to the fixed baseline risk used in the primary
+  # analyses
+  geom_vline(xintercept = benefit_noninvasive_discharge[[21,1]]*100, linetype = 2) +
+  scale_x_continuous("Baseline Risk (%)",
+                     seq((benefit_noninvasive_discharge[[1,1]]*100),
+                         (benefit_noninvasive_discharge[[41,1]]*100),
+                         8)) +
+  scale_y_continuous(" ",
+                     seq(0, 100, 10))+
+  theme(legend.position = 'none') +
+  labs(title = "Non-invasive") +
+  
+  theme(legend.position = 'none',
+        plot.title.position = 'plot',
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 13.5),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+
+p5 = benefit_invasive_discharge %>% 
+  # Remove negative/zero baseline risks
+  slice(6:41) %>% 
+  rename("\u2264 0%" = Pr_0,
+         "\u2264 -1%" = Pr_0.01,
+         "\u2264 -2%" = Pr_0.02,
+         "\u2264 -5%" = Pr_0.05,
+         "\u2264 -10%" = Pr_0.1) %>%
+  # Make it tidy for ggplot
+  pivot_longer(
+    cols = "\u2264 0%":last_col(),
+    names_to = "RD", values_to = "Probabilities"
+  ) %>%
+  mutate(RD = factor(RD,
+      levels = c(
+        "\u2264 0%",
+        "\u2264 -1%",
+        "\u2264 -2%",
+        "\u2264 -5%",
+        "\u2264 -10%"
+        )
+    )) %>% 
+  ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
+  geom_line(aes(color = RD), size = 1.15) +
+  # Dashed line corresponding to the fixed baseline risk used in the primary
+  # analyses
+  geom_vline(xintercept = benefit_invasive_discharge[[21,1]]*100, linetype = 2) +
+  scale_x_continuous("Baseline Risk (%)",
+                     seq((benefit_invasive_discharge[[1,1]]*100),
+                         (benefit_invasive_discharge[[41,1]]*100),
+                         8)) +
+  scale_y_continuous(" ",
+                     seq(0, 100, 10))+
+  labs(title = "Invasive") +
+  coord_cartesian(x = c(2, 36),
+                  y = c(0, 100)) +
+  
+  theme(legend.key = element_blank(),
+        plot.title.position = 'plot',
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 13.5),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 10),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+```
+
+```{r, fig.align='center', fig.height=5, fig.width=8}
+p1 + p2 + plot_annotation(title = "Use of corticosteroids subgroups\n")
+```
+
+```{r include=FALSE}
+# Plot to remove title and save it
+# p1 + p2 
+# 
+# ggsave(width = 8,
+#        height = 5,
+# # #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
+#        device=cairo_pdf, 
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure23_discharge_varying_baseline_probabilities_corticosteroids.pd# f")) # File # name
+
+```
+
+
+```{r, fig.align='center', fig.height=5, fig.width=8, fig.cap="RD: Risk Difference"}
+p3 + p4 + p5 + plot_annotation(title = "Respiratory support subgroups\n")
+```
+```{r include=FALSE}
+# Plot to remove title and save it
+# p3 + p4 + p5 
+# 
+# ggsave(width = 8,
+#        height = 5,
+# # #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
+#        device=cairo_pdf, 
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure24_discharge_varying_baseline_probabilities_respiratory.pdf")) # # File # name
+
+```
+
+## Tables
+
+Next, we are going to put in tables what are the minimum + maximum "Posterior
+Probability of Benefit" and their corresponding "Baseline Risk" for each RD
+cutoff.
+
+```{r}
+# Create function to make tables
+
+values = tibble(Values = c("Min", "Max"))
+multiply100 = function(x){x*100}
+
+tables_fun = function(data){ # Data object
+  
+t1 = benefit_not_using_discharge %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0") %>%
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  # Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+t2 = data %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0.01") %>% 
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  # Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+t3 = data %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0.02") %>% 
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  #Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+t4 = data %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0.05") %>% 
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  # Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+t5 = data %>%
+  # make it tidy to use filter()
+  pivot_longer(
+    cols = Pr_0:last_col(),
+    names_to = "Cutoff", values_to = "Pr of Benefit"
+  ) %>% 
+  # filter by Pr of Benefit >= 0%
+  filter(Cutoff == "Pr_0.1") %>% 
+  # Multiply by 100
+  mutate(Baseline_risk = Baseline_risk*100,
+         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
+  # round the probability of benefit
+  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
+  # select rows with minimum and maximum Pr of Benefit value
+  slice(which.min(`Pr of Benefit`),
+        which.max(`Pr of Benefit`)) %>%
+  # Add new colum with "Min" and "Max"
+  bind_cols(values) %>% 
+  # Re-arrange the order of columns
+  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
+  # Reverse back to wide format
+  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
+  # Rename columns
+  rename("min(Baseline Risk)" = Baseline_risk_Min,
+         "max(Baseline Risk)" = Baseline_risk_Max,
+         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
+         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
+  # Reorder
+  select(Cutoff,
+         "min(Pr of Benefit)", "min(Baseline Risk)",
+         "max(Pr of Benefit)", "max(Baseline Risk)")
+
+tt = bind_rows(t1,t2)
+tt = bind_rows(tt,t3)
+tt = bind_rows(tt,t4)
+tt = bind_rows(tt,t5) %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+return(tt)
+}
+```
+
+### Not using corticosteroids
+
+```{r}
+tables_fun(benefit_not_using_discharge)
+```
+
+### Using corticosteroids
+
+```{r}
+tables_fun(benefit_using_discharge)
+```
+
+### Simple oxygen only
+
+```{r}
+tables_fun(benefit_simple_discharge)
+```
+
+### Non-invasive ventilation
+
+```{r}
+tables_fun(benefit_noninvasive_discharge)
+```
+
+### Invasive mechanical ventilation
+
+```{r}
+tables_fun(
+  benefit_invasive_discharge %>% 
+  # Remove negative/zero baseline risks
+  slice(6:41)
+  )
+```
+

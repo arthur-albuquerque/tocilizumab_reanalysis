@@ -1,0 +1,600 @@
+---
+title: "Supplementary Material"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(here)
+```
+
+# Supplementary Table 1
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable1_quantile_intervals_figure1.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+95th interquantile intervals of priors and RECOVERY regarding respiratory support.
+This table complements Figure 1.
+
+# Supplementary Table 2
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable2_hdi_figure2.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+95% highest density intervals of posterior distributions. This table complements
+Figure 2.
+
+# Supplementary Table 3
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable3_probabilities_figure2.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posterior probabilities of each subgroup. This table complements Figure 2.
+
+# Supplementary Figure 1
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure1_priors_not_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Prior distributions of sensitivity analyses regarding patients not using 
+corticosteroids.
+
+# Supplementary Figure 2
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure2_posteriors_not_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors distributions from sensitivity analyses regarding patients not using 
+corticosteroids.
+
+# Supplementary Table 4
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable4_probabilities_not_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors probabilities from sensitivity analyses regarding patients not using 
+corticosteroids. This table complements Supplementary Figures 1 and 2.
+
+# Supplementary Table 5
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable5_hdi_not_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+95% highest density intervals from posterior distributions regarding patients not using 
+corticosteroids. This table complements Supplementary Figures 1 and 2.
+
+# Supplementary Figure 3
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure3_priors_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Prior distributions of sensitivity analyses regarding patients using 
+corticosteroids.
+
+# Supplementary Figure 4
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure4_posteriors_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors distributions from sensitivity analyses regarding patients using 
+corticosteroids.
+
+# Supplementary Table 6
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable6_probabilities_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors probabilities from sensitivity analyses regarding patients using 
+corticosteroids. This table complements Supplementary Figures 3 and 4.
+
+# Supplementary Table 7
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable7_hdi_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+95% highest density intervals from posterior distributions regarding patients using 
+corticosteroids. This table complements Supplementary Figures 3 and 4.
+
+# Supplementary Figure 5
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure5_priors_simple.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Prior distributions of sensitivity analyses regarding patients on simple oxygen
+only.
+
+# Supplementary Figure 6
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure6_posteriors_simple.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors distributions from sensitivity analyses regarding patients on
+simple oxygen only.
+
+# Supplementary Table 8
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable8_probabilities_simple.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors probabilities from sensitivity analyses regarding patients on simple
+oxygen only. This table complements Supplementary Figures 5 and 6.
+
+# Supplementary Table 9
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable9_hdi_simple.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+95% highest density intervals from posterior distributions regarding patients on
+simple oxygen only. This table complements Supplementary Figures 5 and 6.
+
+# Supplementary Figure 7
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure7_priors_noninvasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Prior distributions of sensitivity analyses regarding patients on non-invasive
+ventilation.
+
+# Supplementary Figure 8
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure8_posteriors_noninvasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors distributions from sensitivity analyses regarding patients on
+non-invasive ventilation.
+
+# Supplementary Table 10
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable10_probabilities_noninvasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors probabilities from sensitivity analyses regarding patients on
+non-invasive ventilation. This table complements Supplementary Figures 7 and 8.
+
+# Supplementary Table 11
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable11_hdi_noninvasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+95% highest density intervals from posterior distributions regarding patients on
+non-invasive ventilation. This table complements Supplementary Figures 7 and 8.
+
+# Supplementary Figure 9
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure9_priors_invasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Prior distributions of sensitivity analyses regarding patients on invasive
+mechanical ventilation. This figure complements Figure 3.
+
+# Supplementary Table 12
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable11_hdi_noninvasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+95% highest density intervals from posterior distributions regarding patients on
+invasive mechanical ventilation. This table complements Figure 3 and
+Supplementary Figure 9.
+
+# Supplementary Figure 10
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure10_varying_baseline_risk_difference_corticosteroids.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Sensitivity analyses using multiple different baseline risks for subgroups on
+the use of corticosteroids. Each line represents the posterior distribution for
+the corresponding baseline risk. Point estimates depict the median and interval
+bars depict 50% and 95% highest density intervals.
+
+# Supplementary Figure 11
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure11_varying_baseline_risk_difference_respiratory.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Sensitivity analyses using multiple different baseline risks for subgroups on
+respiratory support. Each line represents the posterior distribution for
+the corresponding baseline risk. Point estimates depict the median and interval
+bars depict 50% and 95% highest density intervals.
+
+\newpage
+
+# Supplementary Figure 12
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure12_varying_baseline_probabilities_corticosteroids.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+RD: Risk Difference
+
+Sensitivity analyses using multiple different baseline risks for subgroups on
+the use of corticosteroids. Each line represents the posterior probability of benefit
+for a specific cutoff, such as risk difference greater or equal to 0%, 1%, and so on.
+
+\newpage
+
+# Supplementary Figure 13
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure13_varying_baseline_probabilities_respiratory.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+RD: Risk Difference
+
+Sensitivity analyses using multiple different baseline risks for subgroups on
+respiratory support. Each line represents the posterior probability of benefit
+for a specific cutoff, such as risk difference greater or equal to 0%, 1%, and so on.
+
+# Supplementary Table 13
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable13_discharge_table1.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Number of events and sample size regarding the hospital discharge outcome.
+
+# Supplementary Figure 14
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure14_discharge_figure1.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+RECOVERY and Priors distributions regarding the hospital discharge outcome.
+Point estimates depict the median and interval bars depict 95th quantiles.
+
+# Supplementary Figure 15
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure15_discharge_figure2.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posterior distributions regarding the hospital discharge outcome.
+
+Panels A and C: Point estimates depict the median. Interval bars depict the 50
+and 95% highest density intervals. Panels B and D: Cumulative posterior
+distributions correspond to the probabilities that the risk difference (RD)
+is greater than or equal to the effect size on the X‐axis.
+
+# Supplementary Figure 16
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure16_discharge_posteriors_not_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors distributions from sensitivity analyses using different priors.
+This figure regards patients not using corticosteroids for the hospital discharge
+outcome.
+
+# Supplementary Table 14
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable14_discharge_probabilities_not_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors probabilities from sensitivity analyses using different priors.
+This table complements Supplementary Figure 16.
+
+# Supplementary Figure 17
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure17_discharge_posteriors_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors distributions from sensitivity analyses using different priors.
+This figure regards patients using corticosteroids for the hospital discharge
+outcome.
+
+# Supplementary Table 15
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable15_discharge_probabilities_using.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors probabilities from sensitivity analyses using different priors.
+This table complements Supplementary Figure 17.
+
+# Supplementary Figure 18
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure18_discharge_posteriors_simple.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors distributions from sensitivity analyses using different priors.
+This figure regards patients on simple oxygen only for the hospital discharge
+outcome.
+
+# Supplementary Table 16
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable16_discharge_probabilities_simple.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors probabilities from sensitivity analyses using different priors.
+This table complements Supplementary Figure 18.
+
+# Supplementary Figure 19
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure19_discharge_posteriors_noninvasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors distributions from sensitivity analyses using different priors.
+This figure regards patients on non-invasive ventilation for the hospital discharge
+outcome.
+
+# Supplementary Table 17
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable17_discharge_probabilities_noninvasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors probabilities from sensitivity analyses using different priors.
+This table complements Supplementary Figure 19.
+
+# Supplementary Figure 20
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure20_discharge_posteriors_invasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors distributions from sensitivity analyses using different priors.
+This figure regards patients on invasive mechanical ventilation for the hospital discharge
+outcome.
+
+# Supplementary Table 18
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable18_discharge_probabilities_invasive.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posteriors probabilities from sensitivity analyses using different priors.
+This table complements Supplementary Figure 20.
+
+# Supplementary Figure 21
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure21_discharge_varying_baseline_risk_difference_corticosteroids.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Sensitivity analyses using multiple different baseline risks for subgroups on
+the use of corticosteroids for the hospital discharge outcome. Each line
+represents the posterior distribution for the corresponding baseline risk.
+Point estimates depict the median and interval bars depict 50% and 95% highest
+density intervals.
+
+# Supplementary Figure 22
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure22_discharge_varying_baseline_risk_difference_respiratory.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Sensitivity analyses using multiple different baseline risks for subgroups on
+respiratory support for the hospital discharge outcome. Each line represents
+the posterior distribution for the corresponding baseline risk. Point estimates
+depict the median and interval bars depict 50% and 95% highest density intervals.
+
+\newpage
+
+# Supplementary Figure 23
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure23_discharge_varying_baseline_probabilities_corticosteroids.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+RD: Risk Difference
+
+Sensitivity analyses using multiple different baseline risks for subgroups on
+the use of corticosteroids for the hospital discharge outcome. Each line
+represents the posterior probability of benefit for a specific cutoff, such as
+risk difference greater or equal to 0%, 1%, and so on.
+
+\newpage
+
+# Supplementary Figure 24
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure24_discharge_varying_baseline_probabilities_respiratory.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+RD: Risk Difference
+
+Sensitivity analyses using multiple different baseline risks for subgroups on
+respiratory support for the hospital discharge outcome. Each line
+represents the posterior probability of benefit for a specific cutoff, such as
+risk difference greater or equal to 0%, 1%, and so on.

@@ -1,0 +1,2321 @@
+---
+title: "05_Sensitivity_Analyses_Different_Priors"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          toc: yes
+          toc_float: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(tidyverse, # Data wrangling and plotting
+               here, # File paths
+               ggdist, # To plot distributions
+               kableExtra, # To create nice tables
+               rcartocolor) # Color pallete
+```
+
+```{r}
+## Load posterior distributions' samples with logOR, OR and RD
+
+# I uploaded these data objects to OSF since the .RData file is 54MB.
+# Here I load all data files directly from OSF without having to download it
+# to my/your PC
+
+samples = url("https://osf.io/3qexw/download?version=1")
+load(gzcon(samples))
+
+## Load objects with mean + SD of multiple priors along with
+## RECOVERY data and posterior distributions
+
+load(file = here("final_analyses", "output", "data", "analyses", # file path
+                 "data_prior_posteriors_mean_sd_death.RData"))   # file name
+```
+
+```{r}
+set.seed = 123 # set seed for reproducibility
+```
+
+
+In this document, we will present the sensivity analyses of all posterior
+distributions estimated from the evidence-based prior + extra priors:
+non-informative, skeptical, optimistic and pessimistic.
+
+# Use of corticosteroids
+
+## Not using
+
+### Prior and likelihood distributions
+
+```{r}
+
+distributions =
+  tibble(
+    
+    "RECOVERY (likelihood)" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_not_using_death %>%
+                # Data.mean and data.sd are all the same in every row
+                # So it doesn't matter what row I slice
+                slice(1) %>% 
+                pull(data.mean)),
+        sd = (posteriors_not_using_death %>%
+              slice(1) %>% 
+              pull(data.sd))
+    )),
+    
+    "Non-informative prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_not_using_death %>%
+                filter(type == "non-informative") %>%
+                pull(prior.mean)),
+        sd = (posteriors_not_using_death %>%
+              filter(type == "non-informative") %>%
+              pull(prior.sd))
+    )),
+    
+    "Evidence-based prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_not_using_death %>%
+                filter(type == "evidence-based") %>%
+                pull(prior.mean)),
+        sd = (posteriors_not_using_death %>%
+              filter(type == "evidence-based") %>%
+              pull(prior.sd))
+    )),
+    
+    "Skeptical prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_not_using_death %>%
+                filter(type == "skeptical") %>%
+                pull(prior.mean)),
+        sd = (posteriors_not_using_death %>%
+              filter(type == "skeptical") %>%
+              pull(prior.sd))
+    )),
+    
+    "Optimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_not_using_death %>%
+                filter(type == "optimistic") %>%
+                pull(prior.mean)),
+        sd = (posteriors_not_using_death %>%
+              filter(type == "optimistic") %>%
+              pull(prior.sd))
+    )),
+    
+    "Pessimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_not_using_death %>%
+                filter(type == "pessimistic") %>%
+                pull(prior.mean)),
+        sd = (posteriors_not_using_death %>%
+              filter(type == "pessimistic") %>%
+              pull(prior.sd))
+    ))
+  ) %>% 
+  unnest(everything())
+
+    
+```
+
+
+```{r, fig.height=5.5, fig.width = 5.5, fig.align='center'}
+
+# Plot!
+
+distributions %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(everything()),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  # Set order of priors
+  mutate(dist = factor(dist, levels =
+                         c("RECOVERY (likelihood)",
+                           "Non-informative prior",
+                           "Evidence-based prior",
+                           "Skeptical prior",
+                           "Optimistic prior",
+                           "Pessimistic prior")
+                       )
+         ) %>%
+  # exp() to transform log(OR) to OR
+  ggplot(aes(
+    x = exp(samples), y = dist,
+    fill = dist
+  )) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(position = "dodge",
+               point_interval = median_qi, # Quantile interval 
+               .width = c(0.95)) +
+  geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
+  scale_fill_manual(' ',
+                    values = c(
+    carto_pal(12, "Pastel")[1], # RECOVERY
+    carto_pal(12, "Pastel")[12], # Non-informative,
+    carto_pal(12, "Pastel")[2], # Evidence-based
+    "gray70", # Skeptical
+    carto_pal(12, "Pastel")[5], # Optimistic
+    carto_pal(12, "Pastel")[10]  # Pessimistc
+  )) +
+  labs(
+    x = "\nOdds Ratio",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = 0, to = 2.5, 0.5)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    legend.text = element_text(size=12),
+    legend.key= element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  coord_cartesian(x = c(0, 2.5)) +
+  facet_wrap(~dist, ncol = 1, scales = "free_y")
+
+# ggsave(width = 5.5,
+#        height = 5.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure1_priors_not_using.pdf")) # File name
+  
+```
+
+### Posterior distributions
+
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+
+level_order = c("Pessimistic",
+                "Optimistic",
+                "Skeptical",
+                "Evidence-based",
+                "Non-informative")
+
+samples_posteriors_not_using_death %>%
+  
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = 100 * RD,
+    y = factor(`Underlying_Prior`, level = level_order),
+    fill = `Underlying_Prior`)) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+    stat_halfeye(aes(fill = stat(x > 0)),
+                 position = "dodge",
+               point_interval = median_hdi, # Highest density interval
+               .width = c(0.5, 0.95),
+               # https://github.com/mjskay/ggdist/issues/70
+               interval_size_range = c(1.1,1.9)
+  ) +
+  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  labs(x = "\nRisk Difference (%)",
+       y = "Underlying Prior\n"
+  ) +
+  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(-12.5, 10))
+
+# ggsave(width = 7,
+#        height = 4.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure2_posteriors_not_using.pdf")) # File name
+```
+
+<br><br>
+
+
+```{r}
+
+t = tibble(
+  
+  "Underlying Prior" = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ),
+  
+  
+  "Pr(< -5%)" = c(round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -2%)" = c(round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -1%)" = c(round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_not_using_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  
+  "Pr(> 0%)" = c(round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 1%)" = c(round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 2%)" = c(round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 5%)" = c(round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_not_using_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100
+  )
+) 
+
+t1 = t %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  add_header_above(c(" " = 1,
+                     "Probability of Harm" = 3,
+                     "Probability of Benefit" = 4))
+t1
+
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable4_probabilities_not_using.pdf")) # File name
+```
+
+### HDI for each posterior distribution
+
+Here are the 95% HDI in *risk difference* of each distribution.
+
+```{r}
+multiply100 = function(x){x*100}
+
+t1 = samples_posteriors_not_using_death %>%
+  select("Underlying_Prior", "RD") %>% 
+  # Group by distribution so we can apply median_hdi
+  group_by(`Underlying_Prior`) %>% 
+  # Calculate the median and 95% HDI
+  ggdist::median_hdi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  # Arrange order
+  arrange(factor(`Underlying_Prior`, levels = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+    ))) %>% 
+  select("Underlying_Prior":.upper) %>%
+  mutate(across(RD:.upper, ~multiply100(.))) %>%
+  mutate(across(RD:.upper, ~round(., 2))) %>%
+  rename("Median" = RD) %>%
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+t1
+
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable5_hdi_not_using.pdf")) # File name
+```
+
+## Using
+
+### Prior and likelihood distributions
+
+```{r}
+
+distributions =
+  tibble(
+    
+    "RECOVERY (likelihood)" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_using_death %>%
+                  # Data.mean and data.sd are all the same in every row
+                  # So it doesn't matter what row I slice
+                  slice(1) %>% 
+                  pull(data.mean)),
+        sd = (posteriors_using_death %>%
+                slice(1) %>% 
+                pull(data.sd))
+      )),
+    
+    "Non-informative prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_using_death %>%
+                  filter(type == "non-informative") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_using_death %>%
+                filter(type == "non-informative") %>%
+                pull(prior.sd))
+      )),
+    
+    "Evidence-based prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_using_death %>%
+                  filter(type == "evidence-based") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_using_death %>%
+                filter(type == "evidence-based") %>%
+                pull(prior.sd))
+      )),
+    
+    "Skeptical prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_using_death %>%
+                  filter(type == "skeptical") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_using_death %>%
+                filter(type == "skeptical") %>%
+                pull(prior.sd))
+      )),
+    
+    "Optimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_using_death %>%
+                  filter(type == "optimistic") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_using_death %>%
+                filter(type == "optimistic") %>%
+                pull(prior.sd))
+      )),
+    
+    "Pessimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_using_death %>%
+                  filter(type == "pessimistic") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_using_death %>%
+                filter(type == "pessimistic") %>%
+                pull(prior.sd))
+      ))
+  ) %>% 
+  unnest(everything())
+
+
+```
+
+
+```{r, fig.height=5.5, fig.width = 5.5, fig.align='center'}
+
+# Plot!
+
+distributions %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(everything()),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  # Set order of priors
+  mutate(dist = factor(dist, levels =
+                         c("RECOVERY (likelihood)",
+                           "Non-informative prior",
+                           "Evidence-based prior",
+                           "Skeptical prior",
+                           "Optimistic prior",
+                           "Pessimistic prior")
+  )
+  ) %>%
+  # exp() to transform log(OR) to OR
+  ggplot(aes(
+    x = exp(samples), y = dist,
+    fill = dist
+  )) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(position = "dodge",
+               point_interval = median_qi, # Quantile interval 
+               .width = c(0.95)) +
+  geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
+  scale_fill_manual(' ',
+                    values = c(
+                      carto_pal(12, "Pastel")[1], # RECOVERY
+                      carto_pal(12, "Pastel")[12], # Non-informative,
+                      carto_pal(12, "Pastel")[2], # Evidence-based
+                      "gray70", # Skeptical
+                      carto_pal(12, "Pastel")[5], # Optimistic
+                      carto_pal(12, "Pastel")[10]  # Pessimistc
+                    )) +
+  labs(
+    x = "\nOdds Ratio",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = 0, to = 2.5, 0.5)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    legend.text = element_text(size=12),
+    legend.key= element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  coord_cartesian(x = c(0, 2.5)) +
+  facet_wrap(~dist, ncol = 1, scales = "free_y")
+
+# ggsave(width = 5.5,
+#        height = 5.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure3_priors_using.pdf")) # File name
+
+```
+
+### Posterior distributions
+
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+
+level_order = c("Pessimistic",
+                "Optimistic",
+                "Skeptical",
+                "Evidence-based",
+                "Non-informative")
+
+samples_posteriors_using_death %>%
+  
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = 100 * RD,
+    y = factor(`Underlying_Prior`, level = level_order),
+    fill = `Underlying_Prior`)) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(aes(fill = stat(x > 0)),
+               position = "dodge",
+               point_interval = median_hdi, # Highest density interval
+               .width = c(0.5, 0.95),
+               # https://github.com/mjskay/ggdist/issues/70
+               interval_size_range = c(1.1,1.9)
+  ) +
+  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  labs(x = "\nRisk Difference (%)",
+       y = "Underlying Prior\n"
+  ) +
+  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 13.5),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        legend.position = "none",
+        plot.title.position = 'plot',
+        plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(-12.5, 10))
+
+# ggsave(width = 7,
+#        height = 4.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure4_posteriors_using.pdf")) # File name
+```
+
+<br><br>
+  
+
+
+```{r}
+
+t = tibble(
+  
+  "Underlying Prior" = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ),
+  
+  
+  "Pr(< -5%)" = c(round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -2%)" = c(round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -1%)" = c(round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_using_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  
+  "Pr(> 0%)" = c(round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 1%)" = c(round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 2%)" = c(round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 5%)" = c(round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_using_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100
+  )
+) 
+
+t1 = t %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  add_header_above(c(" " = 1,
+                     "Probability of Harm" = 3,
+                     "Probability of Benefit" = 4))
+
+t1
+
+#t1 %>% 
+#  save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                  "STable6_probabilities_using.pdf")) # File name
+```
+
+### HDI for each posterior distribution
+  
+Here are the 95% HDI in *risk difference* of each distribution.
+
+```{r}
+multiply100 = function(x){x*100}
+
+t1 = samples_posteriors_using_death %>%
+  select("Underlying_Prior", "RD") %>% 
+  # Group by distribution so we can apply median_hdi
+  group_by(`Underlying_Prior`) %>% 
+  # Calculate the median and 95% HDI
+  ggdist::median_hdi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  # Arrange order
+  arrange(factor(`Underlying_Prior`, levels = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ))) %>% 
+  select("Underlying_Prior":.upper) %>%
+  mutate(across(RD:.upper, ~multiply100(.))) %>%
+  mutate(across(RD:.upper, ~round(., 2))) %>%
+  rename("Median" = RD) %>%
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+t1
+
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable7_hdi_using.pdf")) # File name
+```
+
+# Respiratory support
+
+## Simple oxygen only
+
+### Prior and likelihood distributions
+
+```{r}
+
+distributions =
+  tibble(
+    
+    "RECOVERY (likelihood)" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_simple_death %>%
+                  # Data.mean and data.sd are all the same in every row
+                  # So it doesn't matter what row I slice
+                  slice(1) %>% 
+                  pull(data.mean)),
+        sd = (posteriors_simple_death %>%
+                slice(1) %>% 
+                pull(data.sd))
+      )),
+    
+    "Non-informative prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_simple_death %>%
+                  filter(type == "non-informative") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_simple_death %>%
+                filter(type == "non-informative") %>%
+                pull(prior.sd))
+      )),
+    
+    "Evidence-based prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_simple_death %>%
+                  filter(type == "evidence-based") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_simple_death %>%
+                filter(type == "evidence-based") %>%
+                pull(prior.sd))
+      )),
+    
+    "Skeptical prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_simple_death %>%
+                  filter(type == "skeptical") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_simple_death %>%
+                filter(type == "skeptical") %>%
+                pull(prior.sd))
+      )),
+    
+    "Optimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_simple_death %>%
+                  filter(type == "optimistic") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_simple_death %>%
+                filter(type == "optimistic") %>%
+                pull(prior.sd))
+      )),
+    
+    "Pessimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_simple_death %>%
+                  filter(type == "pessimistic") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_simple_death %>%
+                filter(type == "pessimistic") %>%
+                pull(prior.sd))
+      ))
+  ) %>% 
+  unnest(everything())
+
+
+```
+
+
+```{r, fig.height=5.5, fig.width = 5.5, fig.align='center'}
+
+# Plot!
+
+distributions %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(everything()),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  # Set order of priors
+  mutate(dist = factor(dist, levels =
+                         c("RECOVERY (likelihood)",
+                           "Non-informative prior",
+                           "Evidence-based prior",
+                           "Skeptical prior",
+                           "Optimistic prior",
+                           "Pessimistic prior")
+  )
+  ) %>%
+  # exp() to transform log(OR) to OR
+  ggplot(aes(
+    x = exp(samples), y = dist,
+    fill = dist
+  )) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(position = "dodge",
+               point_interval = median_qi, # Quantile interval 
+               .width = c(0.95)) +
+  geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
+  scale_fill_manual(' ',
+                    values = c(
+                      carto_pal(12, "Pastel")[1], # RECOVERY
+                      carto_pal(12, "Pastel")[12], # Non-informative,
+                      carto_pal(12, "Pastel")[2], # Evidence-based
+                      "gray70", # Skeptical
+                      carto_pal(12, "Pastel")[5], # Optimistic
+                      carto_pal(12, "Pastel")[10]  # Pessimistc
+                    )) +
+  labs(
+    x = "\nOdds Ratio",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = 0, to = 4, 1)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    legend.text = element_text(size=12),
+    legend.key= element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  coord_cartesian(x = c(0, 4)) +
+  facet_wrap(~dist, ncol = 1, scales = "free_y")
+
+# ggsave(width = 5.5,
+#        height = 5.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure5_priors_simple.pdf")) # File name
+
+```
+
+### Posterior distributions
+
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+
+level_order = c("Pessimistic",
+                "Optimistic",
+                "Skeptical",
+                "Evidence-based",
+                "Non-informative")
+
+samples_posteriors_simple_death %>%
+  
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = 100 * RD,
+    y = factor(`Underlying_Prior`, level = level_order),
+    fill = `Underlying_Prior`)) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(aes(fill = stat(x > 0)),
+               position = "dodge",
+               point_interval = median_hdi, # Highest density interval
+               .width = c(0.5, 0.95),
+               # https://github.com/mjskay/ggdist/issues/70
+               interval_size_range = c(1.1,1.9)
+  ) +
+  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  labs(x = "\nRisk Difference (%)",
+       y = "Underlying Prior\n"
+  ) +
+  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 13.5),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        legend.position = "none",
+        plot.title.position = 'plot',
+        plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(-12.5, 10))
+
+# ggsave(width = 7,
+#        height = 4.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure6_posteriors_simple.pdf")) # File name
+```
+
+<br><br>
+
+```{r}
+
+t = tibble(
+  
+  "Underlying Prior" = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ),
+  
+  
+  "Pr(< -5%)" = c(round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -2%)" = c(round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -1%)" = c(round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_simple_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  
+  "Pr(> 0%)" = c(round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 1%)" = c(round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 2%)" = c(round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 5%)" = c(round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_simple_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100
+  )
+) 
+
+t1 = t %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  add_header_above(c(" " = 1,
+                     "Probability of Harm" = 3,
+                     "Probability of Benefit" = 4))
+
+t1
+
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable8_probabilities_simple.pdf")) # File name
+```
+
+### HDI for each posterior distribution
+
+Here are the 95% HDI in *risk difference* of each distribution.
+
+```{r}
+multiply100 = function(x){x*100}
+
+t1 = samples_posteriors_simple_death %>%
+  select("Underlying_Prior", "RD") %>% 
+  # Group by distribution so we can apply median_hdi
+  group_by(`Underlying_Prior`) %>% 
+  # Calculate the median and 95% HDI
+  ggdist::median_hdi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  # Arrange order
+  arrange(factor(`Underlying_Prior`, levels = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ))) %>% 
+  select("Underlying_Prior":.upper) %>%
+  mutate(across(RD:.upper, ~multiply100(.))) %>%
+  mutate(across(RD:.upper, ~round(., 2))) %>%
+  rename("Median" = RD) %>%
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+t1
+
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable9_hdi_simple.pdf")) # File name
+```
+
+## Non-invasive ventilation
+
+### Prior and likelihood distributions
+
+```{r}
+
+distributions =
+  tibble(
+    
+    "RECOVERY (likelihood)" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_noninvasive_death %>%
+                  # Data.mean and data.sd are all the same in every row
+                  # So it doesn't matter what row I slice
+                  slice(1) %>% 
+                  pull(data.mean)),
+        sd = (posteriors_noninvasive_death %>%
+                slice(1) %>% 
+                pull(data.sd))
+      )),
+    
+    "Non-informative prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_noninvasive_death %>%
+                  filter(type == "non-informative") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_noninvasive_death %>%
+                filter(type == "non-informative") %>%
+                pull(prior.sd))
+      )),
+    
+    "Evidence-based prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_noninvasive_death %>%
+                  filter(type == "evidence-based") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_noninvasive_death %>%
+                filter(type == "evidence-based") %>%
+                pull(prior.sd))
+      )),
+    
+    "Skeptical prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_noninvasive_death %>%
+                  filter(type == "skeptical") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_noninvasive_death %>%
+                filter(type == "skeptical") %>%
+                pull(prior.sd))
+      )),
+    
+    "Optimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_noninvasive_death %>%
+                  filter(type == "optimistic") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_noninvasive_death %>%
+                filter(type == "optimistic") %>%
+                pull(prior.sd))
+      )),
+    
+    "Pessimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_noninvasive_death %>%
+                  filter(type == "pessimistic") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_noninvasive_death %>%
+                filter(type == "pessimistic") %>%
+                pull(prior.sd))
+      ))
+  ) %>% 
+  unnest(everything())
+
+
+```
+
+
+```{r, fig.height=5.5, fig.width = 5.5, fig.align='center'}
+
+# Plot!
+
+distributions %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(everything()),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  # Set order of priors
+  mutate(dist = factor(dist, levels =
+                         c("RECOVERY (likelihood)",
+                           "Non-informative prior",
+                           "Evidence-based prior",
+                           "Skeptical prior",
+                           "Optimistic prior",
+                           "Pessimistic prior")
+  )
+  ) %>%
+  # exp() to transform log(OR) to OR
+  ggplot(aes(
+    x = exp(samples), y = dist,
+    fill = dist
+  )) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(position = "dodge",
+               point_interval = median_qi, # Quantile interval 
+               .width = c(0.95)) +
+  geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
+  scale_fill_manual(' ',
+                    values = c(
+                      carto_pal(12, "Pastel")[1], # RECOVERY
+                      carto_pal(12, "Pastel")[12], # Non-informative,
+                      carto_pal(12, "Pastel")[2], # Evidence-based
+                      "gray70", # Skeptical
+                      carto_pal(12, "Pastel")[5], # Optimistic
+                      carto_pal(12, "Pastel")[10]  # Pessimistc
+                    )) +
+  labs(
+    x = "\nOdds Ratio",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = 0, to = 2.5, 0.5)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    legend.text = element_text(size=12),
+    legend.key= element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  coord_cartesian(x = c(0, 2.5)) +
+  facet_wrap(~dist, ncol = 1, scales = "free_y")
+
+# ggsave(width = 5.5,
+#        height = 5.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure7_priors_noninvasive.pdf")) # File name
+
+```
+
+### Posterior distributions
+
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+
+level_order = c("Pessimistic",
+                "Optimistic",
+                "Skeptical",
+                "Evidence-based",
+                "Non-informative")
+
+samples_posteriors_noninvasive_death %>%
+  
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = 100 * RD,
+    y = factor(`Underlying_Prior`, level = level_order),
+    fill = `Underlying_Prior`)) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(aes(fill = stat(x > 0)),
+               position = "dodge",
+               point_interval = median_hdi, # Highest density interval
+               .width = c(0.5, 0.95),
+               # https://github.com/mjskay/ggdist/issues/70
+               interval_size_range = c(1.1,1.9)
+  ) +
+  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  labs(x = "\nRisk Difference (%)",
+       y = "Underlying Prior\n"
+  ) +
+  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 13.5),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        legend.position = "none",
+        plot.title.position = 'plot',
+        plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(-12.5, 10))
+
+# ggsave(width = 7,
+#        height = 4.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure8_posteriors_noninvasive.pdf")) # File name
+```
+
+<br><br>
+  
+
+```{r}
+
+t = tibble(
+  
+  "Underlying Prior" = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ),
+  
+  
+  "Pr(< -5%)" = c(round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -2%)" = c(round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -1%)" = c(round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_noninvasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  
+  "Pr(> 0%)" = c(round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 1%)" = c(round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 2%)" = c(round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 5%)" = c(round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_noninvasive_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100
+  )
+) 
+
+t1 = t %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  add_header_above(c(" " = 1,
+                     "Probability of Harm" = 3,
+                     "Probability of Benefit" = 4))
+
+t1
+
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable10_probabilities_noninvasive.pdf")) # File name
+```
+
+### HDI for each posterior distribution
+  
+Here are the 95% HDI in *risk difference* of each distribution.
+
+```{r}
+multiply100 = function(x){x*100}
+
+t1 = samples_posteriors_noninvasive_death %>%
+  select("Underlying_Prior", "RD") %>% 
+  # Group by distribution so we can apply median_hdi
+  group_by(`Underlying_Prior`) %>% 
+  # Calculate the median and 95% HDI
+  ggdist::median_hdi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  # Arrange order
+  arrange(factor(`Underlying_Prior`, levels = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ))) %>% 
+  select("Underlying_Prior":.upper) %>%
+  mutate(across(RD:.upper, ~multiply100(.))) %>%
+  mutate(across(RD:.upper, ~round(., 2))) %>%
+  rename("Median" = RD) %>%
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable11_hdi_noninvasive.pdf")) # File name
+```
+
+## Invasive mechanical ventilation
+
+### Prior and likelihood distributions
+
+```{r}
+
+distributions =
+  tibble(
+    
+    "RECOVERY (likelihood)" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_invasive_death %>%
+                  # Data.mean and data.sd are all the same in every row
+                  # So it doesn't matter what row I slice
+                  slice(1) %>% 
+                  pull(data.mean)),
+        sd = (posteriors_invasive_death %>%
+                slice(1) %>% 
+                pull(data.sd))
+      )),
+    
+    "Non-informative prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_invasive_death %>%
+                  filter(type == "non-informative") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_invasive_death %>%
+                filter(type == "non-informative") %>%
+                pull(prior.sd))
+      )),
+    
+    "Evidence-based prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_invasive_death %>%
+                  filter(type == "evidence-based") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_invasive_death %>%
+                filter(type == "evidence-based") %>%
+                pull(prior.sd))
+      )),
+    
+    "Skeptical prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_invasive_death %>%
+                  filter(type == "skeptical") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_invasive_death %>%
+                filter(type == "skeptical") %>%
+                pull(prior.sd))
+      )),
+    
+    "Optimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_invasive_death %>%
+                  filter(type == "optimistic") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_invasive_death %>%
+                filter(type == "optimistic") %>%
+                pull(prior.sd))
+      )),
+    
+    "Pessimistic prior" = list(
+      rnorm(
+        10e4,
+        mean = (posteriors_invasive_death %>%
+                  filter(type == "pessimistic") %>%
+                  pull(prior.mean)),
+        sd = (posteriors_invasive_death %>%
+                filter(type == "pessimistic") %>%
+                pull(prior.sd))
+      ))
+  ) %>% 
+  unnest(everything())
+
+
+```
+
+
+```{r, fig.height=5.5, fig.width = 5.5, fig.align='center'}
+
+# Plot!
+
+distributions %>%
+  # make it tidy for ggplot
+  pivot_longer(
+    cols = c(everything()),
+    names_to = "dist", values_to = "samples"
+  ) %>%
+  # Set order of priors
+  mutate(dist = factor(dist, levels =
+                         c("RECOVERY (likelihood)",
+                           "Non-informative prior",
+                           "Evidence-based prior",
+                           "Skeptical prior",
+                           "Optimistic prior",
+                           "Pessimistic prior")
+  )
+  ) %>%
+  # exp() to transform log(OR) to OR
+  ggplot(aes(
+    x = exp(samples), y = dist,
+    fill = dist
+  )) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(position = "dodge",
+               point_interval = median_qi, # Quantile interval 
+               .width = c(0.95)) +
+  geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
+  scale_fill_manual(' ',
+                    values = c(
+                      carto_pal(12, "Pastel")[1], # RECOVERY
+                      carto_pal(12, "Pastel")[12], # Non-informative,
+                      carto_pal(12, "Pastel")[2], # Evidence-based
+                      "gray70", # Skeptical
+                      carto_pal(12, "Pastel")[5], # Optimistic
+                      carto_pal(12, "Pastel")[10]  # Pessimistc
+                    )) +
+  labs(
+    x = "\nOdds Ratio",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = 0, to = 2.5, 0.5)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    legend.text = element_text(size=12),
+    legend.key= element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  coord_cartesian(x = c(0, 2.5)) +
+  facet_wrap(~dist, ncol = 1, scales = "free_y")
+
+# ggsave(width = 5.5,
+#        height = 5.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure9_priors_invasive.pdf")) # File name
+
+```
+
+### Posterior distributions
+
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+
+level_order = c("Pessimistic",
+                "Optimistic",
+                "Skeptical",
+                "Evidence-based",
+                "Non-informative")
+
+samples_posteriors_invasive_death %>%
+  
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = 100 * RD,
+    y = factor(`Underlying_Prior`, level = level_order),
+    fill = `Underlying_Prior`)) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(aes(fill = stat(x > 0)),
+               position = "dodge",
+               point_interval = median_hdi, # Highest density interval
+               .width = c(0.5, 0.95),
+               # https://github.com/mjskay/ggdist/issues/70
+               interval_size_range = c(1.1,1.9)
+  ) +
+  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  labs(x = "\nRisk Difference (%)",
+       y = "Underlying Prior\n"
+  ) +
+  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  theme(axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 13.5),
+        axis.text.y = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        panel.background = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+        legend.position = "none",
+        plot.title.position = 'plot',
+        plot.margin = margin(20, 25, 10, 20)
+  ) +
+  coord_cartesian(xlim = c(-12.5, 10))
+
+```
+
+<br><br>
+
+```{r}
+
+t = tibble(
+  
+  "Underlying Prior" = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ),
+  
+  
+  "Pr(< -5%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -2%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.02) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  "Pr(< -1%)" = c(round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Non-informative") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Evidence-based") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Skeptical") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Optimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100,
+                  
+                  round((samples_posteriors_invasive_death %>%
+                           filter(`Underlying_Prior` == "Pessimistic") %>%
+                           summarise(n = sum(RD < -0.01) / n()) %>%
+                           pull()), 2) * 100
+  ),
+  
+  
+  "Pr(> 0%)" = c(round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 1%)" = c(round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.01) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 2%)" = c(round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.02) / n()) %>%
+                          pull()), 2) * 100
+  ),
+  
+  "Pr(> 5%)" = c(round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Non-informative") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Evidence-based") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Skeptical") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Optimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100,
+                 
+                 round((samples_posteriors_invasive_death %>%
+                          filter(`Underlying_Prior` == "Pessimistic") %>%
+                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          pull()), 2) * 100
+  )
+) 
+
+t1 = t %>% 
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F) %>%
+  add_header_above(c(" " = 1,
+                     "Probability of Harm" = 3,
+                     "Probability of Benefit" = 4))
+
+t1
+
+```
+
+### HDI for each posterior distribution
+  
+Here are the 95% HDI in *risk difference* of each distribution.
+
+```{r}
+multiply100 = function(x){x*100}
+
+t1 = samples_posteriors_invasive_death %>%
+  select("Underlying_Prior", "RD") %>% 
+  # Group by distribution so we can apply median_hdi
+  group_by(`Underlying_Prior`) %>% 
+  # Calculate the median and 95% HDI
+  ggdist::median_hdi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  # Arrange order
+  arrange(factor(`Underlying_Prior`, levels = c(
+    "Non-informative",
+    "Evidence-based",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ))) %>% 
+  select("Underlying_Prior":.upper) %>%
+  mutate(across(RD:.upper, ~multiply100(.))) %>%
+  mutate(across(RD:.upper, ~round(., 2))) %>%
+  rename("Median" = RD) %>%
+  kbl(booktabs = T, align = 'c') %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F)
+
+t1
+
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable12_hdi_invasive.pdf")) # File name
+```

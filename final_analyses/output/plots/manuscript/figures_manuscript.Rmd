@@ -1,0 +1,72 @@
+---
+title: "Main Figures"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(here)
+```
+
+# Table 1
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "manuscript", # File path
+                                 "table1.pdf"))
+
+knitr::include_graphics(path) # File name
+```
+
+# Figure 1
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "manuscript", # File path
+                                 "figure1.pdf"))
+
+knitr::include_graphics(path) # File name
+```
+
+Point estimates depict the median and interval bars depict 95th quantiles.
+
+# Figure 2
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "manuscript", # File path
+                                 "figure2.pdf"))
+
+knitr::include_graphics(path) # File name
+```
+
+Panels A and C: Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals. Panels B and D: Cumulative posterior distributions correspond to the probabilities that the risk difference (RD) is greater than or equal to the effect size on the X‐axis.
+
+# Figure 3
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "manuscript", # File path
+                                 "figure3.pdf"))
+
+knitr::include_graphics(path) # File name
+```
+
+Point estimates depict the median.
+Interval bars depict the 50 and 95% highest density intervals.
+
+# Table 2
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "manuscript", # File path
+                                 "table2.pdf"))
+
+knitr::include_graphics(path) # File name
+```

@@ -25,7 +25,7 @@ pacman::p_load(rio, # To import data
                ggdist, # To plot distributions
                patchwork, # To arrange plots
                kableExtra, # To create nice tables
-               flextable # To create quick tables
+               Cairo # To export a PDF file
                )
 ```
 
@@ -400,7 +400,7 @@ t = tibble(
 
 # Use kableExtra to have a nice table
 
-t %>% 
+t1 = t %>% 
   kbl(booktabs = T, align = 'c') %>% 
   kable_styling(bootstrap_options = "striped", full_width = T) %>%
   column_spec(c(5,8,11,14), bold = T) %>% 
@@ -414,6 +414,12 @@ t %>%
                      "RECOVERY" = 6)) %>% 
   pack_rows("Use of corticosteroids", 1, 2) %>% 
   pack_rows("Respiratory support", 3, 5)
+
+t1
+
+#t1 %>% 
+#  save_kable(here("final_analyses", "output", "plots", "manuscript", # File path
+#                  "table1.pdf")) # File name
 ```
 
 <br><br>
@@ -684,7 +690,7 @@ p2 = distributions_respiratory %>%
     y = " "
   ) +
   scale_x_continuous(breaks = c(0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75),
-                     labels = c("0,25","0.50", "0.75", "1.00",
+                     labels = c("0.25","0.50", "0.75", "1.00",
                                 "1.25",
                                 "   1.50  / /",
                                 "3.60")) +
@@ -709,6 +715,12 @@ p2 = distributions_respiratory %>%
 
 ```{r, fig.align='center', fig.width=10, fig.height = 6, fig.cap="Point estimates depict the median and interval bars depict 95th quantiles."}
 p1 + p2 + plot_annotation(tag_levels = 'A')
+```
+```{r}
+#ggsave(width = 10,
+#       height = 6,
+#       here("final_analyses", "output", "plots", "manuscript", # File path
+#                  "figure1.pdf")) # File name
 ```
 
 <br><br>
@@ -747,6 +759,7 @@ distributions_cortico %>%
   add_header_above(c("Use of corticosteroids" = 4))
 ```
 
+
 <br>
 
 ```{r}
@@ -755,7 +768,7 @@ distributions_cortico %>%
 x = c("Prior_s", "Prior_n", "Prior_i",
       "RECOVERY_s", "RECOVERY_n", "RECOVERY_i")
 
-distributions_respiratory %>% 
+t1 = distributions_respiratory %>% 
   # make it tidy to be able to use group_by()
   pivot_longer(
     cols = c(RECOVERY_i:Prior_s),
@@ -787,6 +800,13 @@ distributions_respiratory %>%
   pack_rows("Priors", 1, 3) %>% 
   pack_rows("RECOVERY", 4, 6) %>% 
   add_header_above(c("Respiratory support" = 4))
+
+t1 
+
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable1_quantile_intervals_figure1.pdf")) # File name
+
 ```
 
 <br><br>
@@ -1088,6 +1108,15 @@ ggplot(aes(100*samples, colour = subgroup)) +
 (p1 + p2) / (p3 + p4) + plot_annotation(tag_levels = 'A')
 ```
 
+```{r}
+#ggsave(width = 10,
+#       height = 8.5,
+# #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
+#       device=cairo_pdf, 
+#       here("final_analyses", "output", "plots", "manuscript", # File path
+#                 "figure2.pdf")) # File name
+```
+
 <br><br>
 
 ```{r}
@@ -1199,28 +1228,46 @@ t4 = distributions_respiratory_posterior %>%
 Here are the posterior probabilities for each posterior distribution.
 
 ```{r}
-bind_rows(t1,t3) %>% 
+t1 = bind_rows(t1,t3) %>% 
   kbl(booktabs = T, align = 'c') %>% 
   kable_styling(bootstrap_options = "striped", full_width = F) %>%
   pack_rows("Use of corticosteroids", 1, 2) %>% 
   pack_rows("Respiratory support", 3, 5) %>% 
   add_header_above(c(" " = 1,
                      "Probability of Risk Difference \u2265 X%" = 4))
+
+t1
 ```
+
+```{r}
+# t1 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable3_probabilities_figure2.pdf")) # File name
+```
+
 
 <br><br>
 
 Here are the 95% HDI in *risk difference* of each posterior distribution.
 
 ```{r}
-bind_rows(t2,t4) %>% 
+t2 = bind_rows(t2,t4) %>% 
   kbl(booktabs = T, align = 'c') %>% 
   kable_styling(bootstrap_options = "striped", full_width = F) %>%
   pack_rows("Use of corticosteroids", 1, 2) %>% 
   pack_rows("Respiratory support", 3, 5) %>% 
   add_header_above(c(" " = 1,
                      "95% Highest Density Interval" = 3))
+
+t2
 ```
+
+```{r}
+# t2 %>% 
+#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable2_hdi_figure2.pdf")) # File name
+```
+
 
 <br><br>
 
@@ -1273,6 +1320,11 @@ samples_posteriors_invasive_death %>%
     plot.margin = margin(20, 25, 10, 20)
   ) +
   coord_cartesian(xlim = c(-10, 11))
+
+#ggsave(width = 7,
+#       height = 4.5,
+#       here("final_analyses", "output", "plots", "manuscript", # File path
+#                  "figure3.pdf")) # File name
 ```
 
 <br><br>
@@ -1513,11 +1565,17 @@ t = tibble(
                   )
 ) 
 
-t %>% 
+t1 = t %>% 
   kbl(booktabs = T, align = 'c') %>% 
   kable_styling(bootstrap_options = "striped", full_width = F) %>%
   add_header_above(c(" " = 1,
                      "Probability of Harm" = 3,
                      "Probability of Benefit" = 4))
+
+t1
+
+#t1 %>% 
+#  save_kable(here("final_analyses", "output", "plots", "manuscript", # File path
+#                  "table2.pdf")) # File name
 ```
 
