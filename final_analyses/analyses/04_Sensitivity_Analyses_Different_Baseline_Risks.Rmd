@@ -30,7 +30,8 @@ pacman::p_load(rio, # To import data
                patchwork, # To arrange plots
                kableExtra, # To make tables
                Cairo, # To export PDF files
-               ggdist # To plot distributions
+               ggdist, # To plot distributions
+               tidytable # To work with data frames + tidyverse synthax (fast)
                )
 ```
 
@@ -454,28 +455,30 @@ tibble(
 plot_baseline_risks = function(data, # Data Object
                                title_text # Title (within quotes)
                                ){
-
+# Note the "." in each function. This is from {tidytable}
 t1 = data %>% 
-  filter(`Underlying_Prior` == "Evidence-based") %>% 
-  select(starts_with("RD")) %>% 
-  pivot_longer(
-     cols = everything(),
-     names_to = "Baseline_risk", values_to = "Risk_difference"
-   ) %>%
-   # Isolate the Baseline risk from the string (it takes a long time)
-   separate(Baseline_risk,
-     sep = "_",
-     c(NA, "Baseline_risk")
-   ) %>% 
+  as.data.frame() %>% 
+  filter.(`Underlying_Prior` == "Evidence-based") %>% 
+  select.(starts_with("RD")) %>% 
+  pivot_longer.(
+    cols = everything(),
+    names_to = "Baseline_risk", values_to = "Risk_difference"
+  ) %>%
+  # Isolate the Baseline risk from the string (it takes a long time)
+  separate.(Baseline_risk,
+           sep = "_",
+           c("NA","BR")
+  ) %>% 
+  select.(!"NA") %>% 
   # as.numeric to be able to multiply by 100
-  mutate(Baseline_risk = as.numeric(Baseline_risk)) %>% 
-  mutate(Baseline_risk = Baseline_risk*100) %>% 
+  mutate.(BR = as.numeric(BR)) %>% 
+  mutate.(BR = BR*100) %>% 
   # as.character to be able to use stat_pointinterval()
-  mutate(Baseline_risk = as.character(Baseline_risk))
+  mutate.(BR = as.character(BR))
   
   # Plot!
   t1 %>% 
-  ggplot(aes(x = 100*Risk_difference, y = Baseline_risk))+
+  ggplot(aes(x = 100*Risk_difference, y = BR))+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
                      .width = c(0.5, 0.95)) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
@@ -493,8 +496,8 @@ t1 = data %>%
       panel.background = element_blank(),
       panel.grid.major.x = element_line(color = "gray80", size = 0.3),
       panel.grid.major.y = element_line(color = "gray80", size = 0.3)) +
-    scale_x_continuous(breaks = seq(-12, 12, 2))+
-    coord_cartesian(x = c(-12,12))
+    scale_x_continuous(breaks = seq(-16, 16, 4))+
+    coord_cartesian(x = c(-16,16))
   
 }
 ```
@@ -515,24 +518,29 @@ p2 = plot_baseline_risks(multiple_baseline_risks_using_death,
 ```{r}
 # Full code in this code chunk because I had to add an extra line to set the order
 p3 = multiple_baseline_risks_simple_death %>% 
-  filter(`Underlying_Prior` == "Evidence-based") %>% 
-  select(starts_with("RD")) %>% 
-  pivot_longer(
-     cols = everything(),
-     names_to = "Baseline_risk", values_to = "Risk_difference"
-   ) %>%
-   # Isolate the Baseline risk from the string (it takes a long time)
-   separate(Baseline_risk,
-     sep = "_",
-     c(NA, "Baseline_risk")
-   ) %>% 
-  mutate(Baseline_risk = as.numeric(Baseline_risk)) %>% 
-  mutate(Baseline_risk = Baseline_risk*100) %>% 
-  mutate(Baseline_risk = as.character(Baseline_risk)) %>% 
-  # set order
-  mutate(Baseline_risk = factor(Baseline_risk, levels = seq(3, 43, 1))) %>% 
+  as.data.frame() %>% 
+  filter.(`Underlying_Prior` == "Evidence-based") %>% 
+  select.(starts_with("RD")) %>% 
+  pivot_longer.(
+    cols = everything(),
+    names_to = "Baseline_risk", values_to = "Risk_difference"
+  ) %>%
+  # Isolate the Baseline risk from the string (it takes a long time)
+  separate.(Baseline_risk,
+           sep = "_",
+           c("NA","BR")
+  ) %>% 
+  select.(!"NA") %>% 
+  # as.numeric to be able to multiply by 100
+  mutate.(BR = as.numeric(BR)) %>% 
+  mutate.(BR = BR*100) %>% 
+  # as.character to be able to use stat_pointinterval()
+  mutate.(BR = as.character(BR)) %>% 
+  # Set order
+  mutate.(BR = factor(BR, levels = seq(3, 43, 1))) %>% 
+  filter.(BR != "NA") %>%
   
-  ggplot(aes(x = 100*Risk_difference, y = Baseline_risk))+
+  ggplot(aes(x = 100*Risk_difference, y = BR))+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
                      .width = c(0.5, 0.95)) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
@@ -550,8 +558,8 @@ p3 = multiple_baseline_risks_simple_death %>%
       panel.background = element_blank(),
       panel.grid.major.x = element_line(color = "gray80", size = 0.3),
       panel.grid.major.y = element_line(color = "gray80", size = 0.3)) +
-    scale_x_continuous(breaks = seq(-12, 12, 2))+
-    coord_cartesian(x = c(-12,12))
+    scale_x_continuous(breaks = seq(-16, 16, 4))+
+    coord_cartesian(x = c(-16,16))
 ```
 
 ```{r}

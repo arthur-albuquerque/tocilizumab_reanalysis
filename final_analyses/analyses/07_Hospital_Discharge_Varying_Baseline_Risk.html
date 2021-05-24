@@ -629,28 +629,30 @@ Invasive mechanical
 <pre class="r"><code>plot_baseline_risks = function(data, # Data Object
                                title_text # Title (within quotes)
                                ){
-
+# Note the &quot;.&quot; in each function. This is from {tidytable}
 t1 = data %&gt;% 
-  filter(`Underlying_Prior` == &quot;Evidence-based&quot;) %&gt;% 
-  select(starts_with(&quot;RD&quot;)) %&gt;% 
-  pivot_longer(
-     cols = everything(),
-     names_to = &quot;Baseline_risk&quot;, values_to = &quot;Risk_difference&quot;
-   ) %&gt;%
-   # Isolate the Baseline risk from the string (it takes a long time)
-   separate(Baseline_risk,
-     sep = &quot;_&quot;,
-     c(NA, &quot;Baseline_risk&quot;)
-   ) %&gt;% 
+  as.data.frame() %&gt;% 
+  filter.(`Underlying_Prior` == &quot;Evidence-based&quot;) %&gt;% 
+  select.(starts_with(&quot;RD&quot;)) %&gt;% 
+  pivot_longer.(
+    cols = everything(),
+    names_to = &quot;Baseline_risk&quot;, values_to = &quot;Risk_difference&quot;
+  ) %&gt;%
+  # Isolate the Baseline risk from the string (it takes a long time)
+  separate.(Baseline_risk,
+           sep = &quot;_&quot;,
+           c(&quot;NA&quot;,&quot;BR&quot;)
+  ) %&gt;% 
+  select.(!&quot;NA&quot;) %&gt;% 
   # as.numeric to be able to multiply by 100
-  mutate(Baseline_risk = as.numeric(Baseline_risk)) %&gt;% 
-  mutate(Baseline_risk = Baseline_risk*100) %&gt;% 
+  mutate.(BR = as.numeric(BR)) %&gt;% 
+  mutate.(BR = BR*100) %&gt;% 
   # as.character to be able to use stat_pointinterval()
-  mutate(Baseline_risk = as.character(Baseline_risk))
+  mutate.(BR = as.character(BR))
   
   # Plot!
   t1 %&gt;% 
-  ggplot(aes(x = 100*Risk_difference, y = Baseline_risk))+
+  ggplot(aes(x = 100*Risk_difference, y = BR))+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
                      .width = c(0.5, 0.95)) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = &quot;firebrick&quot;)+
@@ -683,27 +685,29 @@ t1 = data %&gt;%
                          &quot;Non-invasive ventilation&quot;)</code></pre>
 <pre class="r"><code># Full code in this code chunk because I had to add an extra line to set the order
 p5 = multiple_baseline_risks_invasive_discharge %&gt;% 
-  filter(`Underlying_Prior` == &quot;Evidence-based&quot;) %&gt;% 
-  select(starts_with(&quot;RD&quot;)) %&gt;%
-  pivot_longer(
-     cols = everything(),
-     names_to = &quot;Baseline_risk&quot;, values_to = &quot;Risk_difference&quot;
-   ) %&gt;%
-  # Remove negative/zero baseline risks
-  filter(!str_detect(Baseline_risk, &quot;-&quot;),
-         Baseline_risk != &quot;RD_0&quot;) %&gt;% 
-   # Isolate the Baseline risk from the string (it takes a long time)
-   separate(Baseline_risk,
-     sep = &quot;_&quot;,
-     c(NA, &quot;Baseline_risk&quot;)
-   ) %&gt;% 
-  mutate(Baseline_risk = as.numeric(Baseline_risk)) %&gt;% 
-  mutate(Baseline_risk = Baseline_risk*100) %&gt;% 
-  mutate(Baseline_risk = as.character(Baseline_risk)) %&gt;% 
+  as.data.frame() %&gt;% 
+  filter.(`Underlying_Prior` == &quot;Evidence-based&quot;) %&gt;% 
+  select.(starts_with(&quot;RD&quot;)) %&gt;% 
+  pivot_longer.(
+    cols = everything(),
+    names_to = &quot;Baseline_risk&quot;, values_to = &quot;Risk_difference&quot;
+  ) %&gt;%
+  # Isolate the Baseline risk from the string (it takes a long time)
+  separate.(Baseline_risk,
+           sep = &quot;_&quot;,
+           c(&quot;NA&quot;,&quot;BR&quot;)
+  ) %&gt;% 
+  select.(!&quot;NA&quot;) %&gt;% 
+  # as.numeric to be able to multiply by 100
+  mutate.(BR = as.numeric(BR)) %&gt;% 
+  mutate.(BR = BR*100) %&gt;% 
+  # as.character to be able to use stat_pointinterval()
+  mutate.(BR = as.character(BR)) %&gt;% 
   # Set order
-  mutate(Baseline_risk = factor(Baseline_risk, levels = seq(1, 36, 1))) %&gt;% 
+  mutate.(BR = factor(BR, levels = seq(1, 36, 1))) %&gt;% 
+  filter.(BR != &quot;NA&quot;) %&gt;% 
   
-  ggplot(aes(x = 100*Risk_difference, y = Baseline_risk))+
+  ggplot(aes(x = 100*Risk_difference, y = BR))+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
                      .width = c(0.5, 0.95)) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = &quot;firebrick&quot;)+

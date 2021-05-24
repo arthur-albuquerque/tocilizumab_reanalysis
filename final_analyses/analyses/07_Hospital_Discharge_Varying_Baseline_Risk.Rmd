@@ -37,7 +37,8 @@ pacman::p_load(rio, # To import data
                patchwork, # To arrange plots
                kableExtra, # To make tables
                ggdist, # To plot distributions
-               Cairo # To export PDF files
+               Cairo, # To export PDF files
+               tidytable # To work with data frames + tidyverse synthax (fast)
                )
 ```
 
@@ -438,28 +439,30 @@ tibble(
 plot_baseline_risks = function(data, # Data Object
                                title_text # Title (within quotes)
                                ){
-
+# Note the "." in each function. This is from {tidytable}
 t1 = data %>% 
-  filter(`Underlying_Prior` == "Evidence-based") %>% 
-  select(starts_with("RD")) %>% 
-  pivot_longer(
-     cols = everything(),
-     names_to = "Baseline_risk", values_to = "Risk_difference"
-   ) %>%
-   # Isolate the Baseline risk from the string (it takes a long time)
-   separate(Baseline_risk,
-     sep = "_",
-     c(NA, "Baseline_risk")
-   ) %>% 
+  as.data.frame() %>% 
+  filter.(`Underlying_Prior` == "Evidence-based") %>% 
+  select.(starts_with("RD")) %>% 
+  pivot_longer.(
+    cols = everything(),
+    names_to = "Baseline_risk", values_to = "Risk_difference"
+  ) %>%
+  # Isolate the Baseline risk from the string (it takes a long time)
+  separate.(Baseline_risk,
+           sep = "_",
+           c("NA","BR")
+  ) %>% 
+  select.(!"NA") %>% 
   # as.numeric to be able to multiply by 100
-  mutate(Baseline_risk = as.numeric(Baseline_risk)) %>% 
-  mutate(Baseline_risk = Baseline_risk*100) %>% 
+  mutate.(BR = as.numeric(BR)) %>% 
+  mutate.(BR = BR*100) %>% 
   # as.character to be able to use stat_pointinterval()
-  mutate(Baseline_risk = as.character(Baseline_risk))
+  mutate.(BR = as.character(BR))
   
   # Plot!
   t1 %>% 
-  ggplot(aes(x = 100*Risk_difference, y = Baseline_risk))+
+  ggplot(aes(x = 100*Risk_difference, y = BR))+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
                      .width = c(0.5, 0.95)) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
@@ -509,27 +512,29 @@ p4 = plot_baseline_risks(multiple_baseline_risks_noninvasive_discharge,
 ```{r}
 # Full code in this code chunk because I had to add an extra line to set the order
 p5 = multiple_baseline_risks_invasive_discharge %>% 
-  filter(`Underlying_Prior` == "Evidence-based") %>% 
-  select(starts_with("RD")) %>%
-  pivot_longer(
-     cols = everything(),
-     names_to = "Baseline_risk", values_to = "Risk_difference"
-   ) %>%
-  # Remove negative/zero baseline risks
-  filter(!str_detect(Baseline_risk, "-"),
-         Baseline_risk != "RD_0") %>% 
-   # Isolate the Baseline risk from the string (it takes a long time)
-   separate(Baseline_risk,
-     sep = "_",
-     c(NA, "Baseline_risk")
-   ) %>% 
-  mutate(Baseline_risk = as.numeric(Baseline_risk)) %>% 
-  mutate(Baseline_risk = Baseline_risk*100) %>% 
-  mutate(Baseline_risk = as.character(Baseline_risk)) %>% 
+  as.data.frame() %>% 
+  filter.(`Underlying_Prior` == "Evidence-based") %>% 
+  select.(starts_with("RD")) %>% 
+  pivot_longer.(
+    cols = everything(),
+    names_to = "Baseline_risk", values_to = "Risk_difference"
+  ) %>%
+  # Isolate the Baseline risk from the string (it takes a long time)
+  separate.(Baseline_risk,
+           sep = "_",
+           c("NA","BR")
+  ) %>% 
+  select.(!"NA") %>% 
+  # as.numeric to be able to multiply by 100
+  mutate.(BR = as.numeric(BR)) %>% 
+  mutate.(BR = BR*100) %>% 
+  # as.character to be able to use stat_pointinterval()
+  mutate.(BR = as.character(BR)) %>% 
   # Set order
-  mutate(Baseline_risk = factor(Baseline_risk, levels = seq(1, 36, 1))) %>% 
+  mutate.(BR = factor(BR, levels = seq(1, 36, 1))) %>% 
+  filter.(BR != "NA") %>% 
   
-  ggplot(aes(x = 100*Risk_difference, y = Baseline_risk))+
+  ggplot(aes(x = 100*Risk_difference, y = BR))+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
                      .width = c(0.5, 0.95)) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
