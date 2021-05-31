@@ -14,43 +14,39 @@ knitr::opts_chunk$set(echo = FALSE)
 library(here)
 ```
 
+\newpage
+
+# Mortality outcome
+
 # Supplementary Table 1
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth', fig.height=5}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable1_quantile_intervals_figure1.pdf")) # File name
+                                 "STable1_HDI_intervals_figure1.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-95th interquantile intervals of priors and RECOVERY regarding respiratory support.
-This table complements Figure 1.
+95% highest density intervals of evidence-based prior, RECOVERY, and posterior
+distributions. This table complements Figure 1.
+
+\newpage
 
 # Supplementary Table 2
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center',out.width='0.9\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable2_hdi_figure2.pdf")) # File name
+                                 "STable2_hdi_probabilities_figure2.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-95% highest density intervals of posterior distributions. This table complements
-Figure 2.
+95% highest density intervals and posterior probabilities of benefit.
+This table complements Figure 2.
 
-# Supplementary Table 3
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable3_probabilities_figure2.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-Posterior probabilities of each subgroup. This table complements Figure 2.
+\newpage
 
 # Supplementary Figure 1
 
@@ -63,7 +59,10 @@ knitr::include_graphics(path)
 ```
 
 Prior distributions of sensitivity analyses regarding patients not using 
-corticosteroids.
+corticosteroids. Point estimates depict the median and interval bars depict
+95th quantile intervals.
+
+\newpage
 
 # Supplementary Figure 2
 
@@ -75,34 +74,26 @@ path = (here("final_analyses", "output",
 knitr::include_graphics(path) 
 ```
 
+
 Posteriors distributions from sensitivity analyses regarding patients not using 
-corticosteroids.
+corticosteroids. Point estimates depict the median and interval bars depict
+80% and 95% highest density intervals.
 
-# Supplementary Table 4
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+# Supplementary Table 3
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable4_probabilities_not_using.pdf")) # File name
+                                 "STable3_hdi_probabilities_not_using.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors probabilities from sensitivity analyses regarding patients not using 
-corticosteroids. This table complements Supplementary Figures 1 and 2.
+HDI: Highest density interval
 
-# Supplementary Table 5
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable5_hdi_not_using.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-95% highest density intervals from posterior distributions regarding patients not using 
-corticosteroids. This table complements Supplementary Figures 1 and 2.
+Posteriors distributions and probabilities from sensitivity analyses regarding patients not using 
+corticosteroids. This table complements Supplementary Figure 2.
 
 # Supplementary Figure 3
 
@@ -115,7 +106,10 @@ knitr::include_graphics(path)
 ```
 
 Prior distributions of sensitivity analyses regarding patients using 
-corticosteroids.
+corticosteroids. Point estimates depict the median and interval bars depict
+95th quantile intervals.
+
+\newpage
 
 # Supplementary Figure 4
 
@@ -127,34 +121,26 @@ path = (here("final_analyses", "output",
 knitr::include_graphics(path) 
 ```
 
+
 Posteriors distributions from sensitivity analyses regarding patients using 
-corticosteroids.
+corticosteroids. Point estimates depict the median and interval bars depict
+80% and 95% highest density intervals.
 
-# Supplementary Table 6
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+# Supplementary Table 4
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable6_probabilities_using.pdf")) # File name
+                                 "STable4_hdi_probabilities_using.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors probabilities from sensitivity analyses regarding patients using 
-corticosteroids. This table complements Supplementary Figures 3 and 4.
+HDI: Highest density interval
 
-# Supplementary Table 7
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable7_hdi_using.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-95% highest density intervals from posterior distributions regarding patients using 
-corticosteroids. This table complements Supplementary Figures 3 and 4.
+Posteriors distributions and probabilities from sensitivity analyses regarding patients not using 
+corticosteroids. This table complements Supplementary Figure 4.
 
 # Supplementary Figure 5
 
@@ -167,7 +153,10 @@ knitr::include_graphics(path)
 ```
 
 Prior distributions of sensitivity analyses regarding patients on simple oxygen
-only.
+only. Point estimates depict the median and interval bars depict
+95th quantile intervals.
+
+\newpage
 
 # Supplementary Figure 6
 
@@ -179,34 +168,26 @@ path = (here("final_analyses", "output",
 knitr::include_graphics(path) 
 ```
 
-Posteriors distributions from sensitivity analyses regarding patients on
-simple oxygen only.
 
-# Supplementary Table 8
+Posteriors distributions from sensitivity analyses regarding patients on simple
+oxygen only. Point estimates depict the median and interval bars depict
+80% and 95% highest density intervals.
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+
+# Supplementary Table 5
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable8_probabilities_simple.pdf")) # File name
+                                 "STable5_hdi_probabilities_simple.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors probabilities from sensitivity analyses regarding patients on simple
-oxygen only. This table complements Supplementary Figures 5 and 6.
+HDI: Highest density interval
 
-# Supplementary Table 9
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable9_hdi_simple.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-95% highest density intervals from posterior distributions regarding patients on
-simple oxygen only. This table complements Supplementary Figures 5 and 6.
+Posteriors distributions and probabilities from sensitivity analyses regarding
+patients on simple oxygen only. This table complements Supplementary Figure 6.
 
 # Supplementary Figure 7
 
@@ -219,7 +200,10 @@ knitr::include_graphics(path)
 ```
 
 Prior distributions of sensitivity analyses regarding patients on non-invasive
-ventilation.
+ventilation. Point estimates depict the median and interval bars depict 95th
+quantile intervals.
+
+\newpage
 
 # Supplementary Figure 8
 
@@ -231,34 +215,27 @@ path = (here("final_analyses", "output",
 knitr::include_graphics(path) 
 ```
 
+
 Posteriors distributions from sensitivity analyses regarding patients on
-non-invasive ventilation.
+non-invasive ventilation. Point estimates depict the median and interval bars
+depict 80% and 95% highest density intervals.
 
-# Supplementary Table 10
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+# Supplementary Table 6
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable10_probabilities_noninvasive.pdf")) # File name
+                                 "STable6_hdi_probabilities_noninvasive.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors probabilities from sensitivity analyses regarding patients on
-non-invasive ventilation. This table complements Supplementary Figures 7 and 8.
+HDI: Highest density interval
 
-# Supplementary Table 11
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable11_hdi_noninvasive.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-95% highest density intervals from posterior distributions regarding patients on
-non-invasive ventilation. This table complements Supplementary Figures 7 and 8.
+Posteriors distributions and probabilities from sensitivity analyses regarding
+patients on non-invasive ventilation. This table complements Supplementary
+Figure 8.
 
 # Supplementary Figure 9
 
@@ -271,21 +248,29 @@ knitr::include_graphics(path)
 ```
 
 Prior distributions of sensitivity analyses regarding patients on invasive
-mechanical ventilation. This figure complements Figure 3.
+mechanical  ventilation. Point estimates depict the median and interval bars
+depict 95th quantile intervals.
 
-# Supplementary Table 12
+\newpage
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.45\\linewidth'}
+
+# Supplementary Table 7
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable11_hdi_noninvasive.pdf")) # File name
+                                 "STable7_hdi_invasive.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-95% highest density intervals from posterior distributions regarding patients on
-invasive mechanical ventilation. This table complements Figure 3 and
-Supplementary Figure 9.
+HDI: Highest density interval
+
+Posteriors distributions from sensitivity analyses regarding
+patients on invasive mechanical ventilation. This table complements
+Figure 3.
+
+\newpage
 
 # Supplementary Figure 10
 
@@ -293,14 +278,13 @@ Supplementary Figure 9.
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
                                  "SFigure10_varying_baseline_risk_difference_corticosteroids.pdf")) # File name
-
 knitr::include_graphics(path) 
 ```
 
 Sensitivity analyses using multiple different baseline risks for subgroups on
 the use of corticosteroids. Each line represents the posterior distribution for
 the corresponding baseline risk. Point estimates depict the median and interval
-bars depict 50% and 95% highest density intervals.
+bars depict 80% and 95% highest density intervals.
 
 # Supplementary Figure 11
 
@@ -308,293 +292,299 @@ bars depict 50% and 95% highest density intervals.
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
                                  "SFigure11_varying_baseline_risk_difference_respiratory.pdf")) # File name
-
 knitr::include_graphics(path) 
 ```
 
 Sensitivity analyses using multiple different baseline risks for subgroups on
 respiratory support. Each line represents the posterior distribution for
 the corresponding baseline risk. Point estimates depict the median and interval
-bars depict 50% and 95% highest density intervals.
+bars depict 80% and 95% highest density intervals.
 
 \newpage
 
 # Supplementary Figure 12
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
                                  "SFigure12_varying_baseline_probabilities_corticosteroids.pdf")) # File name
-
 knitr::include_graphics(path) 
 ```
 
-RD: Risk Difference
-
-Sensitivity analyses using multiple different baseline risks for subgroups on
-the use of corticosteroids. Each line represents the posterior probability of benefit
-for a specific cutoff, such as risk difference greater or equal to 0%, 1%, and so on.
+Sensitivity analyses using multiple different baseline risks for subgroups
+on use of corticosteroids. Each line represents the posterior probability of
+benefit  for a specific cutoff, such as risk difference greater or equal to
+0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk
+(Table 1) used in other analyses. Panel A shows results for patients not using
+corticosteroids; Panel B shows results for patients using corticosteroids.
 
 \newpage
 
+# Hospital discharge outcome
+
+# Supplementary Table 8
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable8_discharge_table1.png")) # File name
+knitr::include_graphics(path) 
+```
+
 # Supplementary Figure 13
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure13_varying_baseline_probabilities_respiratory.pdf")) # File name
-
+                                 "SFigure13_discharge_figure1.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
-RD: Risk Difference
+Point estimates depict the median and interval bars depict 95% highest density
+intervals.
 
-Sensitivity analyses using multiple different baseline risks for subgroups on
-respiratory support. Each line represents the posterior probability of benefit
-for a specific cutoff, such as risk difference greater or equal to 0%, 1%, and so on.
+# Supplementary Table 9
 
-# Supplementary Table 13
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable13_discharge_table1.pdf")) # File name
-
+                                 "STable9_HDI_intervals_figureS13.png")) # File name
 knitr::include_graphics(path) 
 ```
 
-Number of events and sample size regarding the hospital discharge outcome.
+95% highest density intervals of evidence-based prior, RECOVERY, and posterior
+distributions. This table complements Supplementary Figure 13.
 
 # Supplementary Figure 14
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure14_discharge_figure1.pdf")) # File name
-
+                                 "SFigure14_discharge_figure2.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
-RECOVERY and Priors distributions regarding the hospital discharge outcome.
-Point estimates depict the median and interval bars depict 95th quantiles.
+Panels A and C: Point estimates depict the median. Interval bars depict the 80
+and 95% highest density intervals. Panels B and D: Cumulative posterior
+distributions correspond to the probabilities that the risk difference (RD)
+is lower than or equal to the effect size on the X‐axis. The colors in Panels
+B and D match the ones used in Panels A and C.
 
 # Supplementary Figure 15
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure15_discharge_figure2.pdf")) # File name
+                                 "SFigure15_discharge_posteriors_not_using.pdf")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posterior distributions regarding the hospital discharge outcome.
 
-Panels A and C: Point estimates depict the median. Interval bars depict the 50
-and 95% highest density intervals. Panels B and D: Cumulative posterior
-distributions correspond to the probabilities that the risk difference (RD)
-is greater than or equal to the effect size on the X‐axis.
+Posteriors distributions from sensitivity analyses regarding patients not using 
+corticosteroids. Point estimates depict the median and interval bars depict
+80% and 95% highest density intervals.
+
+
+# Supplementary Table 10
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable10_discharge_hdi_probabilities_not_using.png")) # File name
+
+knitr::include_graphics(path) 
+```
+
+HDI: Highest density interval
+
+Posteriors distributions and probabilities from sensitivity analyses regarding
+patients not using corticosteroids. This table complements Supplementary Figure 15.
 
 # Supplementary Figure 16
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure16_discharge_posteriors_not_using.pdf")) # File name
+                                 "SFigure16_discharge_posteriors_using.pdf")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors distributions from sensitivity analyses using different priors.
-This figure regards patients not using corticosteroids for the hospital discharge
-outcome.
 
-# Supplementary Table 14
+Posteriors distributions from sensitivity analyses regarding patients using 
+corticosteroids. Point estimates depict the median and interval bars depict
+80% and 95% highest density intervals.
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+
+# Supplementary Table 11
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable14_discharge_probabilities_not_using.pdf")) # File name
+                                 "STable11_discharge_hdi_probabilities_using.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors probabilities from sensitivity analyses using different priors.
-This table complements Supplementary Figure 16.
+HDI: Highest density interval
+
+Posteriors distributions and probabilities from sensitivity analyses regarding
+patients using corticosteroids. This table complements Supplementary Figure 16.
 
 # Supplementary Figure 17
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure17_discharge_posteriors_using.pdf")) # File name
+                                 "SFigure17_discharge_posteriors_simple.pdf")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors distributions from sensitivity analyses using different priors.
-This figure regards patients using corticosteroids for the hospital discharge
-outcome.
 
-# Supplementary Table 15
+Posteriors distributions from sensitivity analyses regarding patients on simple
+oxygen only. Point estimates depict the median and interval bars depict
+80% and 95% highest density intervals.
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+
+# Supplementary Table 12
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable15_discharge_probabilities_using.pdf")) # File name
+                                 "STable12_discharge_hdi_probabilities_simple.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors probabilities from sensitivity analyses using different priors.
-This table complements Supplementary Figure 17.
+HDI: Highest density interval
+
+Posteriors distributions and probabilities from sensitivity analyses regarding
+patients on simple oxygen only. This table complements Supplementary Figure 17.
 
 # Supplementary Figure 18
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure18_discharge_posteriors_simple.pdf")) # File name
+                                 "SFigure18_discharge_posteriors_noninvasive.pdf")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors distributions from sensitivity analyses using different priors.
-This figure regards patients on simple oxygen only for the hospital discharge
-outcome.
 
-# Supplementary Table 16
+Posteriors distributions from sensitivity analyses regarding patients on
+non-invasive ventilation. Point estimates depict the median and interval bars depict
+80% and 95% highest density intervals.
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+
+# Supplementary Table 13
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable16_discharge_probabilities_simple.pdf")) # File name
+                                 "STable13_discharge_hdi_probabilities_noninvasive.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors probabilities from sensitivity analyses using different priors.
-This table complements Supplementary Figure 18.
+HDI: Highest density interval
+
+Posteriors distributions and probabilities from sensitivity analyses regarding
+patients on non-invasive ventilation. This table complements Supplementary Figure 18.
 
 # Supplementary Figure 19
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure19_discharge_posteriors_noninvasive.pdf")) # File name
+                                 "SFigure19_discharge_posteriors_invasive.pdf")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors distributions from sensitivity analyses using different priors.
-This figure regards patients on non-invasive ventilation for the hospital discharge
-outcome.
 
-# Supplementary Table 17
+Posteriors distributions from sensitivity analyses regarding patients on
+invasive mechanical ventilation. Point estimates depict the median and
+interval bars depict 80% and 95% highest density intervals.
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+
+# Supplementary Table 14
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable17_discharge_probabilities_noninvasive.pdf")) # File name
+                                 "STable14_discharge_hdi_probabilities_invasive.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Posteriors probabilities from sensitivity analyses using different priors.
-This table complements Supplementary Figure 19.
+HDI: Highest density interval
+
+Posteriors distributions and probabilities from sensitivity analyses regarding
+patients on invasive mechanical ventilation. This table complements
+Supplementary Figure 19.
 
 # Supplementary Figure 20
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure20_discharge_posteriors_invasive.pdf")) # File name
-
+                                 "SFigure20_discharge_varying_baseline_risk_difference_corticosteroids.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
-Posteriors distributions from sensitivity analyses using different priors.
-This figure regards patients on invasive mechanical ventilation for the hospital discharge
-outcome.
-
-# Supplementary Table 18
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable18_discharge_probabilities_invasive.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-Posteriors probabilities from sensitivity analyses using different priors.
-This table complements Supplementary Figure 20.
+Sensitivity analyses using multiple different baseline risks for subgroups on
+the use of corticosteroids. Each line represents the posterior distribution for
+the corresponding baseline risk. Point estimates depict the median and interval
+bars depict 80% and 95% highest density intervals.
 
 # Supplementary Figure 21
 
 ```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure21_discharge_varying_baseline_risk_difference_corticosteroids.pdf")) # File name
-
+                                 "SFigure21_discharge_varying_baseline_risk_difference_respiratory.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
 Sensitivity analyses using multiple different baseline risks for subgroups on
-the use of corticosteroids for the hospital discharge outcome. Each line
-represents the posterior distribution for the corresponding baseline risk.
-Point estimates depict the median and interval bars depict 50% and 95% highest
-density intervals.
+respiratory support. Each line represents the posterior distribution for
+the corresponding baseline risk. Point estimates depict the median and interval
+bars depict 80% and 95% highest density intervals.
+
+\newpage
 
 # Supplementary Figure 22
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure22_discharge_varying_baseline_risk_difference_respiratory.pdf")) # File name
-
+                                 "SFigure22_discharge_varying_baseline_probabilities_corticosteroids.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
-Sensitivity analyses using multiple different baseline risks for subgroups on
-respiratory support for the hospital discharge outcome. Each line represents
-the posterior distribution for the corresponding baseline risk. Point estimates
-depict the median and interval bars depict 50% and 95% highest density intervals.
-
-\newpage
+Sensitivity analyses using multiple different baseline risks for subgroups
+on use of corticosteroids. Each line represents the posterior probability of
+benefit  for a specific cutoff, such as risk difference greater or equal to
+0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk
+(Table 1) used in other analyses. Panel A shows results for patients not using
+corticosteroids; Panel B shows results for patients using corticosteroids.
 
 # Supplementary Figure 23
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure23_discharge_varying_baseline_probabilities_corticosteroids.pdf")) # File name
-
+                                 "SFigure23_discharge_varying_baseline_probabilities_respiratory.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
-RD: Risk Difference
-
-Sensitivity analyses using multiple different baseline risks for subgroups on
-the use of corticosteroids for the hospital discharge outcome. Each line
-represents the posterior probability of benefit for a specific cutoff, such as
-risk difference greater or equal to 0%, 1%, and so on.
-
-\newpage
-
-# Supplementary Figure 24
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure24_discharge_varying_baseline_probabilities_respiratory.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-RD: Risk Difference
-
-Sensitivity analyses using multiple different baseline risks for subgroups on
-respiratory support for the hospital discharge outcome. Each line
-represents the posterior probability of benefit for a specific cutoff, such as
-risk difference greater or equal to 0%, 1%, and so on.
+Sensitivity analyses using multiple different baseline risks for subgroups
+on respiratory support. Each line represents the posterior probability of
+benefit  for a specific cutoff, such as risk difference greater or equal to
+0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk
+(Table 1) used in other analyses. Panel A shows results for simple oxygen only;
+Panel B shows results for non-invasive ventilation; Panel C shows results for
+invasive mechanical ventilation.

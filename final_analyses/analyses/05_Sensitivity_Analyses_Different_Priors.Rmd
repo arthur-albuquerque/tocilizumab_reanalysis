@@ -23,7 +23,11 @@ pacman::p_load(tidyverse, # Data wrangling and plotting
                here, # File paths
                ggdist, # To plot distributions
                kableExtra, # To create nice tables
-               rcartocolor) # Color pallete
+               gt, # To create nice tables
+               rcartocolor, # Color pallete
+               ggsci,  # Color pallete
+               patchwork # To add arrows
+)
 ```
 
 ```{r}
@@ -168,15 +172,7 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_manual(' ',
-                    values = c(
-    carto_pal(12, "Pastel")[1], # RECOVERY
-    carto_pal(12, "Pastel")[12], # Non-informative,
-    carto_pal(12, "Pastel")[2], # Evidence-based
-    "gray70", # Skeptical
-    carto_pal(12, "Pastel")[5], # Optimistic
-    carto_pal(12, "Pastel")[10]  # Pessimistc
-  )) +
+  scale_fill_npg()+
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -200,6 +196,8 @@ distributions %>%
   coord_cartesian(x = c(0, 2.5)) +
   facet_wrap(~dist, ncol = 1, scales = "free_y")
 
+
+
 # ggsave(width = 5.5,
 #        height = 5.5,
 #        here("final_analyses", "output", "plots", "appendix", # File path
@@ -209,35 +207,90 @@ distributions %>%
 
 ### Posterior distributions
 
-```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 80 and 95% highest density intervals."}
+
+# Prepare arrows under axis
+# Adapted from https://github.com/rdboyes/forester/blob/master/R/forester.R
+
+
+arrow_labels = c("Tocilizumab Harm", "Tocilizumab Benefit")
+
+xlim = c(0, 20)
+
+xlab_df = data.frame(text = arrow_labels,
+                          x = c(2,18),
+                          y = c(0, 0),
+                          hjust = c(0, 1))
+
+a_small_amount = abs(xlim[1] - xlim[2])/35
+
+null_line_at = 10
+
+arrow_df = data.frame(id = c(1,2),
+                      xstart = c(null_line_at - a_small_amount,
+                                      null_line_at + a_small_amount),
+                      xend = c(xlim[1] + a_small_amount, xlim[2] - a_small_amount),
+                      y = c(1, 1))
+
+arrows_plot = ggplot() +
+      geom_segment(data = arrow_df,
+                   aes(x = .data$xstart,
+                       xend = .data$xend,
+                       y = .data$y,
+                       yend = .data$y),
+                   arrow = arrow(angle = 15, type = "closed", length = grid::unit(0.1, "in"))) +
+  geom_text(data = xlab_df,
+            aes(x = .data$x,
+                y = .data$y,
+                label = .data$text,
+                hjust = .data$hjust), size = 3.5) +
+  scale_y_continuous(expand = c(0,0), limits = c(-0.5, 1.75)) +
+  scale_x_continuous(expand = c(0,0), limits = xlim) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(fill = "transparent"),
+        legend.box.background = element_rect(fill = "transparent"),
+        panel.border = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank())
 
 level_order = c("Pessimistic",
                 "Optimistic",
                 "Skeptical",
-                "Evidence-based",
-                "Non-informative")
+                "Non-informative",
+                "Evidence-based")
 
-samples_posteriors_not_using_death %>%
+p1 = samples_posteriors_not_using_death %>%
   
   ggplot(aes(
     # Multiply by 100 to report in percentage
     x = 100 * RD,
     y = factor(`Underlying_Prior`, level = level_order),
     fill = `Underlying_Prior`)) +
+  geom_vline(xintercept = seq(-12.5, 12.5, 2.5), linetype = 1, size = 0.3,
+             color = "gray80") +
 
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
     stat_halfeye(aes(fill = stat(x > 0)),
                  position = "dodge",
                point_interval = median_hdi, # Highest density interval
-               .width = c(0.5, 0.95),
+               .width = c(0.8, 0.95),
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  scale_fill_manual(values = c("gray85", "#9EA45B")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
-  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+  scale_x_continuous(breaks = seq(from = -15, to = 15, 5)) +
   scale_y_discrete(expand = c(0, 0.3)) +
   theme(axis.title.x = element_text(size = 12),
     axis.title.y = element_text(size = 13.5),
@@ -249,9 +302,19 @@ samples_posteriors_not_using_death %>%
     panel.grid.major.x = element_line(color = "gray80", size = 0.3),
     legend.position = "none",
     plot.title.position = 'plot',
-    plot.margin = margin(20, 25, 10, 20)
+    plot.margin = margin(20, 25, 40, 20)
   ) +
-  coord_cartesian(xlim = c(-12.5, 10))
+  coord_cartesian(xlim = c(-15, 15))
+
+p1_overlay = p1 + inset_element(arrows_plot,
+                                ignore_tag = TRUE,
+                                align_to = "full",
+                                left = unit(4.8, 'cm'),
+                                bottom = unit(0, 'cm'),
+                                right = unit(16.8, 'cm'),
+                                top = unit(1.6, 'cm'))
+
+p1_overlay
 
 # ggsave(width = 7,
 #        height = 4.5,
@@ -459,17 +522,19 @@ t = tibble(
   )
 ) 
 
-t1 = t %>% 
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F) %>%
-  add_header_above(c(" " = 1,
-                     "Probability of Harm" = 3,
-                     "Probability of Benefit" = 4))
-t1
+# https://stackoverflow.com/questions/26548495/reorder-rows-using-custom-order
 
-# t1 %>% 
-#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable4_probabilities_not_using.pdf")) # File name
+level_order = c("Evidence-based",
+                "Non-informative",
+                "Skeptical",
+                "Optimistic",
+                "Pessimistic"
+                )
+
+t = t %>% 
+  slice(match(level_order, `Underlying Prior`))
+
+
 ```
 
 ### HDI for each posterior distribution
@@ -488,8 +553,8 @@ t1 = samples_posteriors_not_using_death %>%
   # Select only the relevant columns
   # Arrange order
   arrange(factor(`Underlying_Prior`, levels = c(
-    "Non-informative",
     "Evidence-based",
+    "Non-informative",
     "Skeptical",
     "Optimistic",
     "Pessimistic"
@@ -497,15 +562,33 @@ t1 = samples_posteriors_not_using_death %>%
   select("Underlying_Prior":.upper) %>%
   mutate(across(RD:.upper, ~multiply100(.))) %>%
   mutate(across(RD:.upper, ~round(., 2))) %>%
-  rename("Median" = RD) %>%
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F)
+  rename("Underlying Prior" = Underlying_Prior,
+         "Median" = RD,
+         "Lower limit" = .lower,
+         "Upper limit" = .upper) 
 
-t1
+tfinal = left_join(t1, t)
 
-# t1 %>% 
-#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable5_hdi_not_using.pdf")) # File name
+tfinal = tfinal %>% 
+  gt() %>% 
+  tab_spanner(label = "95% HDI",
+              columns = c(2:4)) %>% 
+  tab_spanner(label = "Propability of Harm",
+              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)")) %>% 
+  tab_spanner(label = "Probability of Benefit",
+              columns = c("Pr(> 0%)", "Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) 
+  
+
+tfinal
+
+# tfinal %>% 
+#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable3_hdi_probabilities_not_using.png"))
+
 ```
 
 ## Using
@@ -622,15 +705,7 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_manual(' ',
-                    values = c(
-                      carto_pal(12, "Pastel")[1], # RECOVERY
-                      carto_pal(12, "Pastel")[12], # Non-informative,
-                      carto_pal(12, "Pastel")[2], # Evidence-based
-                      "gray70", # Skeptical
-                      carto_pal(12, "Pastel")[5], # Optimistic
-                      carto_pal(12, "Pastel")[10]  # Pessimistc
-                    )) +
+  scale_fill_npg()+
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -663,49 +738,62 @@ distributions %>%
 
 ### Posterior distributions
 
-```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 80 and 95% highest density intervals."}
 
 level_order = c("Pessimistic",
                 "Optimistic",
                 "Skeptical",
-                "Evidence-based",
-                "Non-informative")
+                "Non-informative",
+                "Evidence-based"
+                )
 
-samples_posteriors_using_death %>%
+p1 = samples_posteriors_using_death %>%
   
   ggplot(aes(
     # Multiply by 100 to report in percentage
     x = 100 * RD,
     y = factor(`Underlying_Prior`, level = level_order),
     fill = `Underlying_Prior`)) +
-  
+  geom_vline(xintercept = seq(-12.5, 12.5, 2.5), linetype = 1, size = 0.3,
+             color = "gray80") +
+
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
-  stat_halfeye(aes(fill = stat(x > 0)),
-               position = "dodge",
+    stat_halfeye(aes(fill = stat(x > 0)),
+                 position = "dodge",
                point_interval = median_hdi, # Highest density interval
-               .width = c(0.5, 0.95),
+               .width = c(0.8, 0.95),
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  scale_fill_manual(values = c("gray85", "#A65041")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
-  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+  scale_x_continuous(breaks = seq(from = -15, to = 15, 5)) +
   scale_y_discrete(expand = c(0, 0.3)) +
   theme(axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 13.5),
-        axis.text.y = element_text(size = 12),
-        axis.text.x = element_text(size = 12),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        panel.background = element_blank(),
-        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-        legend.position = "none",
-        plot.title.position = 'plot',
-        plot.margin = margin(20, 25, 10, 20)
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 40, 20)
   ) +
-  coord_cartesian(xlim = c(-12.5, 10))
+  coord_cartesian(xlim = c(-15, 15))
+
+p1_overlay = p1 + inset_element(arrows_plot,
+                                ignore_tag = TRUE,
+                                align_to = "full",
+                                left = unit(4.8, 'cm'),
+                                bottom = unit(0, 'cm'),
+                                right = unit(16.8, 'cm'),
+                                top = unit(1.6, 'cm'))
+
+p1_overlay
 
 # ggsave(width = 7,
 #        height = 4.5,
@@ -912,20 +1000,21 @@ t = tibble(
                           summarise(n = sum(RD > 0.05) / n()) %>%
                           pull()), 2) * 100
   )
-) 
+)
 
-t1 = t %>% 
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F) %>%
-  add_header_above(c(" " = 1,
-                     "Probability of Harm" = 3,
-                     "Probability of Benefit" = 4))
+# https://stackoverflow.com/questions/26548495/reorder-rows-using-custom-order
 
-t1
+level_order = c("Evidence-based",
+                "Non-informative",
+                "Skeptical",
+                "Optimistic",
+                "Pessimistic"
+                )
 
-#t1 %>% 
-#  save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                  "STable6_probabilities_using.pdf")) # File name
+t = t %>% 
+  slice(match(level_order, `Underlying Prior`))
+
+
 ```
 
 ### HDI for each posterior distribution
@@ -944,8 +1033,8 @@ t1 = samples_posteriors_using_death %>%
   # Select only the relevant columns
   # Arrange order
   arrange(factor(`Underlying_Prior`, levels = c(
-    "Non-informative",
     "Evidence-based",
+    "Non-informative",
     "Skeptical",
     "Optimistic",
     "Pessimistic"
@@ -953,15 +1042,32 @@ t1 = samples_posteriors_using_death %>%
   select("Underlying_Prior":.upper) %>%
   mutate(across(RD:.upper, ~multiply100(.))) %>%
   mutate(across(RD:.upper, ~round(., 2))) %>%
-  rename("Median" = RD) %>%
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F)
+  rename("Underlying Prior" = Underlying_Prior,
+         "Median" = RD,
+         "Lower limit" = .lower,
+         "Upper limit" = .upper)
 
-t1
+tfinal = left_join(t1, t)
 
-# t1 %>% 
-#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable7_hdi_using.pdf")) # File name
+tfinal = tfinal %>% 
+  gt() %>% 
+  tab_spanner(label = "95% HDI",
+              columns = c(2:4)) %>% 
+  tab_spanner(label = "Propability of Harm",
+              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)")) %>% 
+  tab_spanner(label = "Probability of Benefit",
+              columns = c("Pr(> 0%)", "Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) 
+  
+
+tfinal
+
+# tfinal %>% 
+#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable4_hdi_probabilities_using.png"))
 ```
 
 # Respiratory support
@@ -1080,15 +1186,7 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_manual(' ',
-                    values = c(
-                      carto_pal(12, "Pastel")[1], # RECOVERY
-                      carto_pal(12, "Pastel")[12], # Non-informative,
-                      carto_pal(12, "Pastel")[2], # Evidence-based
-                      "gray70", # Skeptical
-                      carto_pal(12, "Pastel")[5], # Optimistic
-                      carto_pal(12, "Pastel")[10]  # Pessimistc
-                    )) +
+  scale_fill_npg()+
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -1121,49 +1219,61 @@ distributions %>%
 
 ### Posterior distributions
 
-```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 80 and 95% highest density intervals."}
 
 level_order = c("Pessimistic",
                 "Optimistic",
                 "Skeptical",
-                "Evidence-based",
-                "Non-informative")
+                "Non-informative",
+                "Evidence-based")
 
-samples_posteriors_simple_death %>%
+p1 = samples_posteriors_simple_death %>%
   
   ggplot(aes(
     # Multiply by 100 to report in percentage
     x = 100 * RD,
     y = factor(`Underlying_Prior`, level = level_order),
     fill = `Underlying_Prior`)) +
-  
+  geom_vline(xintercept = seq(-12.5, 12.5, 2.5), linetype = 1, size = 0.3,
+             color = "gray80") +
+
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
-  stat_halfeye(aes(fill = stat(x > 0)),
-               position = "dodge",
+    stat_halfeye(aes(fill = stat(x > 0)),
+                 position = "dodge",
                point_interval = median_hdi, # Highest density interval
-               .width = c(0.5, 0.95),
+               .width = c(0.8, 0.95),
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  scale_fill_manual(values = c("gray85", "#9D75B1")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
-  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+  scale_x_continuous(breaks = seq(from = -15, to = 15, 5)) +
   scale_y_discrete(expand = c(0, 0.3)) +
   theme(axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 13.5),
-        axis.text.y = element_text(size = 12),
-        axis.text.x = element_text(size = 12),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        panel.background = element_blank(),
-        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-        legend.position = "none",
-        plot.title.position = 'plot',
-        plot.margin = margin(20, 25, 10, 20)
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 40, 20)
   ) +
-  coord_cartesian(xlim = c(-12.5, 10))
+  coord_cartesian(xlim = c(-15, 15))
+
+p1_overlay = p1 + inset_element(arrows_plot,
+                                ignore_tag = TRUE,
+                                align_to = "full",
+                                left = unit(4.8, 'cm'),
+                                bottom = unit(0, 'cm'),
+                                right = unit(16.8, 'cm'),
+                                top = unit(1.6, 'cm'))
+
+p1_overlay
 
 # ggsave(width = 7,
 #        height = 4.5,
@@ -1370,18 +1480,19 @@ t = tibble(
   )
 ) 
 
-t1 = t %>% 
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F) %>%
-  add_header_above(c(" " = 1,
-                     "Probability of Harm" = 3,
-                     "Probability of Benefit" = 4))
+# https://stackoverflow.com/questions/26548495/reorder-rows-using-custom-order
 
-t1
+level_order = c("Evidence-based",
+                "Non-informative",
+                "Skeptical",
+                "Optimistic",
+                "Pessimistic"
+                )
 
-# t1 %>% 
-#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable8_probabilities_simple.pdf")) # File name
+t = t %>% 
+  slice(match(level_order, `Underlying Prior`))
+
+
 ```
 
 ### HDI for each posterior distribution
@@ -1400,8 +1511,8 @@ t1 = samples_posteriors_simple_death %>%
   # Select only the relevant columns
   # Arrange order
   arrange(factor(`Underlying_Prior`, levels = c(
-    "Non-informative",
     "Evidence-based",
+    "Non-informative",
     "Skeptical",
     "Optimistic",
     "Pessimistic"
@@ -1409,15 +1520,33 @@ t1 = samples_posteriors_simple_death %>%
   select("Underlying_Prior":.upper) %>%
   mutate(across(RD:.upper, ~multiply100(.))) %>%
   mutate(across(RD:.upper, ~round(., 2))) %>%
-  rename("Median" = RD) %>%
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F)
+  rename("Underlying Prior" = Underlying_Prior,
+         "Median" = RD,
+         "Lower limit" = .lower,
+         "Upper limit" = .upper)
 
-t1
+tfinal = left_join(t1, t)
 
-# t1 %>% 
-#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable9_hdi_simple.pdf")) # File name
+tfinal = tfinal %>% 
+  gt() %>% 
+  tab_spanner(label = "95% HDI",
+              columns = c(2:4)) %>% 
+  tab_spanner(label = "Propability of Harm",
+              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)")) %>% 
+  tab_spanner(label = "Probability of Benefit",
+              columns = c("Pr(> 0%)", "Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  )
+
+tfinal
+
+# tfinal %>% 
+#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable5_hdi_probabilities_simple.png"))
+
+
 ```
 
 ## Non-invasive ventilation
@@ -1534,15 +1663,7 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_manual(' ',
-                    values = c(
-                      carto_pal(12, "Pastel")[1], # RECOVERY
-                      carto_pal(12, "Pastel")[12], # Non-informative,
-                      carto_pal(12, "Pastel")[2], # Evidence-based
-                      "gray70", # Skeptical
-                      carto_pal(12, "Pastel")[5], # Optimistic
-                      carto_pal(12, "Pastel")[10]  # Pessimistc
-                    )) +
+  scale_fill_npg()+
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -1575,49 +1696,61 @@ distributions %>%
 
 ### Posterior distributions
 
-```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 80 and 95% highest density intervals."}
 
 level_order = c("Pessimistic",
                 "Optimistic",
                 "Skeptical",
-                "Evidence-based",
-                "Non-informative")
+                "Non-informative",
+                "Evidence-based")
 
-samples_posteriors_noninvasive_death %>%
+p1 = samples_posteriors_noninvasive_death %>%
   
   ggplot(aes(
     # Multiply by 100 to report in percentage
     x = 100 * RD,
     y = factor(`Underlying_Prior`, level = level_order),
     fill = `Underlying_Prior`)) +
-  
+  geom_vline(xintercept = seq(-12.5, 12.5, 2.5), linetype = 1, size = 0.3,
+             color = "gray80") +
+
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
-  stat_halfeye(aes(fill = stat(x > 0)),
-               position = "dodge",
+    stat_halfeye(aes(fill = stat(x > 0)),
+                 position = "dodge",
                point_interval = median_hdi, # Highest density interval
-               .width = c(0.5, 0.95),
+               .width = c(0.8, 0.95),
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  scale_fill_manual(values = c("gray85", "#CE9F5B")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
-  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+scale_x_continuous(breaks = seq(from = -15, to = 15, 5)) +
   scale_y_discrete(expand = c(0, 0.3)) +
   theme(axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 13.5),
-        axis.text.y = element_text(size = 12),
-        axis.text.x = element_text(size = 12),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        panel.background = element_blank(),
-        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-        legend.position = "none",
-        plot.title.position = 'plot',
-        plot.margin = margin(20, 25, 10, 20)
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 40, 20)
   ) +
-  coord_cartesian(xlim = c(-12.5, 10))
+  coord_cartesian(xlim = c(-15, 15))
+
+p1_overlay = p1 + inset_element(arrows_plot,
+                                ignore_tag = TRUE,
+                                align_to = "full",
+                                left = unit(4.8, 'cm'),
+                                bottom = unit(0, 'cm'),
+                                right = unit(16.8, 'cm'),
+                                top = unit(1.6, 'cm'))
+
+p1_overlay
 
 # ggsave(width = 7,
 #        height = 4.5,
@@ -1823,20 +1956,21 @@ t = tibble(
                           summarise(n = sum(RD > 0.05) / n()) %>%
                           pull()), 2) * 100
   )
-) 
+)
 
-t1 = t %>% 
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F) %>%
-  add_header_above(c(" " = 1,
-                     "Probability of Harm" = 3,
-                     "Probability of Benefit" = 4))
+# https://stackoverflow.com/questions/26548495/reorder-rows-using-custom-order
 
-t1
+level_order = c("Evidence-based",
+                "Non-informative",
+                "Skeptical",
+                "Optimistic",
+                "Pessimistic"
+                )
 
-# t1 %>% 
-#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable10_probabilities_noninvasive.pdf")) # File name
+t = t %>% 
+  slice(match(level_order, `Underlying Prior`))
+
+
 ```
 
 ### HDI for each posterior distribution
@@ -1855,8 +1989,8 @@ t1 = samples_posteriors_noninvasive_death %>%
   # Select only the relevant columns
   # Arrange order
   arrange(factor(`Underlying_Prior`, levels = c(
-    "Non-informative",
     "Evidence-based",
+    "Non-informative",
     "Skeptical",
     "Optimistic",
     "Pessimistic"
@@ -1864,13 +1998,33 @@ t1 = samples_posteriors_noninvasive_death %>%
   select("Underlying_Prior":.upper) %>%
   mutate(across(RD:.upper, ~multiply100(.))) %>%
   mutate(across(RD:.upper, ~round(., 2))) %>%
-  rename("Median" = RD) %>%
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F)
+  rename("Underlying Prior" = Underlying_Prior,
+         "Median" = RD,
+         "Lower limit" = .lower,
+         "Upper limit" = .upper)
 
-# t1 %>% 
-#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable11_hdi_noninvasive.pdf")) # File name
+tfinal = left_join(t1, t)
+
+tfinal = tfinal %>% 
+  gt() %>% 
+  tab_spanner(label = "95% HDI",
+              columns = c(2:4)) %>% 
+  tab_spanner(label = "Propability of Harm",
+              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)")) %>% 
+  tab_spanner(label = "Probability of Benefit",
+              columns = c("Pr(> 0%)", "Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  )
+
+tfinal
+
+# tfinal %>% 
+#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable6_hdi_probabilities_noninvasive.png"))
+
+
 ```
 
 ## Invasive mechanical ventilation
@@ -1987,15 +2141,7 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_manual(' ',
-                    values = c(
-                      carto_pal(12, "Pastel")[1], # RECOVERY
-                      carto_pal(12, "Pastel")[12], # Non-informative,
-                      carto_pal(12, "Pastel")[2], # Evidence-based
-                      "gray70", # Skeptical
-                      carto_pal(12, "Pastel")[5], # Optimistic
-                      carto_pal(12, "Pastel")[10]  # Pessimistc
-                    )) +
+  scale_fill_npg()+
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -2028,49 +2174,61 @@ distributions %>%
 
 ### Posterior distributions
 
-```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 80 and 95% highest density intervals."}
 
 level_order = c("Pessimistic",
                 "Optimistic",
                 "Skeptical",
-                "Evidence-based",
-                "Non-informative")
+                "Non-informative",
+                "Evidence-based")
 
-samples_posteriors_invasive_death %>%
+p1 = samples_posteriors_invasive_death %>%
   
   ggplot(aes(
     # Multiply by 100 to report in percentage
     x = 100 * RD,
     y = factor(`Underlying_Prior`, level = level_order),
     fill = `Underlying_Prior`)) +
-  
+  geom_vline(xintercept = seq(-12.5, 12.5, 2.5), linetype = 1, size = 0.3,
+             color = "gray80") +
+
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
-  stat_halfeye(aes(fill = stat(x > 0)),
-               position = "dodge",
+    stat_halfeye(aes(fill = stat(x > 0)),
+                 position = "dodge",
                point_interval = median_hdi, # Highest density interval
-               .width = c(0.5, 0.95),
+               .width = c(0.8, 0.95),
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#64A37E")) +
+  scale_fill_manual(values = c("gray85", "#5891BF")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
-  scale_x_continuous(breaks = seq(from = -12.5, to = 10, 2.5)) +
+scale_x_continuous(breaks = seq(from = -15, to = 15, 5)) +
   scale_y_discrete(expand = c(0, 0.3)) +
   theme(axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 13.5),
-        axis.text.y = element_text(size = 12),
-        axis.text.x = element_text(size = 12),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        panel.background = element_blank(),
-        panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-        legend.position = "none",
-        plot.title.position = 'plot',
-        plot.margin = margin(20, 25, 10, 20)
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 40, 20)
   ) +
-  coord_cartesian(xlim = c(-12.5, 10))
+  coord_cartesian(xlim = c(-15, 15))
+
+p1_overlay = p1 + inset_element(arrows_plot,
+                                ignore_tag = TRUE,
+                                align_to = "full",
+                                left = unit(4.8, 'cm'),
+                                bottom = unit(0, 'cm'),
+                                right = unit(16.8, 'cm'),
+                                top = unit(1.6, 'cm'))
+
+p1_overlay
 
 ```
 
@@ -2271,16 +2429,19 @@ t = tibble(
                           summarise(n = sum(RD > 0.05) / n()) %>%
                           pull()), 2) * 100
   )
-) 
+)
 
-t1 = t %>% 
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F) %>%
-  add_header_above(c(" " = 1,
-                     "Probability of Harm" = 3,
-                     "Probability of Benefit" = 4))
+# https://stackoverflow.com/questions/26548495/reorder-rows-using-custom-order
 
-t1
+level_order = c("Evidence-based",
+                "Non-informative",
+                "Skeptical",
+                "Optimistic",
+                "Pessimistic"
+                )
+
+t = t %>% 
+  slice(match(level_order, `Underlying Prior`))
 
 ```
 
@@ -2300,8 +2461,8 @@ t1 = samples_posteriors_invasive_death %>%
   # Select only the relevant columns
   # Arrange order
   arrange(factor(`Underlying_Prior`, levels = c(
-    "Non-informative",
     "Evidence-based",
+    "Non-informative",
     "Skeptical",
     "Optimistic",
     "Pessimistic"
@@ -2309,13 +2470,24 @@ t1 = samples_posteriors_invasive_death %>%
   select("Underlying_Prior":.upper) %>%
   mutate(across(RD:.upper, ~multiply100(.))) %>%
   mutate(across(RD:.upper, ~round(., 2))) %>%
-  rename("Median" = RD) %>%
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F)
+  rename("Underlying Prior" = Underlying_Prior,
+         "Median" = RD,
+         "Lower limit" = .lower,
+         "Upper limit" = .upper)
 
-t1
+tfinal = t1 %>% 
+  gt() %>% 
+  tab_spanner(label = "95% HDI",
+              columns = c(2:4)) %>% 
+  cols_align(
+    align = "center",
+    columns = everything()
+  )
 
-# t1 %>% 
-#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable12_hdi_invasive.pdf")) # File name
+tfinal
+
+# tfinal %>% 
+#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
+#                   "STable7_hdi_invasive.png"))
+
 ```

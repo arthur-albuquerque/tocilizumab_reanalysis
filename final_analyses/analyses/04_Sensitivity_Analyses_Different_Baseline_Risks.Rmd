@@ -31,7 +31,8 @@ pacman::p_load(rio, # To import data
                kableExtra, # To make tables
                Cairo, # To export PDF files
                ggdist, # To plot distributions
-               tidytable # To work with data frames + tidyverse synthax (fast)
+               tidytable, # To work with data frames + tidyverse synthax (fast)
+               ggsci # Color palletes
                )
 ```
 
@@ -480,7 +481,7 @@ t1 = data %>%
   t1 %>% 
   ggplot(aes(x = 100*Risk_difference, y = BR))+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
-                     .width = c(0.5, 0.95)) +
+                     .width = c(0.8, 0.95)) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
   labs(x = "Risk Difference (%)",
        y = "Baseline Risk (%) \n",
@@ -542,7 +543,7 @@ p3 = multiple_baseline_risks_simple_death %>%
   
   ggplot(aes(x = 100*Risk_difference, y = BR))+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
-                     .width = c(0.5, 0.95)) +
+                     .width = c(0.8, 0.95)) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
   labs(x = "Risk Difference (%)",
        y = "Baseline Risk (%) \n",
@@ -589,10 +590,10 @@ p3 + p4 + p5
 ```
 
 ```{r}
-#  ggsave(width = 10,
-#         height = 6.5,
-#         here("final_analyses", "output", "plots", "appendix", # File path
-#                    "SFigure11_varying_baseline_risk_difference_respiratory.pdf")) # File # name
+# ggsave(width = 10,
+#        height = 6.5,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure11_varying_baseline_risk_difference_respiratory.pdf")) # File # name
 ```
 
 
@@ -681,29 +682,12 @@ probability_by_baseline_risk = function(data, # "multiple_baseline_risks..." dat
     ) %>%
     mutate(Baseline_risk = as.numeric(Baseline_risk))
 
-  prob5 = data %>%
-    filter(`Underlying_Prior` == type) %>%
-    select(-(`Underlying_Prior`:OR)) %>%
-    mutate(across(everything(), ~ sum(. > 0.1) / n())) %>%
-    slice(1) %>%
-    pivot_longer(
-      cols = everything(),
-      names_to = "Baseline_risk", values_to = "Pr_0.1"
-    ) %>%
-    separate(Baseline_risk,
-      sep = "_",
-      c(NA, "Baseline_risk")
-    ) %>%
-    mutate(Baseline_risk = as.numeric(Baseline_risk))
-
   # Join all data frames just adding the columns "Pr_..."
   all_probs = left_join(prob1, prob2)
 
   all_probs = left_join(all_probs, prob3)
 
   all_probs = left_join(all_probs, prob4)
-
-  all_probs = left_join(all_probs, prob5)
 }
 ```
 
@@ -773,201 +757,206 @@ p1 = benefit_not_using_death %>%
   # Make it tidy for ggplot
   pivot_longer(
     cols = Pr_0:last_col(),
-    names_to = "RD", values_to = "Probabilities"
+    names_to = "Risk Difference", values_to = "Probabilities"
   ) %>%
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD), size = 1.15) +
+  geom_line(aes(color = `Risk Difference`), size = 1.15) +
+  scale_color_nejm() +
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_not_using_death[[21,1]]*100, linetype = 2) +
-  scale_x_continuous("Baseline Risk (%)",
+  scale_x_continuous("\nBaseline Risk (%)",
                      seq((benefit_not_using_death[[1,1]]*100),
                          (benefit_not_using_death[[41,1]]*100),
                          5)) +
   scale_y_continuous("Posterior Probability of Benefit (%)\n",
                      seq(0, 100, 10))+
   coord_cartesian(y = c(0, 100)) +
-  labs(title = "Not using") +
   
   theme(legend.position = 'none',
         plot.title.position = 'plot',
-        axis.title.x = element_text(size = 12),
+        plot.title = element_text(size = 11),
+        axis.title.x = element_text(size = 11),
         axis.title.y = element_text(size = 11),
-        axis.text.y = element_text(size = 12),
+        axis.text.y = element_text(size = 11),
         axis.text.x = element_text(size = 10),
         axis.ticks.x = element_blank(),
         axis.ticks.y = element_blank(),
         panel.background = element_blank(),
         panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+        plot.margin = margin(10, 10, 10, 10))
   
 
 p2 = benefit_using_death %>%
   rename("\u2265 0%" = Pr_0,
          "\u2265 1%" = Pr_0.01,
          "\u2265 2%" = Pr_0.02,
-         "\u2265 5%" = Pr_0.05,
-         "\u2265 10%" = Pr_0.1) %>% 
+         "\u2265 5%" = Pr_0.05) %>% 
   # Make it tidy for ggplot
   pivot_longer(
     cols = "\u2265 0%":last_col(),
-    names_to = "RD", values_to = "Probabilities"
+    names_to = "Risk Difference", values_to = "Probabilities"
   ) %>%
-  mutate(RD = factor(RD,
+  mutate(`Risk Difference` = factor(`Risk Difference`,
       levels = c(
         "\u2265 0%",
         "\u2265 1%",
         "\u2265 2%",
-        "\u2265 5%",
-        "\u2265 10%"
+        "\u2265 5%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD), size = 1.15)+
+  geom_line(aes(color = `Risk Difference`), size = 1.15)+
+  scale_color_nejm() +
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_using_death[[21,1]]*100, linetype = 2) +
-  scale_x_continuous("Baseline Risk (%)", 
+  scale_x_continuous("\nBaseline Risk (%)", 
                      seq((benefit_using_death[[1,1]]*100),
                          (benefit_using_death[[41,1]]*100),
                          5)) +
   scale_y_continuous(" ",
                      seq(0, 100, 10))+
   coord_cartesian(y = c(0, 100)) +
-  labs(title = "Using",
-       y = " ") +
+  labs(y = " ") +
   
   theme(legend.key = element_blank(),
+        legend.title = element_text(size = 10),
         plot.title.position = 'plot',
-        axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 13.5),
-        axis.text.y = element_text(size = 12),
+        plot.title = element_text(size = 11),
+        axis.title.x = element_text(size = 11),
+        axis.title.y = element_text(size = 11),
+        axis.text.y = element_text(size = 11),
         axis.text.x = element_text(size = 10),
         axis.ticks.x = element_blank(),
         axis.ticks.y = element_blank(),
         panel.background = element_blank(),
         panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+        plot.margin = margin(10, 10, 10, 10))
 
 p3 = benefit_simple_death %>% 
   # Make it tidy for ggplot
   pivot_longer(
     cols = Pr_0:last_col(),
-    names_to = "RD", values_to = "Probabilities"
+    names_to = "Risk Difference", values_to = "Probabilities"
   ) %>%
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD), size = 1.15) +
+  geom_line(aes(color = `Risk Difference`), size = 1.15) +
+  scale_color_nejm() +
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_simple_death[[21,1]]*100, linetype = 2) +
-  scale_x_continuous("Baseline Risk (%)",
+  scale_x_continuous("\nBaseline Risk (%)",
                      seq((benefit_simple_death[[1,1]]*100),
                          (benefit_simple_death[[41,1]]*100),
                          8)) +
   scale_y_continuous("Posterior Probability of Benefit (%)\n",
                      seq(0, 100, 10))+
+  coord_cartesian(y = c(0, 100)) +
   theme(legend.position = 'none') +
-  labs(title = "Simple oxygen") +
   
   theme(legend.position = 'none',
         plot.title.position = 'plot',
-        axis.title.x = element_text(size = 12),
+        plot.title = element_text(size = 11),
+       axis.title.x = element_text(size = 11),
         axis.title.y = element_text(size = 11),
-        axis.text.y = element_text(size = 12),
+        axis.text.y = element_text(size = 11),
         axis.text.x = element_text(size = 10),
         axis.ticks.x = element_blank(),
         axis.ticks.y = element_blank(),
         panel.background = element_blank(),
         panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+        plot.margin = margin(10, 10, 10, 10))
 
 p4 = benefit_noninvasive_death %>% 
   # Make it tidy for ggplot
   pivot_longer(
     cols = Pr_0:last_col(),
-    names_to = "RD", values_to = "Probabilities"
+    names_to = "Risk Difference", values_to = "Probabilities"
   ) %>%
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD), size = 1.15) +
+  geom_line(aes(color = `Risk Difference`), size = 1.15) +
+  scale_color_nejm() +
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_noninvasive_death[[21,1]]*100, linetype = 2) +
-  scale_x_continuous("Baseline Risk (%)",
+  scale_x_continuous("\nBaseline Risk (%)",
                      seq((benefit_noninvasive_death[[1,1]]*100),
                          (benefit_noninvasive_death[[41,1]]*100),
                          8)) +
   scale_y_continuous(" ",
                      seq(0, 100, 10))+
+  coord_cartesian(y = c(0, 100)) +
   theme(legend.position = 'none') +
-  labs(title = "Non-invasive") +
   
   theme(legend.position = 'none',
         plot.title.position = 'plot',
-        axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 13.5),
-        axis.text.y = element_text(size = 12),
+        plot.title = element_text(size = 11),
+        axis.title.x = element_text(size = 11),
+        axis.title.y = element_text(size = 11),
+        axis.text.y = element_text(size = 11),
         axis.text.x = element_text(size = 10),
         axis.ticks.x = element_blank(),
         axis.ticks.y = element_blank(),
         panel.background = element_blank(),
         panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+        plot.margin = margin(10, 10, 10, 10))
 
 p5 = benefit_invasive_death %>% 
   rename("\u2265 0%" = Pr_0,
          "\u2265 1%" = Pr_0.01,
          "\u2265 2%" = Pr_0.02,
-         "\u2265 5%" = Pr_0.05,
-         "\u2265 10%" = Pr_0.1) %>%
+         "\u2265 5%" = Pr_0.05) %>%
   # Make it tidy for ggplot
   pivot_longer(
     cols = "\u2265 0%":last_col(),
-    names_to = "RD", values_to = "Probabilities"
+    names_to = "Risk Difference", values_to = "Probabilities"
   ) %>%
-  mutate(RD = factor(RD,
+  mutate(`Risk Difference` = factor(`Risk Difference`,
       levels = c(
         "\u2265 0%",
         "\u2265 1%",
         "\u2265 2%",
-        "\u2265 5%",
-        "\u2265 10%"
+        "\u2265 5%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
-  geom_line(aes(color = RD), size = 1.15) +
+  geom_line(aes(color = `Risk Difference`), size = 1.15) +
+  scale_color_nejm() +
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_invasive_death[[21,1]]*100, linetype = 2) +
-  scale_x_continuous("Baseline Risk (%)",
+  scale_x_continuous("\nBaseline Risk (%)",
                      seq((benefit_invasive_death[[1,1]]*100),
                          (benefit_invasive_death[[41,1]]*100),
                          8)) +
   scale_y_continuous(" ",
                      seq(0, 100, 10))+
-  labs(title = "Invasive") +
   coord_cartesian(y = c(0, 100)) +
   
   theme(legend.key = element_blank(),
+        legend.title = element_text(size = 10),
+        plot.title = element_text(size = 11),
         plot.title.position = 'plot',
-        axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 13.5),
-        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 11),
+        axis.title.y = element_text(size = 11),
+        axis.text.y = element_text(size = 11),
         axis.text.x = element_text(size = 10),
         axis.ticks.x = element_blank(),
         axis.ticks.y = element_blank(),
         panel.background = element_blank(),
         panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-        panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+        panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+        plot.margin = margin(10, 10, 10, 10))
 ```
 
-```{r, fig.align='center', fig.height=5, fig.width=8}
-p1 + p2 + plot_annotation(title = "Use of corticosteroids subgroups\n")
-```
+```{r, fig.align='center', fig.height=5, fig.width=8, fig.cap="Sensitivity analyses using multiple different baseline risks for subgroups on use of corticosteroids. Each line represents the posterior probability of benefit  for a specific cutoff, such as risk difference greater or equal to 0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk (Table 1) used in other analyses. Panel A shows results for patients not using corticosteroids; Panel B shows results for patients using corticosteroids."}
+p1 + p2 + plot_annotation(tag_levels = 'A')
 
-```{r include=FALSE}
-
-# p1 + p2 # to save without title
-# 
 # ggsave(width = 8,
 #        height = 5,
 # #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
@@ -977,21 +966,16 @@ p1 + p2 + plot_annotation(title = "Use of corticosteroids subgroups\n")
 ```
 
 
-```{r, fig.align='center', fig.height=5, fig.width=8, fig.cap="RD: Risk Difference"}
-p3 + p4 + p5 + plot_annotation(title = "Respiratory support subgroups\n")
-```
+```{r, fig.align='center', fig.height=5, fig.width=8, fig.cap="Sensitivity analyses using multiple different baseline risks for subgroups on respiratory support. Each line represents the posterior probability of benefit  for a specific cutoff, such as risk difference greater or equal to 0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk (Table 1) used in other analyses. Panel A shows results for simple oxygen only; Panel B shows results for non-invasive ventilation; Panel C shows results for invasive mechanical ventilation."}
+p3 + p4 + p5 + plot_annotation(tag_levels = 'A')
 
-```{r}
-#  p3 + p4 + p5
-#  
-#  ggsave(width = 8,
-#         height = 5,
-#  #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
-#         device=cairo_pdf, 
-#         here("final_analyses", "output", "plots", "appendix", # File path
-#                    "SFigure13_varying_baseline_probabilities_respiratory.pdf")) # File name
+# ggsave(width = 8,
+#        height = 5,
+# #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
+#        device=cairo_pdf, 
+#        here("final_analyses", "output", "plots", "manuscript", # File path
+#                   "figure4.pdf")) # File name
 ```
-
 
 ## Tables
 
@@ -1135,42 +1119,9 @@ t4 = data %>%
          "min(Pr of Benefit)", "min(Baseline Risk)",
          "max(Pr of Benefit)", "max(Baseline Risk)")
 
-t5 = data %>%
-  # make it tidy to use filter()
-  pivot_longer(
-    cols = Pr_0:last_col(),
-    names_to = "Cutoff", values_to = "Pr of Benefit"
-  ) %>% 
-  # filter by Pr of Benefit >= 0%
-  filter(Cutoff == "Pr_0.1") %>% 
-  # Multiply by 100
-  mutate(Baseline_risk = Baseline_risk*100,
-         `Pr of Benefit` = `Pr of Benefit`*100) %>% 
-  # round the probability of benefit
-  mutate(`Pr of Benefit` = round(`Pr of Benefit`, 2)) %>% 
-  # select rows with minimum and maximum Pr of Benefit value
-  slice(which.min(`Pr of Benefit`),
-        which.max(`Pr of Benefit`)) %>%
-  # Add new colum with "Min" and "Max"
-  bind_cols(values) %>% 
-  # Re-arrange the order of columns
-  select(Cutoff, Values, Baseline_risk, "Pr of Benefit") %>%
-  # Reverse back to wide format
-  pivot_wider(names_from = "Values", values_from = Baseline_risk:`Pr of Benefit`) %>% 
-  # Rename columns
-  rename("min(Baseline Risk)" = Baseline_risk_Min,
-         "max(Baseline Risk)" = Baseline_risk_Max,
-         "min(Pr of Benefit)" = `Pr of Benefit_Min`,
-         "max(Pr of Benefit)" = `Pr of Benefit_Max`) %>% 
-  # Reorder
-  select(Cutoff,
-         "min(Pr of Benefit)", "min(Baseline Risk)",
-         "max(Pr of Benefit)", "max(Baseline Risk)")
-
 tt = bind_rows(t1,t2)
 tt = bind_rows(tt,t3)
-tt = bind_rows(tt,t4)
-tt = bind_rows(tt,t5) %>% 
+tt = bind_rows(tt,t4) %>% 
   kbl(booktabs = T, align = 'c') %>% 
   kable_styling(bootstrap_options = "striped", full_width = F)
 

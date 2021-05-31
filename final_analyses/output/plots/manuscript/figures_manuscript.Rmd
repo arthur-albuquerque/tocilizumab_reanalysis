@@ -14,12 +14,14 @@ knitr::opts_chunk$set(echo = FALSE)
 library(here)
 ```
 
+All figures and tables in this document regards the mortality outcome.
+
 # Table 1
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "manuscript", # File path
-                                 "table1.pdf"))
+                                 "table1.png"))
 
 knitr::include_graphics(path) # File name
 ```
@@ -34,7 +36,8 @@ path = (here("final_analyses", "output",
 knitr::include_graphics(path) # File name
 ```
 
-Point estimates depict the median and interval bars depict 95th quantiles.
+Point estimates depict the median and interval bars depict 95% highest density
+intervals.
 
 # Figure 2
 
@@ -46,7 +49,11 @@ path = (here("final_analyses", "output",
 knitr::include_graphics(path) # File name
 ```
 
-Panels A and C: Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals. Panels B and D: Cumulative posterior distributions correspond to the probabilities that the risk difference (RD) is greater than or equal to the effect size on the X‐axis.
+Panels A and C: Point estimates depict the median. Interval bars depict the 80
+and 95% highest density intervals. Panels B and D: Cumulative posterior
+distributions correspond to the probabilities that the risk difference (RD)
+is greater than or equal to the effect size on the X‐axis. The colors in Panels
+B and D match the ones used in Panels A and C.
 
 # Figure 3
 
@@ -59,14 +66,34 @@ knitr::include_graphics(path) # File name
 ```
 
 Point estimates depict the median.
-Interval bars depict the 50 and 95% highest density intervals.
+Interval bars depict the 80 and 95% highest density intervals.
 
 # Table 2
 
 ```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "manuscript", # File path
-                                 "table2.pdf"))
+                                 "table2.png"))
 
 knitr::include_graphics(path) # File name
 ```
+
+# Figure 4
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "manuscript", # File path
+                                 "figure4.pdf"))
+
+knitr::include_graphics(path) # File name
+```
+
+Sensitivity analyses using multiple different baseline risks for subgroups on
+respiratory support. Each line represents the posterior probability of benefit 
+for a specific cutoff, such as risk difference greater or equal to 0%, 1%, 2% and
+5%. Vertical dashed lines represent the respective baseline risk (Table 1) used
+in other analyses.
+
+Panel A shows results for simple oxygen only; Panel B shows results for
+non-invasive ventilation; Panel C shows results for invasive mechanical
+ventilation.
