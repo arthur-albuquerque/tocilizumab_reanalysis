@@ -249,7 +249,7 @@ table1
 
 
 ```{r}
-## Same table as above, but in this case I made it "manually" lol
+## Same table as above, but in this case I made it "manually"
 
 t = tibble(
   "Subgroup" = c("Not using corticosteroids",
@@ -1384,9 +1384,9 @@ p1 =
   scale_fill_manual(' ',
                     breaks=c("Prior","RECOVERY", "Posterior"),
                     values = c(
-    "gray70", # Prior
-    "#67B8D5", # RECOVERY
-    "#F8D08D" # Posterior
+    "#E0C6B6", # Prior
+    "#9FA464", # RECOVERY
+    "#9B5446" # Posterior
   )) +
   labs(
     x = "\nOdds Ratio",
@@ -1590,9 +1590,9 @@ p2 = distributions_respiratory %>%
                point_interval = median_hdi, # HDI
                .width = c(0.95)) +
   scale_fill_manual(values = c(
-    "#F8D08D", # Posterior
-    "#67B8D5", # RECOVERY
-    "gray70" # Priors
+    "#9B5446", # Posterior
+    "#9FA464", # RECOVERY
+    "#E0C6B6" # Priors
     
   )) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
@@ -1763,14 +1763,16 @@ tfinal = bind_rows(t, t1) %>%
   cols_align(
     align = "center",
     columns = everything()
-  ) 
+  ) %>% 
+  tab_spanner(label = "95% Highest Density Interval",
+              columns = c("Median", "Lower limit", "Upper limit"))
 
 tfinal
 
 # tfinal %>% 
 #   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
 #                   "STable1_HDI_intervals_figure1.png")) # File name
-#   
+   
 ```
 
 
@@ -1889,11 +1891,9 @@ p1 = distributions_cortico_posterior %>%
 
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
   stat_halfeye(point_interval = median_hdi, # Highest density interval
-               .width = c(0.8, 0.95),
-               # https://github.com/mjskay/ggdist/issues/70
-               interval_size_range = c(1.1,1.9)) +
+               .width = 0.95) +
   scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
-  scale_fill_manual(values = c("#9EA45B", "#A65041")) +
+  scale_fill_manual(values = c("#516F88", "#8DBEE9")) +
   geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
   labs(
     x = "\nRisk Difference (%)",
@@ -1943,7 +1943,7 @@ p2 = distributions_cortico_posterior %>%
 ggplot(aes(100 * samples, colour = subgroup)) +
   geom_line(aes(y = 1 - ..y..), stat='ecdf', size = 1.2) +
   scale_color_manual(' ',
-                    values = c("#9EA45B", "#A65041")) +
+                    values = c("#516F88", "#8DBEE9")) +
   geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
     labs(
       x = "\nRisk Difference (%)",
@@ -2005,6 +2005,14 @@ distributions_respiratory_posterior = bind_cols(
   posterior_s
 )
 
+# What is the posterior probability of risk difference >3%?
+# distributions_respiratory_posterior %>% 
+#   mutate(across(everything(), ~100*sum(. > 0.03)/n())) %>% 
+#   slice(1)
+
+# invasive     non-invasive         simple 
+# 44.047	        90.641	          56.987	
+
 ```
 
 ```{r}
@@ -2042,13 +2050,11 @@ p3 = distributions_respiratory_posterior %>%
 
   # https://mjskay.github.io/ggdist/articles/slabinterval.html
   stat_halfeye(point_interval = median_hdi, # Highest density interval
-               .width = c(0.8, 0.95),
-               # https://github.com/mjskay/ggdist/issues/70
-               interval_size_range = c(1.1,1.9)) +
+               .width = 0.95) +
   scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
-  scale_fill_manual(values = c("#9D75B1", # Simple oxygen
-                               "#CE9F5B", # Non-invasive
-                               "#5891BF") # Invasive
+  scale_fill_manual(values = c("#EECE9C", # Simple oxygen
+                               "#BE6376", # Non-invasive
+                               "#605A91") # Invasive 
                     ) +
   geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
   labs(
@@ -2101,9 +2107,9 @@ p4 = distributions_respiratory_posterior %>%
 ggplot(aes(100*samples, colour = subgroup)) +
   geom_line(aes(y = 1 - ..y..), stat='ecdf', size = 1.2) +
   scale_color_manual(' ',
-                    values = c("#9D75B1", # Simple oxygen
-                               "#CE9F5B", # Non-invasive
-                               "#5891BF") # Invasive
+                    values = c("#EECE9C", # Simple oxygen
+                               "#BE6376", # Non-invasive
+                               "#605A91") # Invasive 
                     ) +
   geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
     labs(
@@ -2153,11 +2159,11 @@ p1_overlay = p1 + inset_element(arrows_plot,
   plot_annotation(tag_levels = 'A')
 
 # ggsave(width = 10,
-#        height = 8.5,
-#  #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
-#        device=cairo_pdf, 
-#        here("final_analyses", "output", "plots", "manuscript", # File path
-#                  "figure2.pdf")) # File name
+#       height = 8.5,
+# #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
+#       device=cairo_pdf, 
+#       here("final_analyses", "output", "plots", "manuscript", # File path
+#                 "figure2.pdf")) # File name
 ```
 
 <br><br>
@@ -2202,7 +2208,7 @@ t2 = distributions_cortico_posterior %>%
   # Select only the relevant columns
   select(Subgroup:.upper) %>%
   mutate(across(samples:.upper, ~multiply100(.))) %>%
-  mutate(across(samples:.upper, ~round(., 2))) %>%
+  mutate(across(samples:.upper, ~round(., 1))) %>%
   rename("Median" = samples,
          "Upper limit" = .upper,
          "Lower limit" = .lower) %>% 
@@ -2255,7 +2261,7 @@ t4 = distributions_respiratory_posterior %>%
   # Select only the relevant columns
   select(Subgroup:.upper) %>%
   mutate(across(samples:.upper, ~multiply100(.))) %>%
-  mutate(across(samples:.upper, ~round(., 2))) %>%
+  mutate(across(samples:.upper, ~round(., 1))) %>%
   rename("Median" = samples,
          "Upper limit" = .upper,
          "Lower limit" = .lower) %>% 
@@ -2301,68 +2307,252 @@ tfinal
   
 ```
 
-
 <br><br>
 
-## Figure 3: Posterior distributions; Sensitivity analysis of "invasive mechanical ventilation"
+## Figure 3: Posterior distributions; Sensitivity analysis of using different priors
 
-This sensitivity analysis are the ones with the greatest change across priors.
-These changes can actually interfer clinical decision. Thus, I judged that these
-analyses "deserve" their own figure. 
+```{r}
+not_using = samples_posteriors_not_using_death %>% 
+  mutate(subgroup = "Not using corticosteroids") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
 
-```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+using = samples_posteriors_using_death %>% 
+  mutate(subgroup = "Using corticosteroids") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
 
-level_order = c("Pessimistic",
-                "Optimistic",
-                "Skeptical",
-                "Non-informative",
-                "Evidence-based")
+simple = samples_posteriors_simple_death %>% 
+  mutate(subgroup = "Simple oxygen only") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
 
-p1 = samples_posteriors_invasive_death %>%
-  
+noninvasive = samples_posteriors_noninvasive_death %>% 
+  mutate(subgroup = "Non-invasive ventilation") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
+
+invasive = samples_posteriors_invasive_death %>% 
+  mutate(subgroup = "Invasive mechanical ventilation") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
+
+altogether = bind_rows(not_using,
+          using,
+          simple,
+          noninvasive,
+          invasive)
+```
+
+```{r}
+p1 = altogether %>% 
+  filter(subgroup %in% c("Not using corticosteroids",
+                         "Using corticosteroids")) %>% 
+  # Define orders
+  mutate(subgroup =
+           factor(subgroup,
+                  levels = c("Not using corticosteroids",
+                             "Using corticosteroids")),
+         `Underlying_Prior` =
+           factor(`Underlying_Prior`,
+                  levels = c("Pessimistic",
+                             "Optimistic",
+                             "Skeptical",
+                             "Non-informative",
+                             "Evidence-based"
+                             )
+                  )
+         ) %>% 
+  # Plot!
   ggplot(aes(
     # Multiply by 100 to report in percentage
-    x = 100 * RD,
-    y = factor(`Underlying_Prior`, level = level_order),
-    fill = `Underlying_Prior`)) +
-
-  # https://mjskay.github.io/ggdist/articles/slabinterval.html
-    stat_halfeye(aes(fill = stat(x > 0)),
-                 position = "dodge",
-               point_interval = median_hdi, # Highest density interval
-               .width = c(0.8, 0.95),
-               # https://github.com/mjskay/ggdist/issues/70
-               interval_size_range = c(1.1,1.9)
+    x = RD*100, y = `Underlying_Prior`,
+    fill = subgroup,
+    # https://github.com/mjskay/ggdist/issues/71
+    fill_ramp = stat(x > 0))
   ) +
-  scale_fill_manual(values = c("gray85", "#5891BF")) +
+  
+   geom_vline(xintercept = seq(-12.5, 12.5, 2.5), linetype = 1, size = 0.3,
+             color = "gray80") +
+   geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+   # https://mjskay.github.io/ggdist/articles/slabinterval.html
+    stat_halfeye(position = "dodge",
+                 point_interval = median_hdi, # Highest density interval
+                 .width = 0.95,
+               # https://github.com/mjskay/ggdist/issues/70
+               interval_size_range = c(0.4,1.2)
+  ) +
+  scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
+  scale_fill_manual(values = c("#516F88", "#8DBEE9")) + # Using
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
-  scale_x_continuous(breaks = seq(from = -10, to = 10, 2.5)) +
-  scale_y_discrete(expand = c(0, 0.3)) +
-  theme(axis.title.x = element_text(size = 11.5),
-    axis.title.y = element_text(size = 12),
-    axis.text.y = element_text(size = 11),
-    axis.text.x = element_text(size = 11),
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
     axis.ticks.x = element_blank(),
     axis.ticks.y = element_blank(),
     panel.background = element_blank(),
     panel.grid.major.x = element_line(color = "gray80", size = 0.3),
     legend.position = "none",
     plot.title.position = 'plot',
-    plot.margin = margin(20, 25, 45, 20)
+    plot.margin = margin(20, 25, 60, 20)
   ) +
-  coord_cartesian(xlim = c(-10, 11))
+  scale_x_continuous(breaks = seq(from = -10, to = 10, 2.5))  +
+  coord_cartesian(xlim = c(-12.5, 12.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  facet_wrap(~ subgroup, ncol = 1)
+```
 
+```{r}
+p2 = altogether %>% 
+  filter(subgroup %in% c("Simple oxygen only",
+                         "Non-invasive ventilation",
+                         "Invasive mechanical ventilation")) %>% 
+  # Define orders
+  mutate(subgroup =
+           factor(subgroup,
+                  levels = c("Simple oxygen only",
+                             "Non-invasive ventilation",
+                             "Invasive mechanical ventilation")),
+         `Underlying_Prior` =
+           factor(`Underlying_Prior`,
+                  levels = c("Pessimistic",
+                             "Optimistic",
+                             "Skeptical",
+                             "Non-informative",
+                             "Evidence-based"
+                             )
+                  )
+         ) %>% 
+  # Plot!
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = RD*100, y = `Underlying_Prior`,
+    fill = subgroup,
+    # https://github.com/mjskay/ggdist/issues/71
+    fill_ramp = stat(x > 0))
+  ) +
+  
+   geom_vline(xintercept = seq(-12.5, 12.5, 2.5), linetype = 1, size = 0.3,
+             color = "gray80") +
+  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+    stat_halfeye(position = "dodge",
+                 point_interval = median_hdi, # Highest density interval
+                 .width = c(0.94999, 0.95),
+               # https://github.com/mjskay/ggdist/issues/70
+               interval_size_range = c(0.4,1.2)
+  ) +
+  scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
+  scale_fill_manual(values = c("#EECE9C", # Simple oxygen
+                               "#BE6376", # Non-invasive
+                               "#605A91") # Invasive 
+                    ) + 
+  labs(x = "\nRisk Difference (%)",
+       y = " "
+  ) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 60, 20)
+  ) +
+  scale_x_continuous(breaks = seq(from = -10, to = 10, 2.5))  +
+  coord_cartesian(xlim = c(-12.5, 12.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  facet_wrap(~ subgroup, ncol = 1)
+```
+
+```{r, fig.width=14, fig.height=8}
+# Add arrow
 p1_overlay = p1 + inset_element(arrows_plot,
                                 ignore_tag = TRUE,
                                 align_to = "full",
-                                left = unit(4.5, 'cm'),
+                                left = unit(5.4, 'cm'),
                                 bottom = unit(0, 'cm'),
-                                right = unit(16.15, 'cm'),
-                                top = unit(1.6, 'cm'))
+                                right = unit(17, 'cm'),
+                                top = unit(1.9, 'cm'))
+# Plot everything
 
-p1_overlay
+
+
+p1_overlay + p2 + inset_element(arrows_plot,
+                                ignore_tag = TRUE,
+                                align_to = "full",
+                                left = unit(5, 'cm'),
+                                bottom = unit(0, 'cm'),
+                                right = unit(16.5, 'cm'),
+                                top = unit(1.9, 'cm')) + plot_annotation(tag_levels = 'A')
+
+# ggsave(width = 14,
+#        height = 8,
+#        here("final_analyses", "output", "plots", "manuscript", # File path
+#                   "figure3.pdf")) # File name
+```
+
+
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+
+# level_order = c("Pessimistic",
+#                 "Optimistic",
+#                 "Skeptical",
+#                 "Non-informative",
+#                 "Evidence-based")
+# 
+# p1 = samples_posteriors_invasive_death %>%
+#   
+#   ggplot(aes(
+#     # Multiply by 100 to report in percentage
+#     x = 100 * RD,
+#     y = factor(`Underlying_Prior`, level = level_order),
+#     fill = `Underlying_Prior`)) +
+# 
+#   # https://mjskay.github.io/ggdist/articles/slabinterval.html
+#     stat_halfeye(aes(fill = stat(x > 0)),
+#                  position = "dodge",
+#                point_interval = median_hdi, # Highest density interval
+#                .width = c(0.8, 0.95),
+#                # https://github.com/mjskay/ggdist/issues/70
+#                interval_size_range = c(1.1,1.9)
+#   ) +
+#   scale_fill_manual(values = c("gray85", "#5891BF")) +
+#   labs(x = "\nRisk Difference (%)",
+#        y = "Underlying Prior\n"
+#   ) +
+#   scale_x_continuous(breaks = seq(from = -10, to = 10, 2.5)) +
+#   scale_y_discrete(expand = c(0, 0.3)) +
+#   theme(axis.title.x = element_text(size = 11.5),
+#     axis.title.y = element_text(size = 12),
+#     axis.text.y = element_text(size = 11),
+#     axis.text.x = element_text(size = 11),
+#     axis.ticks.x = element_blank(),
+#     axis.ticks.y = element_blank(),
+#     panel.background = element_blank(),
+#     panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+#     legend.position = "none",
+#     plot.title.position = 'plot',
+#     plot.margin = margin(20, 25, 45, 20)
+#   ) +
+#   coord_cartesian(xlim = c(-10, 11))
+# 
+# p1_overlay = p1 + inset_element(arrows_plot,
+#                                 ignore_tag = TRUE,
+#                                 align_to = "full",
+#                                 left = unit(4.5, 'cm'),
+#                                 bottom = unit(0, 'cm'),
+#                                 right = unit(16.15, 'cm'),
+#                                 top = unit(1.6, 'cm'))
+# 
+# p1_overlay
 
 # ggsave(width = 7,
 #        height = 4.5,
@@ -2372,44 +2562,180 @@ p1_overlay
 
 <br><br>
 
-Here are the 95% HDI in *risk difference* of each distribution.
-
 ```{r}
-multiply100 = function(x){x*100}
-
-samples_posteriors_invasive_death %>%
-  select("Underlying_Prior", "RD") %>% 
-  # Group by distribution so we can apply median_hdi
-  group_by(`Underlying_Prior`) %>% 
-  # Calculate the median and 95% quantile interval in log-odds ratio
-  ggdist::median_hdi(.width = 0.95) %>% 
-  # Select only the relevant columns
-  # Arrange order
-  arrange(factor(`Underlying_Prior`, levels = c(
-    "Non-informative",
-    "Evidence-based",
-    "Skeptical",
-    "Optimistic",
-    "Pessimistic"
-    ))) %>% 
-  select("Underlying_Prior":.upper) %>%
-  mutate(across(RD:.upper, ~multiply100(.))) %>%
-  mutate(across(RD:.upper, ~round(., 2))) %>%
-  rename("Underlying Prior" = Underlying_Prior,
-         "Median" = RD,
-         "Upper limit" = .upper,
-         "Lower limit" = .lower) %>% 
-  kbl(booktabs = T, align = 'c') %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F) %>%
-  add_header_above(c(" " = 1,
-                     "95% Highest Density Interval" = 3))
+# multiply100 = function(x){x*100}
+# 
+# samples_posteriors_invasive_death %>%
+#   select("Underlying_Prior", "RD") %>% 
+#   # Group by distribution so we can apply median_hdi
+#   group_by(`Underlying_Prior`) %>% 
+#   # Calculate the median and 95% quantile interval in log-odds ratio
+#   ggdist::median_hdi(.width = 0.95) %>% 
+#   # Select only the relevant columns
+#   # Arrange order
+#   arrange(factor(`Underlying_Prior`, levels = c(
+#     "Non-informative",
+#     "Evidence-based",
+#     "Skeptical",
+#     "Optimistic",
+#     "Pessimistic"
+#     ))) %>% 
+#   select("Underlying_Prior":.upper) %>%
+#   mutate(across(RD:.upper, ~multiply100(.))) %>%
+#   mutate(across(RD:.upper, ~round(., 2))) %>%
+#   rename("Underlying Prior" = Underlying_Prior,
+#          "Median" = RD,
+#          "Upper limit" = .upper,
+#          "Lower limit" = .lower) %>% 
+#   kbl(booktabs = T, align = 'c') %>% 
+#   kable_styling(bootstrap_options = "striped", full_width = F) %>%
+#   add_header_above(c(" " = 1,
+#                      "95% Highest Density Interval" = 3))
 ```
 
 <br><br>
 
-## Table 2: Posterior distributions; Sensitivity analysis of "invasive mechanical ventilation"
+## Supplementary Tables 3 and 4: Posterior distributions; Sensitivity analysis using different priors
 
 This table complements Figure 3.
+
+```{r}
+
+multiply100 = function(x){x*100}
+
+hd_intervals = function(name # Subgroup (within quotes)
+                         ){
+  altogether %>% 
+  filter(subgroup == name) %>% 
+  # Group by distribution so we can apply median_hdi
+  group_by(`Underlying_Prior`) %>% 
+  select("Underlying_Prior", "RD") %>% 
+  # Calculate the median and 95% HDI
+  ggdist::median_hdi(.width = 0.95) %>% 
+  # Select only the relevant columns
+  # Arrange order
+  arrange(factor(`Underlying_Prior`, levels = c(
+    "Evidence-based",
+    "Non-informative",
+    "Skeptical",
+    "Optimistic",
+    "Pessimistic"
+  ))) %>% 
+  select("Underlying_Prior":.upper) %>%
+  mutate(across(RD:.upper, ~multiply100(.))) %>%
+  mutate(across(RD:.upper, ~round(., 1))) %>%
+  rename("Underlying Prior" = Underlying_Prior,
+         "Median" = RD,
+         "Lower limit" = .lower,
+         "Upper limit" = .upper) %>% 
+  # To keep track later when binding multiple tables
+  mutate(subgroup = name)
+}
+
+t = bind_rows(hd_intervals("Not using corticosteroids"),
+          hd_intervals("Using corticosteroids"),
+          hd_intervals("Simple oxygen only"),
+          hd_intervals("Non-invasive ventilation"),
+          hd_intervals("Invasive mechanical ventilation")
+) %>% 
+  # Gropup to create row tabs with gt()
+  group_by(subgroup) %>% 
+  # https://stackoverflow.com/questions/43832434/arrange-within-a-group-with-dplyr
+  arrange(factor(subgroup,
+                 levels = c("Not using corticosteroids",
+                            "Using corticosteroids",
+                            "Simple oxygen only",
+                            "Non-invasive ventilation",
+                            "Invasive mechanical ventilation")
+                 )
+          ) %>% 
+  gt() %>% 
+  tab_spanner(label = "95% Highest Density Interval",
+              columns = c("Median", "Lower limit", "Upper limit")) %>% 
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>% 
+  cols_width(
+    "Underlying Prior" ~ px(230)
+  )
+
+t 
+
+# t %>% 
+#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
+#                  "STable3_hdi_figure3.png"))
+```
+
+```{r}
+multiply100 = function(x){x*100}
+
+probabilities = function(name # Subgroup (within quotes)
+                         ){
+  altogether %>% 
+  filter(subgroup == name) %>% 
+  # Group by distribution so we can apply median_hdi
+  group_by(`Underlying_Prior`) %>% 
+  summarise("Pr(< -5%)" = sum(RD < -0.05) / n(),
+            "Pr(< -2%)" = sum(RD < -0.02) / n(),
+            "Pr(< -1%)" = sum(RD < -0.01) / n(),
+            "Pr(> 0%)" =  sum(RD > 0) / n(),
+            "Pr(> 1%)" =  sum(RD > 0.01) / n(),
+            "Pr(> 2%)" =  sum(RD > 0.02) / n(),
+            "Pr(> 5%)" =  sum(RD > 0.05) / n()) %>% 
+  mutate(across(`Pr(< -5%)`:`Pr(> 5%)`, ~multiply100(.))) %>%
+  mutate(across(`Pr(< -5%)`:`Pr(> 5%)`, ~round(., 1))) %>%
+  arrange(factor(`Underlying_Prior`,
+                 levels = c("Evidence-based",
+                            "Non-informative",
+                            "Skeptical",
+                            "Optimistic",
+                            "Pessimistic")
+                 )
+  ) %>% 
+  # To use group_by for gt() (see below)
+  mutate(subgroup = name)
+}
+
+t = bind_rows(probabilities("Not using corticosteroids"),
+          probabilities("Using corticosteroids"),
+          probabilities("Simple oxygen only"),
+          probabilities("Non-invasive ventilation"),
+          probabilities("Invasive mechanical ventilation")
+) %>% 
+  rename("Underlying Prior" = `Underlying_Prior`) %>% 
+  # Gropup to create row tabs with gt()
+  group_by(subgroup) %>% 
+  # https://stackoverflow.com/questions/43832434/arrange-within-a-group-with-dplyr
+  arrange(factor(subgroup,
+                 levels = c("Not using corticosteroids",
+                            "Using corticosteroids",
+                            "Simple oxygen only",
+                            "Non-invasive ventilation",
+                            "Invasive mechanical ventilation")
+                 )
+          ) %>% 
+  gt() %>% 
+  tab_spanner(label = "Propability of Harm",
+              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)")) %>% 
+  tab_spanner(label = "Probability of Benefit",
+              columns = c("Pr(> 0%)", "Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>% 
+  cols_width(
+    "Underlying Prior" ~ px(230)
+  )
+
+t 
+
+# t %>% 
+#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
+#                  "STable4_probabilities_figure3.png"))
+ 
+```
+
 
 ```{r}
 

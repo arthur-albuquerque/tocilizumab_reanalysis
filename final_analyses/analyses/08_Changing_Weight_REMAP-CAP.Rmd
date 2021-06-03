@@ -25,7 +25,9 @@ pacman::p_load(rio, # to import/export files
                here, # To find file paths within R project
                metafor, # To create priors from meta-analysis
                janitor, # To improve column's name
-               Hmisc # To use %nin%
+               Hmisc, # To use %nin%
+               ggdist, # To plot distributions
+               patchwork # To arrange plots
                )
 
 ```
@@ -367,108 +369,149 @@ forest(priors_50_not_cortico_death,
 
 **In conclusion, the prior distributions are very similar regardless of the weight used for REMAP-CAP.**
 
-#### Using corticosteroids
-
 ```{r}
-pal = c("100%" = "#D49352", 
-        "75%" = "#479ED0",
-        "50%" = "#A64E49") 
 
-plot_prior = ggplot(data = data.frame(x = c(-1, 1)), aes(x)) +
-  
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = priors_100_using_cortico_death$beta,
-                            sd = priors_100_using_cortico_death$se),
-                aes(colour = "100%"),
-                linetype = 1, size = 1) + 
-  
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = priors_75_using_cortico_death$beta,
-                            sd = priors_75_using_cortico_death$se),
-                aes(colour = "75%"),
-                linetype = 1, size = 1) +
-  
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = priors_50_using_cortico_death$beta,
-                            sd = priors_50_using_cortico_death$se),
-                aes(colour = "50%"),
-                linetype = 1, size = 1) +
-  
-  geom_vline(xintercept = 0, color="grey70", linetype = 2) +
-  
-  scale_colour_manual("Weight on\nREMAP-CAP",values = pal) +   # legend
-  
-  labs(title = "Priors", x="\nLog-Odds Ratio", y = "Density") +
-  
-  scale_x_continuous(breaks=seq(from = -1, to = 1, 0.25)) +
-  scale_y_continuous(limits=c(0, 1.5)) +
-  
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 12),
-        legend.text = element_text(size = 12),
-        legend.position = "top",
-        plot.margin = margin(25,25,10,25)) +
-  
-  coord_cartesian(expand = T, clip = 'off')
+# https://mjskay.github.io/ggdist/articles/slabinterval.html
+set.seed = 123
 
-plot_prior
+n = 10e4
+
+d = tibble("100%" = rnorm(n,
+                      mean = priors_100_using_cortico_death$beta,
+                      sd = priors_100_using_cortico_death$se),
+       "75%" = rnorm(n,
+                      mean = priors_75_using_cortico_death$beta,
+                      sd = priors_75_using_cortico_death$se),
+       "50%" = rnorm(n,
+                      mean = priors_50_using_cortico_death$beta,
+                      sd = priors_50_using_cortico_death$se),
+) %>% 
+  pivot_longer(everything(),
+               names_to = "Weight",
+               values_to = "samples") %>% 
+  mutate(Weight = factor(Weight,
+                         levels = c("100%", "75%", "50%")))
+log_using =  d %>% 
+  ggplot(aes(fill = Weight, color =  Weight, x = samples)) + 
+  stat_pointinterval(position = position_dodge(width = .7, preserve = "single"),
+                     point_interval = median_hdi, # HDI
+                     # Little trick to preserve the width = .7 above
+                     .width = c(0.94999, 0.95)) +
+  stat_slab(alpha = 0.3) +
+  labs(x = "\nLog-Odds Ratio",
+       y = " ",
+       title = "Using corticosteroids\n") +
+  scale_x_continuous(breaks = seq(-1, 1, 0.25)) +
+  scale_y_continuous(breaks = NULL) +
+  theme(
+    legend.position = 'none',
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    plot.margin = margin(20, 20, 0, 20)
+  ) +
+    coord_cartesian(x = c(-1.2,1))
+
+exp_using =  d %>% 
+  ggplot(aes(fill = Weight, color =  Weight, x = exp(samples))) + 
+  stat_pointinterval(position = position_dodge(width = .7, preserve = "single"),
+                     point_interval = median_hdi, # HDI
+                     # Little trick to preserve the width = .7 above
+                     .width = c(0.94999, 0.95)) +
+  stat_slab(alpha = .3) +
+  labs(x = "\nOdds Ratio",
+       y = " ") +
+  scale_x_continuous(breaks = seq(0, 2, 0.25)) +
+  scale_y_continuous(breaks = NULL) +
+  theme(
+    legend.position = 'none',
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    plot.margin = margin(20, 20, 0, 20)
+  ) +
+    coord_cartesian(x = c(0.25,2))
 ```
 
-#### Not using corticosteroids
-
 ```{r}
-pal = c("100%" = "#D49352", 
-        "75%" = "#479ED0",
-        "50%" = "#A64E49") 
+set.seed = 123
 
-plot_prior = ggplot(data = data.frame(x = c(-1, 1)), aes(x)) +
-  
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = priors_100_not_cortico_death$beta,
-                            sd = priors_100_not_cortico_death$se),
-                aes(colour = "100%"),
-                linetype = 1, size = 1) + 
-  
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = priors_75_not_cortico_death$beta,
-                            sd = priors_75_not_cortico_death$se),
-                aes(colour = "75%"),
-                linetype = 1, size = 1) +
-  
-  stat_function(fun = dnorm, n = 1000,
-                args = list(mean = priors_50_not_cortico_death$beta,
-                            sd = priors_50_not_cortico_death$se),
-                aes(colour = "50%"),
-                linetype = 1, size = 1) +
-  
-  geom_vline(xintercept = 0, color="grey70", linetype = 2) +
-  
-  scale_colour_manual("Weight on\nREMAP-CAP",values = pal) +   # legend
-  
-  labs(title = "Priors", x="\nLog-Odds Ratio", y = "Density") +
-  
-  scale_x_continuous(breaks=seq(from = -1, to = 1, 0.25)) +
-  scale_y_continuous(limits=c(0, 1.5)) +
-  
-  theme_classic() +
-  theme(axis.line.y=element_blank(),
-        axis.title = element_text(size = 13),
-        axis.text.y=element_blank(),
-        axis.text.x = element_text(size = 11),
-        axis.ticks.y=element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.title = element_text(size = 12),
-        legend.text = element_text(size = 12),
-        legend.position = "top",
-        plot.margin = margin(25,25,10,25)) +
-  
-  coord_cartesian(expand = T, clip = 'off')
+n = 10e4
 
-plot_prior
+d = tibble("100%" = rnorm(n,
+                      mean = priors_100_not_cortico_death$beta,
+                      sd = priors_100_not_cortico_death$se),
+       "75%" = rnorm(n,
+                      mean = priors_75_not_cortico_death$beta,
+                      sd = priors_75_not_cortico_death$se),
+       "50%" = rnorm(n,
+                      mean = priors_50_not_cortico_death$beta,
+                      sd = priors_50_not_cortico_death$se),
+) %>% 
+  pivot_longer(everything(),
+               names_to = "Weight",
+               values_to = "samples") %>% 
+  mutate(Weight = factor(Weight,
+                         levels = c("100%", "75%", "50%")))
+log_not =  d %>% 
+  ggplot(aes(fill = Weight, color =  Weight, x = samples)) + 
+  stat_pointinterval(position = position_dodge(width = .7, preserve = "single"),
+                     point_interval = median_hdi, # HDI
+                     # Little trick to preserve the width = .7 above
+                     .width = c(0.94999, 0.95)) +
+
+  stat_slab(alpha = .3) +
+  labs(x = "\nLog-Odds Ratio",
+       y = " ",
+       title = "Not using corticosteroids\n") +
+  scale_x_continuous(breaks = seq(-1, 1, 0.25)) +
+  scale_y_continuous(breaks = NULL) +
+  theme(
+    legend.position = 'none',
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    plot.margin = margin(20, 20, 5, 20)
+  ) +
+    coord_cartesian(x = c(-1.2,1))
+
+exp_not =  d %>% 
+  ggplot(aes(fill = Weight, color =  Weight, x = exp(samples))) + 
+  stat_pointinterval(position = position_dodge(width = .7, preserve = "single"),
+                     point_interval = median_hdi, # HDI
+                     # Little trick to preserve the width = .7 above
+                     .width = c(0.94999, 0.95)) +
+  stat_slab(alpha = .3) +
+  labs(x = "\nOdds Ratio",
+       y = " ") +
+  scale_x_continuous(breaks = seq(0, 2, 0.25)) +
+  scale_y_continuous(breaks = NULL) +
+  theme(
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    plot.margin = margin(20, 20, 5, 0)
+  ) +
+    coord_cartesian(x = c(0.25,2))
+
+(log_not + exp_not) / (log_using + exp_using)
+
+
+# ggsave(width = 11,
+#       height = 6,
+#        here("final_analyses", "output", "plots", "appendix", # file path
+#             "weight_remap_cap_corticosteroids.pdf"))
+
 ```

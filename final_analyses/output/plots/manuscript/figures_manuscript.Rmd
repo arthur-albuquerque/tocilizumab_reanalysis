@@ -11,7 +11,14 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r message=FALSE, warning=FALSE}
-library(here)
+# Load packages
+
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(here) # file paths
 ```
 
 All figures and tables in this document regards the mortality outcome.
@@ -28,7 +35,7 @@ knitr::include_graphics(path) # File name
 
 # Figure 1
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1.1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "manuscript", # File path
                                  "figure1.pdf"))
@@ -49,15 +56,15 @@ path = (here("final_analyses", "output",
 knitr::include_graphics(path) # File name
 ```
 
-Panels A and C: Point estimates depict the median. Interval bars depict the 80
-and 95% highest density intervals. Panels B and D: Cumulative posterior
+Panels A and C: Point estimates depict the median. Interval bars depict the 95%
+highest density intervals. Panels B and D: Cumulative posterior
 distributions correspond to the probabilities that the risk difference (RD)
 is greater than or equal to the effect size on the X‐axis. The colors in Panels
 B and D match the ones used in Panels A and C.
 
 # Figure 3
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1.1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "manuscript", # File path
                                  "figure3.pdf"))
@@ -65,22 +72,14 @@ path = (here("final_analyses", "output",
 knitr::include_graphics(path) # File name
 ```
 
-Point estimates depict the median.
-Interval bars depict the 80 and 95% highest density intervals.
+Posterior distributions from sensitivity analyses using different priors.
 
-# Table 2
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "manuscript", # File path
-                                 "table2.png"))
-
-knitr::include_graphics(path) # File name
-```
+Point estimates depict the median. Interval bars depict the 95% highest density
+intervals.
 
 # Figure 4
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+```{r echo=FALSE, fig.align='center', message=FALSE, out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "manuscript", # File path
                                  "figure4.pdf"))
@@ -88,12 +87,16 @@ path = (here("final_analyses", "output",
 knitr::include_graphics(path) # File name
 ```
 
-Sensitivity analyses using multiple different baseline risks for subgroups on
-respiratory support. Each line represents the posterior probability of benefit 
-for a specific cutoff, such as risk difference greater or equal to 0%, 1%, 2% and
-5%. Vertical dashed lines represent the respective baseline risk (Table 1) used
-in other analyses.
+Posterior probabilities from sensitivity analyses using multiple different
+baseline risks.
 
-Panel A shows results for simple oxygen only; Panel B shows results for
-non-invasive ventilation; Panel C shows results for invasive mechanical
-ventilation.
+Each line represents the posterior probability of benefit for a specific cutoff,
+such as risk difference greater to 0%, 1%, 2% and 5%. Vertical black
+dashed lines represent the respective baseline risk underlying other analyses
+(Figure 2), i.e., risk in the control group in the RECOVERY trial for each
+subgroup (Table 1).
+
+Panel A shows results for patients not using corticosteroids; Panel B shows
+results for patients using corticosteroids. Panel C shows results for simple
+oxygen only; Panel D shows results for non-invasive ventilation; Panel E shows
+results for invasive mechanical ventilation.

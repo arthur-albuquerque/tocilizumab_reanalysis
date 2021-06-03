@@ -25,7 +25,7 @@ pacman::p_load(tidyverse, # Data wrangling and plotting
                kableExtra, # To create nice tables
                gt, # To create nice tables
                rcartocolor, # Color pallete
-               ggsci,  # Color pallete
+               PNWColors,  # Color pallete
                patchwork # To add arrows
 )
 ```
@@ -145,7 +145,8 @@ distributions =
 
 # Plot!
 
-distributions %>%
+not_using_priors = 
+  distributions %>%
   # make it tidy for ggplot
   pivot_longer(
     cols = c(everything()),
@@ -172,7 +173,10 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_npg()+
+  
+  # https://github.com/jakelawlor/PNWColors#palettes
+  scale_fill_manual(values = pnw_palette("Sailboat", n=6)) +
+  
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -196,7 +200,7 @@ distributions %>%
   coord_cartesian(x = c(0, 2.5)) +
   facet_wrap(~dist, ncol = 1, scales = "free_y")
 
-
+not_using_priors
 
 # ggsave(width = 5.5,
 #        height = 5.5,
@@ -678,7 +682,8 @@ distributions =
 
 # Plot!
 
-distributions %>%
+using_priors = 
+  distributions %>%
   # make it tidy for ggplot
   pivot_longer(
     cols = c(everything()),
@@ -705,7 +710,10 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_npg()+
+  
+  # https://github.com/jakelawlor/PNWColors#palettes
+  scale_fill_manual(values = pnw_palette("Sailboat", n=6)) +
+  
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -729,11 +737,13 @@ distributions %>%
   coord_cartesian(x = c(0, 2.5)) +
   facet_wrap(~dist, ncol = 1, scales = "free_y")
 
+using_priors
+
 # ggsave(width = 5.5,
 #        height = 5.5,
 #        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure3_priors_using.pdf")) # File name
-
+#                   "SFigure2_priors_using.pdf")) # File name
+# 
 ```
 
 ### Posterior distributions
@@ -1159,7 +1169,8 @@ distributions =
 
 # Plot!
 
-distributions %>%
+simple_priors =
+  distributions %>%
   # make it tidy for ggplot
   pivot_longer(
     cols = c(everything()),
@@ -1186,7 +1197,10 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_npg()+
+  
+  # https://github.com/jakelawlor/PNWColors#palettes
+  scale_fill_manual(values = pnw_palette("Sailboat", n=6)) +
+  
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -1210,10 +1224,12 @@ distributions %>%
   coord_cartesian(x = c(0, 4)) +
   facet_wrap(~dist, ncol = 1, scales = "free_y")
 
+simple_priors
+
 # ggsave(width = 5.5,
 #        height = 5.5,
 #        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure5_priors_simple.pdf")) # File name
+#                   "SFigure3_priors_simple.pdf")) # File name
 
 ```
 
@@ -1636,7 +1652,8 @@ distributions =
 
 # Plot!
 
-distributions %>%
+noninvasive_priors = 
+  distributions %>%
   # make it tidy for ggplot
   pivot_longer(
     cols = c(everything()),
@@ -1663,7 +1680,10 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_npg()+
+  
+  # https://github.com/jakelawlor/PNWColors#palettes
+  scale_fill_manual(values = pnw_palette("Sailboat", n=6)) +
+  
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -1687,10 +1707,11 @@ distributions %>%
   coord_cartesian(x = c(0, 2.5)) +
   facet_wrap(~dist, ncol = 1, scales = "free_y")
 
+noninvasive_priors
 # ggsave(width = 5.5,
 #        height = 5.5,
 #        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure7_priors_noninvasive.pdf")) # File name
+#                   "SFigure4_priors_noninvasive.pdf")) # File name
 
 ```
 
@@ -2114,7 +2135,8 @@ distributions =
 
 # Plot!
 
-distributions %>%
+invasive_priors = 
+  distributions %>%
   # make it tidy for ggplot
   pivot_longer(
     cols = c(everything()),
@@ -2141,7 +2163,10 @@ distributions %>%
                point_interval = median_qi, # Quantile interval 
                .width = c(0.95)) +
   geom_vline(xintercept = 1, linetype = 2, size = 0.6) +
-  scale_fill_npg()+
+  
+  # https://github.com/jakelawlor/PNWColors#palettes
+  scale_fill_manual(values = pnw_palette("Sailboat", n=6)) +
+  
   labs(
     x = "\nOdds Ratio",
     y = " "
@@ -2165,12 +2190,15 @@ distributions %>%
   coord_cartesian(x = c(0, 2.5)) +
   facet_wrap(~dist, ncol = 1, scales = "free_y")
 
+invasive_priors
+
 # ggsave(width = 5.5,
-#        height = 5.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure9_priors_invasive.pdf")) # File name
+#       height = 5.5,
+#       here("final_analyses", "output", "plots", "appendix", # File path
+#                  "SFigure5_priors_invasive.pdf")) # File name
 
 ```
+
 
 ### Posterior distributions
 
@@ -2491,3 +2519,183 @@ tfinal
 #                   "STable7_hdi_invasive.png"))
 
 ```
+
+```{r}
+not_using = samples_posteriors_not_using_death %>% 
+  mutate(subgroup = "Not using corticosteroids") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
+
+using = samples_posteriors_using_death %>% 
+  mutate(subgroup = "Using corticosteroids") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
+
+simple = samples_posteriors_simple_death %>% 
+  mutate(subgroup = "Simple oxygen only") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
+
+noninvasive = samples_posteriors_noninvasive_death %>% 
+  mutate(subgroup = "Non-invasive ventilation") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
+
+invasive = samples_posteriors_invasive_death %>% 
+  mutate(subgroup = "Invasive mechanical ventilation") %>% 
+  select(subgroup, `Underlying_Prior`, RD)
+
+altogether = bind_rows(not_using,
+          using,
+          simple,
+          noninvasive,
+          invasive)
+```
+
+```{r}
+p1 = altogether %>% 
+  filter(subgroup %in% c("Not using corticosteroids",
+                         "Using corticosteroids")) %>% 
+  # Define orders
+  mutate(subgroup =
+           factor(subgroup,
+                  levels = c("Not using corticosteroids",
+                             "Using corticosteroids")),
+         `Underlying_Prior` =
+           factor(`Underlying_Prior`,
+                  levels = c("Pessimistic",
+                             "Optimistic",
+                             "Skeptical",
+                             "Non-informative",
+                             "Evidence-based"
+                             )
+                  )
+         ) %>% 
+  # Plot!
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = RD*100, y = `Underlying_Prior`,
+    fill = subgroup,
+    # https://github.com/mjskay/ggdist/issues/71
+    fill_ramp = stat(x > 0))
+  ) +
+  
+   geom_vline(xintercept = seq(-12.5, 12.5, 2.5), linetype = 1, size = 0.3,
+             color = "gray80") +
+   geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+   # https://mjskay.github.io/ggdist/articles/slabinterval.html
+    stat_halfeye(position = "dodge",
+                 point_interval = median_hdi, # Highest density interval
+                 .width = 0.95,
+               # https://github.com/mjskay/ggdist/issues/70
+               interval_size_range = c(0.4,1)
+  ) +
+  scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
+  scale_fill_manual(values = c("#BB63A8", # Not using
+                               "#66B5B9")) + # Using
+  labs(x = "\nRisk Difference (%)",
+       y = "Underlying Prior\n"
+  ) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 40, 20)
+  ) +
+  scale_x_continuous(breaks = seq(from = -10, to = 10, 2.5))  +
+  coord_cartesian(xlim = c(-12.5, 12.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  facet_wrap(~ subgroup, ncol = 1)
+```
+
+```{r}
+p2 = altogether %>% 
+  filter(subgroup %in% c("Simple oxygen only",
+                         "Non-invasive ventilation",
+                         "Invasive mechanical ventilation")) %>% 
+  # Define orders
+  mutate(subgroup =
+           factor(subgroup,
+                  levels = c("Simple oxygen only",
+                             "Non-invasive ventilation",
+                             "Invasive mechanical ventilation")),
+         `Underlying_Prior` =
+           factor(`Underlying_Prior`,
+                  levels = c("Pessimistic",
+                             "Optimistic",
+                             "Skeptical",
+                             "Non-informative",
+                             "Evidence-based"
+                             )
+                  )
+         ) %>% 
+  # Plot!
+  ggplot(aes(
+    # Multiply by 100 to report in percentage
+    x = RD*100, y = `Underlying_Prior`,
+    fill = subgroup,
+    # https://github.com/mjskay/ggdist/issues/71
+    fill_ramp = stat(x > 0))
+  ) +
+  
+   geom_vline(xintercept = seq(-12.5, 12.5, 2.5), linetype = 1, size = 0.3,
+             color = "gray80") +
+  geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+    stat_halfeye(position = "dodge",
+                 point_interval = median_hdi, # Highest density interval
+                 .width = c(0.94999, 0.95),
+               # https://github.com/mjskay/ggdist/issues/70
+               interval_size_range = c(0.4,1)
+  ) +
+  scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
+  scale_fill_manual(values = c("#EECE9C", # Simple oxygen
+                               "#DE8588", # Non-invasive
+                               "#5A53A0") # Invasive 
+                    ) + 
+  labs(x = "\nRisk Difference (%)",
+       y = " "
+  ) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 13.5),
+    axis.text.y = element_text(size = 12),
+    axis.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = "none",
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 25, 40, 20)
+  ) +
+  scale_x_continuous(breaks = seq(from = -10, to = 10, 2.5))  +
+  coord_cartesian(xlim = c(-12.5, 12.5)) +
+  scale_y_discrete(expand = c(0, 0.3)) +
+  facet_wrap(~ subgroup, ncol = 1)
+```
+
+
+
+# Summary
+
+## Priors
+
+```{r, fig.width = 12, fig.height=13}
+(not_using_priors + using_priors) /
+  (simple_priors + noninvasive_priors + invasive_priors) +
+  plot_annotation(tag_levels = "A")
+
+# ggsave(width = 12,
+#        height = 13,
+#        here("final_analyses", "output", "plots", "appendix", # File path
+#                   "SFigure1_priors_sensitivity.pdf")) # File name
+```
+

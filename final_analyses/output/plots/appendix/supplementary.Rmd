@@ -2,8 +2,18 @@
 title: "Supplementary Material"
 author: "Arthur M. Albuquerque"
 date: '`r format(Sys.Date(), "%B %d, %Y")`'
-output:
-  pdf_document: default
+output: 
+  pdf_document:
+    highlight: tango
+    number_sections: no
+    toc: yes
+    toc_depth: 3
+    keep_tex: TRUE
+    includes:
+      in_header: preamble.tex
+geometry: margin=1in
+header-includes:
+   - \usepackage{tikz}
 ---
 
 ```{r setup, include=FALSE}
@@ -11,14 +21,545 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r message=FALSE, warning=FALSE}
-library(here)
+# Load packages
+
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(here, # file paths
+               rio, # To import data
+               tidyverse, # Data wrangling
+               kableExtra, # Tables
+               metagear # PRISMA plot
+)
+```
+
+# Data extraction
+
+```{r}
+d = import(here("final_analyses", "data", "data_extraction_notes.xls"))
+
+d = d %>% 
+  mutate(subgroup = factor(subgroup,
+                           levels = c("Not using corticosteroids",
+                                      "Using corticosteroids",
+                                      "Simple oxygen only",
+                                      "Non-invasive ventilation",
+                                      "Invasive mechanical ventilation",
+                                      "Use of corticosteroids",
+                                      "Respiratory support"
+                                      )),
+         study = factor(study,
+                        levels = c("RECOVERY",
+                                   "COVACTA",
+                                   "REMAP-CAP",
+                                   "CORIMUNO-19",
+                                   "Salvarini",
+                                   "TOCIBRAS",
+                                   "Stone",
+                                   "EMPACTA",
+                                   "COVINTOC")))
+
+```
+
+In this section, we will elaborate the details underlying our data extraction 
+process. 
+
+We pre-registered our protocol in the OpenScienceFramework
+(<https://osf.io/cytq8/>). In brief, we extracted summary data from randomized
+controlled trials (RCT) included in a living systematic review on Cochrane. We
+accessed each individual RCT manuscript to extract data. We
+contacted the authors by e-mail to obtain relevant data not available in the
+manuscript. However, we did not have success to obtain any extra information by 
+e-mail.
+
+The tables below show what studies were included and excluded. We will also
+show the direct source (Figure/Table) of the extracted data in each RCT. Lastly,
+we show relevant notes about details from each study and why we did not extract data
+from certain RCTs that were included in the living systematic.
+
+The diagram below show the workflow regarding studies that were used to create prior distributions.
+
+```{r fig.align='center', fig.height=7, fig.width=10, out.width='0.7\\linewidth'}
+  phases = c("START_PHASE: 7 studies identified from the living systematic review",
+              "START_PHASE: 1 additional study identified in RECOVERY's manuscript",
+              "8 studies with title and abstract screened",
+              "EXCLUDE_PHASE: 0 studies excluded",
+              "8 full-text articles assessed for eligibility",
+              "EXCLUDE_PHASE: 0 full-text articles excluded, not fitting eligibility # criteria",
+            "8 of studies included in qualitative synthesis",
+            "EXCLUDE_PHASE: 4 studies excluded, incomplete data reported",
+            "4 of studies included in quantitative synthesis (Prior distributions)")
+ thePlot = plot_PRISMA(phases)
+
 ```
 
 \newpage
 
-# Mortality outcome
 
-# Supplementary Table 1
+```{r}
+d %>% 
+  filter(action == "included",
+         outcome == "Mortality") %>% 
+  arrange(subgroup,study) %>% 
+  select(-action, -outcome, -subgroup) %>% 
+  rename("Study" = study,
+         "Source" = source,
+         "Notes" = notes) %>% 
+  kbl(booktabs = T,
+      align = 'c',
+      caption = "Included studies for the mortality outcome") %>% 
+  kable_styling(latex_options = c("striped")) %>%
+  column_spec(1, width = "18em") %>%
+  column_spec(2, width = "6em") %>%
+  column_spec(3, width = "40em") %>% 
+  pack_rows("Invasive mechanical ventilation", 14, 16) %>% 
+  pack_rows("Non-invasive ventilation", 10, 13) %>% 
+  pack_rows("Simple oxygen only", 7, 9) %>% 
+  pack_rows("Using corticosteroids", 4, 6) %>% 
+  pack_rows("Not using corticosteroids", 1, 3) %>% 
+  landscape() 
+
+```
+
+```{r}
+d %>% 
+  filter(action == "included",
+         outcome == "Hospital discharge") %>% 
+  arrange(subgroup,study) %>% 
+  select(-action, -outcome, -subgroup) %>% 
+  rename("Study" = study,
+         "Source" = source,
+         "Notes" = notes) %>% 
+  kbl(booktabs = T,
+      align = 'c',
+      caption = "Included studies for the hospital discharge outcome") %>% 
+  kable_styling(latex_options = c("striped")) %>%
+  column_spec(1, width = "18em") %>%
+  column_spec(2, width = "6em") %>%
+  column_spec(3, width = "40em") %>% 
+  pack_rows("Invasive mechanical ventilation", 11, 12) %>% 
+  pack_rows("Non-invasive ventilation", 8, 10) %>% 
+  pack_rows("Simple oxygen only", 5, 7) %>% 
+  pack_rows("Using corticosteroids", 3, 4) %>% 
+  pack_rows("Not using corticosteroids", 1, 2)%>% 
+  landscape()
+```
+
+```{r}
+d %>% 
+  filter(action == "excluded",
+         outcome == "Mortality") %>% 
+  arrange(subgroup,study) %>% 
+  select(study, notes) %>% 
+  rename("Study" = study,
+         "Notes" = notes) %>% 
+  kbl(booktabs = T,
+      caption = "Excluded studies for the mortality outcome") %>% 
+  kable_styling(latex_options = c("striped")) %>%
+  column_spec(1, width = "18em") %>%
+  column_spec(2, width = "20em") %>%
+  pack_rows("Respiratory support subgroups", 5, 8) %>% 
+  pack_rows("Use of corticosteroids subgroups", 1, 4) %>% 
+  landscape()
+```
+
+```{r}
+d %>% 
+  filter(action == "excluded",
+         outcome == "Hospital discharge") %>% 
+  arrange(subgroup,study) %>% 
+  select(study, notes) %>% 
+  rename("Study" = study,
+         "Notes" = notes) %>% 
+  kbl(booktabs = T,
+      caption = "Excluded studies for the hospital discharge outcome") %>% 
+  kable_styling(latex_options = c("striped")) %>%
+  column_spec(1, width = "18em") %>%
+  column_spec(2, width = "20em") %>% 
+  pack_rows("Respiratory support subgroups", 6, 10) %>% 
+  pack_rows("Use of corticosteroids subgroups", 1, 5) %>% 
+  landscape()
+```
+
+\newpage
+
+As mentioned in the tables above, we will now discuss further details about data
+on the use of corticosteroids subgroups from REMAP-CAP. 
+
+The relevant data from these subgroups are shown in Figure 9 in their supplementary
+material.
+Unfortunately, the authors do not provide the raw number of events per subgroup.
+Instead, the data is displayed visually in stacked bars. Thus, we used the [{juicr} package](https://cran.r-project.org/web/packages/juicr/index.html) to extract
+data directly from Figure 9. The raw data and extraction report generated by
+{juicr} can be found in this project's
+[GitHub repository](https://github.com/arthur-albuquerque/tocilizumab_reanalysis/tree/master/final_analyses/data).
+
+Of note, REMAP-CAP was a three-arm randomized controlled trial that tested
+tocilizumab and sarilumab (both are IL-6 antagonists) vs. usual care. The authors
+only provided pooled data from these IL-6 antagonists vs. usual care in
+Figure 9. Thus, we decided to perform sensitivity analyses with this data to
+dampen the influence of sarilumab in final results.
+
+We created evidence-based priors for these subgroups using data from
+REMAP-CAP with different weights: 100%, 75% and 50%. This approach implies that 
+the numbers of events and sample sizes from REMAP-CAP were
+multiplied by 1, 0.75 or 0.5, respectively. 
+
+As mentioned in the Methods section, we pooled data from similar studies with
+a random-effect meta-analysis using a restricted maximum-likelihood estimator
+to create evidence-based priors. We will now display evidence-based prior
+distributions for both "Not using corticosteroids" and "Using corticosteroids"
+subgroups that were generated with different weights on REMAP-CAP. Top
+panels regards "Not using corticosteroids" and the bottom panels "Using
+corticosteroids". We show these distributions in both log-odds ratio and odds
+ratio scales to ease interpretation.
+
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1.1\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "weight_remap_cap_corticosteroids.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Point estimates depict the median and interval bars depict the 95% highest
+density interval.
+
+Because prior distributions are notably similar regardless of the weight used,
+we have decided to only use the ones with 100% weight for our analyses.
+
+\newpage
+
+# Overall characteristics
+
+```{r message=FALSE, warning=FALSE}
+d1 = import(here("final_analyses", "data", "characteristics_data-extraction-table.xlsx"))
+
+multiply100 = function(x){x*100}
+
+
+# First wrangling
+
+t = d1 %>% 
+  rename("Year" = year,
+         "Trial design" = blind,
+         "Follow-up period (days)" = length_mortality,
+         "Control treatment" = type_control) %>% 
+  # Transform fractions to integers
+  mutate(across(cortico_toci:invasive_control, ~multiply100(.))) %>% 
+  # REMAP-CAP actually reports "> 80%" for corticosteroids, so let's change it
+  mutate(cortico_toci = ifelse(cortico_toci == 80,"> 80",cortico_toci),
+         cortico_control = ifelse(cortico_control == 80,"> 80",cortico_control)) %>%
+  # REMAP-CAP actually reports "< 1%" for simple oxygen, so let's change it
+  mutate(simple_toci = ifelse(simple_toci == 1,"< 1",simple_toci),
+         simple_control = ifelse(simple_control == 1,"< 1",simple_control)) %>%
+  # Transform all columns into character to be able to use pivot_longer()
+  mutate_all(as.character) %>% 
+  # Re-order columns
+  select(trial, Year, "Trial design", "Follow-up period (days)", "Control treatment",
+         age_toci:total_control) %>%
+  pivot_longer(cols = Year:`Control treatment`,
+               values_to = "characteristic",
+               names_to = "columns") %>% 
+  # Re-order again
+  select(trial, columns, characteristic, age_toci:total_control)
+
+# Break in two separate tables
+# This half is all set
+first_half = t %>% 
+  select(trial:characteristic)
+
+# This second half needs some wrangling
+
+  
+control = 
+  t %>%
+  select(trial, age_toci:total_control) %>%
+  # remove repeated rows
+  distinct(trial, .keep_all = T) %>%
+  # Only control
+  select(trial, ends_with("control")) %>%
+  pivot_longer(age_control:last_col(),
+    names_to = "names_control",
+    values_to = "numbers_control"
+  ) %>%
+  separate(names_control,
+    into = c("names_control", "NA")
+  ) %>%
+  select(-"NA") %>%
+  # Rename
+  mutate(
+    names_control = case_when(
+      names_control == "total" ~ "Number of patients",
+      names_control == "age" ~ "Age",
+      names_control == "male" ~ "Male sex (%)",
+      names_control == "confirmed" ~ "Confirmed SARS-CoV-2 infection (%)",
+      names_control == "cortico" ~ "Use of corticosteroids (%)",
+      names_control == "simple" ~ "Simple oxygen only at randomisation (%)",
+      names_control == "non" ~ "Non-invasive ventilation at randomisation (%)",
+      names_control == "invasive" ~ "Invasive mechanical ventilation at randomisation (%)"
+    )
+  ) %>%
+  # Rename Age since there are two different types according to the trial
+  mutate(
+    names_control =
+      replace(
+        names_control,
+        names_control == "Age" &
+          trial %in% c("RECOVERY", "REMAP-CAP", "COVACTA"), "Age (SD)"
+      ),
+    names_control =
+      replace(
+        names_control,
+        names_control == "Age" &
+          trial %in% c("CORIMUNO-19", "Salvarini"), "Age (IQR)"
+      )
+  ) %>% 
+  
+  # Define orders
+  mutate(trial =
+           factor(trial,
+                  levels = c("RECOVERY",
+                             "COVACTA",
+                             "REMAP-CAP",
+                             "CORIMUNO-19",
+                             "Salvarini"))) %>% 
+  mutate(names_control =
+           factor(names_control,
+                  levels = c("Number of patients",
+                             "Age (SD)",
+                             "Age (IQR)",
+                             "Male sex (%)",
+                             "Confirmed SARS-CoV-2 infection (%)",
+                             "Use of corticosteroids (%)",
+                             "Simple oxygen only at randomisation (%)",
+                             "Non-invasive ventilation at randomisation (%)",
+                             "Invasive mechanical ventilation at randomisation (%)"
+                             )
+                  )
+         ) %>% 
+  arrange(trial, names_control)
+
+toci = 
+  t %>%
+  select(trial, age_toci:total_control) %>%
+  # remove repeated rows
+  distinct(trial, .keep_all = T) %>%
+  # Only toci
+  select(trial, ends_with("toci")) %>%
+  pivot_longer(age_toci:last_col(),
+               names_to = "names_toci",
+               values_to = "numbers_toci"
+  ) %>%
+  separate(names_toci,
+           into = c("names_toci", "NA")
+  ) %>%
+  select(-"NA") %>%
+  # Rename
+  mutate(
+    names_toci = case_when(
+      names_toci == "total" ~ "Number of patients",
+      names_toci == "age" ~ "Age",
+      names_toci == "male" ~ "Male sex (%)",
+      names_toci == "confirmed" ~ "Confirmed SARS-CoV-2 infection (%)",
+      names_toci == "cortico" ~ "Use of corticosteroids (%)",
+      names_toci == "simple" ~ "Simple oxygen only at randomisation (%)",
+      names_toci == "non" ~ "Non-invasive ventilation at randomisation (%)",
+      names_toci == "invasive" ~ "Invasive mechanical ventilation at randomisation (%)"
+    )
+  ) %>%
+  # Rename Age since there are two different types according to the trial
+  mutate(
+    names_toci =
+      replace(
+        names_toci,
+        names_toci == "Age" &
+          trial %in% c("RECOVERY", "REMAP-CAP", "COVACTA"), "Age (SD)"
+      ),
+    names_toci =
+      replace(
+        names_toci,
+        names_toci == "Age" &
+          trial %in% c("CORIMUNO-19", "Salvarini"), "Age (IQR)"
+      )
+  ) %>% 
+  # Define orders
+  mutate(trial =
+           factor(trial,
+                  levels = c("RECOVERY",
+                             "COVACTA",
+                             "REMAP-CAP",
+                             "CORIMUNO-19",
+                             "Salvarini"))) %>% 
+  mutate(names_toci =
+           factor(names_toci,
+                  levels = c("Number of patients",
+                             "Age (SD)",
+                             "Age (IQR)",
+                             "Male sex (%)",
+                             "Confirmed SARS-CoV-2 infection (%)",
+                             "Use of corticosteroids (%)",
+                             "Simple oxygen only at randomisation (%)",
+                             "Non-invasive ventilation at randomisation (%)",
+                             "Invasive mechanical ventilation at randomisation (%)"
+                             )
+                  )
+         ) %>% 
+  arrange(trial, names_toci)
+
+
+# Bind treetment columns
+    
+t_final = bind_cols(control %>% select(trial:numbers_control),
+          toci %>% select(numbers_toci)) %>% 
+  rename("Study Characteristic" = names_control,
+         "Control" = numbers_control,
+         "Tocilizumab" = numbers_toci) %>% 
+  arrange(trial, `Study Characteristic`)
+
+
+circles_mort =  tibble(
+  "Mortality" = c(
+    # RECOVERY
+    " ", " ", " ", " ",
+    "\\fillCircle", # Use of corticosteroids
+    "\\fillCircle", # Simple oxygen
+    "\\fillCircle", # Non-invasive
+    "\\fillCircle", # Invasive 
+    
+    # COVACTA
+    " ", " ", " ", " ",
+    "\\fillCircle", # Use of corticosteroids
+    "\\fillCircle", # Simple oxygen
+    "\\fillCircle", # Non-invasive
+    "\\fillCircle", # Invasive 
+    
+    # REMAP-CAP
+    " ", " ", " ", " ",
+    "\\fillCircle", # Use of corticosteroids
+    "\\emptyCircle",# Simple oxygen
+    "\\fillCircle", # Non-invasive
+    "\\fillCircle", # Invasive
+    
+    # CORIMUNO-19
+    " ", " ", " ", " ",
+    "\\emptyCircle", # Use of corticosteroids
+    "\\fillCircle",# Simple oxygen
+    "\\emptyCircle", # Non-invasive
+    "\\emptyCircle", # Invasive
+    
+    # Salvarini
+    " ", " ", " ", " ",
+    "\\emptyCircle", # Use of corticosteroids
+    "\\emptyCircle",# Simple oxygen
+    "\\fillCircle", # Non-invasive
+    "\\emptyCircle" # Invasive
+  ))
+
+circles_discharge = tibble(
+  "Hospital Discharge" = c(
+    
+    # RECOVERY
+    " ", " ", " ", " ",
+    "\\fillCircle", # Use of corticosteroids
+    "\\fillCircle", # Simple oxygen
+    "\\fillCircle", # Non-invasive
+    "\\fillCircle", # Invasive 
+    
+    # COVACTA
+    " ", " ", " ", " ",
+    "\\fillCircle", # Use of corticosteroids
+    "\\fillCircle", # Simple oxygen
+    "\\fillCircle", # Non-invasive
+    "\\fillCircle", # Invasive 
+    
+    # REMAP-CAP
+    " ", " ", " ", " ",
+    "\\emptyCircle", # Use of corticosteroids
+    "\\emptyCircle",# Simple oxygen
+    "\\emptyCircle", # Non-invasive
+    "\\emptyCircle", # Invasive
+    
+    # CORIMUNO-19
+    " ", " ", " ", " ",
+    "\\emptyCircle", # Use of corticosteroids
+    "\\fillCircle",# Simple oxygen
+    "\\emptyCircle", # Non-invasive
+    "\\emptyCircle", # Invasive
+    
+    # Salvarini
+    " ", " ", " ", " ",
+    "\\emptyCircle", # Use of corticosteroids
+    "\\emptyCircle",# Simple oxygen
+    "\\fillCircle", # Non-invasive
+    "\\emptyCircle" # Invasive
+)
+)
+
+circles = bind_cols(circles_mort, circles_discharge)
+  
+t_final = bind_cols(t_final, circles)
+
+
+```
+
+```{r}
+first_half %>% 
+   rename("Study Characteristic" = columns,
+         " " = characteristic) %>% 
+  mutate(trial = factor(trial, levels = c("RECOVERY",
+                             "COVACTA",
+                             "REMAP-CAP",
+                             "CORIMUNO-19",
+                             "Salvarini"))) %>% 
+  arrange(trial) %>% 
+  select(-trial) %>% 
+  kbl(caption = "Overall characteristics of included studies",
+      booktabs = T,
+      align = 'l') %>%
+  column_spec(1, width = "15em") %>%
+  kable_styling(latex_options = c("striped", "hold_position")) %>%
+  pack_rows("Salvarini", 17, 20) %>% 
+  pack_rows("CORIMUNO-19", 13, 16) %>% 
+  pack_rows("REMAP-CAP", 9, 12) %>% 
+  pack_rows("COVACTA", 5, 8) %>% 
+  pack_rows("RECOVERY", 1, 4)
+```
+
+```{r}
+t_final %>% 
+  select(-trial) %>% 
+  kbl(caption = "Patient characteristics of included studies",
+      escape = F,
+      booktabs = T) %>%
+  kable_styling(latex_options = c("striped")) %>%
+  add_header_above(c(" " = 1,
+                     "Interventions" = 2,
+                     "Outcomes" = 2)) %>% 
+  column_spec(1, width = "25em") %>%
+  column_spec(2, width = "4em") %>%
+  column_spec(3, width = "6.5em") %>%
+  column_spec(4, width = "3.5em") %>%
+  column_spec(5, width = "6em") %>%
+  pack_rows("Salvarini", 33, 40) %>% 
+  pack_rows("CORIMUNO", 25, 32) %>% 
+  pack_rows("REMAP-CAP", 17, 24) %>% 
+  pack_rows("COVACTA", 9, 16) %>% 
+  pack_rows("RECOVERY", 1, 8)
+  
+```
+
+\newpage
+
+# Results: Mortality outcome
+
+## Prior, RECOVERY, and Posterior distributions
+
+### Supplementary Table 1
 
 ```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth', fig.height=5}
 path = (here("final_analyses", "output",
@@ -33,7 +574,9 @@ distributions. This table complements Figure 1.
 
 \newpage
 
-# Supplementary Table 2
+## Posterior probabilities using evidence-based priors
+
+### Supplementary Table 2
 
 ```{r, echo = FALSE, message=FALSE, fig.align='center',out.width='0.9\\linewidth'}
 path = (here("final_analyses", "output",
@@ -48,319 +591,138 @@ This table complements Figure 2.
 
 \newpage
 
-# Supplementary Figure 1
+## Sensitivity analyses using different priors
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
+### Supplementary Figure 1
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.95\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure1_priors_not_using.pdf")) # File name
+                                 "SFigure1_priors_sensitivity.pdf")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-Prior distributions of sensitivity analyses regarding patients not using 
-corticosteroids. Point estimates depict the median and interval bars depict
+Prior distributions for each subgroup.
+
+Panel A shows results for patients not using corticosteroids; Panel B shows
+results for patients using corticosteroids. 
+
+Panel C shows results for simple oxygen only; Panel D shows results for
+non-invasive ventilation; Panel E shows results for invasive mechanical
+ventilation.
+
+Point estimates depict the median and interval bars depict
 95th quantile intervals.
 
-\newpage
+### Supplementary Table 3
 
-# Supplementary Figure 2
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.5\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure2_posteriors_not_using.pdf")) # File name
+                                 "STable3_hdi_figure3.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-
-Posteriors distributions from sensitivity analyses regarding patients not using 
-corticosteroids. Point estimates depict the median and interval bars depict
-80% and 95% highest density intervals.
+Median and 95% highest density intervals of posteriors distributions from
+sensitivity analyses with different priors. This table complements Figure 3.
 
 
-# Supplementary Table 3
+### Supplementary Table 4
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable3_hdi_probabilities_not_using.png")) # File name
+                                 "STable4_probabilities_figure3.png")) # File name
 
 knitr::include_graphics(path) 
 ```
 
-HDI: Highest density interval
-
-Posteriors distributions and probabilities from sensitivity analyses regarding patients not using 
-corticosteroids. This table complements Supplementary Figure 2.
-
-# Supplementary Figure 3
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure3_priors_using.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-Prior distributions of sensitivity analyses regarding patients using 
-corticosteroids. Point estimates depict the median and interval bars depict
-95th quantile intervals.
+Posterior probabilities from sensitivity analyses using different priors.
+This table complements Figure 3.
 
 \newpage
 
-# Supplementary Figure 4
+## Sensitivity analyses using different baseline risks
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+### Supplementary Figure 2
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.7\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure4_posteriors_using.pdf")) # File name
-
+                                 "SFigure2_varying_baseline_risk_difference.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
+Posterior distributions from sensitivity analyses using multiple different
+baseline risks.
 
-Posteriors distributions from sensitivity analyses regarding patients using 
-corticosteroids. Point estimates depict the median and interval bars depict
-80% and 95% highest density intervals.
+Each line represents posterior distribution for the corresponding baseline risk.
+Horizontal black dashed lines represent the respective baseline risk underlying
+other analyses (Figure 2), i.e., risk in the control group in the RECOVERY trial
+for each subgroup (Table 1). Vertical red dashed line represent 0% risk
+difference. Point estimates depict the median and interval bars depict 95%
+highest density intervals.
 
-
-# Supplementary Table 4
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable4_hdi_probabilities_using.png")) # File name
-
-knitr::include_graphics(path) 
-```
-
-HDI: Highest density interval
-
-Posteriors distributions and probabilities from sensitivity analyses regarding patients not using 
-corticosteroids. This table complements Supplementary Figure 4.
-
-# Supplementary Figure 5
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure5_priors_simple.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-Prior distributions of sensitivity analyses regarding patients on simple oxygen
-only. Point estimates depict the median and interval bars depict
-95th quantile intervals.
+Panel A shows results for patients not using corticosteroids; Panel B shows
+results for patients using corticosteroids. Panel C shows results for simple
+oxygen only; Panel D shows results for non-invasive ventilation; Panel E shows
+results for invasive mechanical ventilation.
 
 \newpage
 
-# Supplementary Figure 6
+# Results: Hospital discharge outcome
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure6_posteriors_simple.pdf")) # File name
+## RECOVERY and Priors: Number of events and sample size 
 
-knitr::include_graphics(path) 
-```
-
-
-Posteriors distributions from sensitivity analyses regarding patients on simple
-oxygen only. Point estimates depict the median and interval bars depict
-80% and 95% highest density intervals.
-
-
-# Supplementary Table 5
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable5_hdi_probabilities_simple.png")) # File name
-
-knitr::include_graphics(path) 
-```
-
-HDI: Highest density interval
-
-Posteriors distributions and probabilities from sensitivity analyses regarding
-patients on simple oxygen only. This table complements Supplementary Figure 6.
-
-# Supplementary Figure 7
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure7_priors_noninvasive.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-Prior distributions of sensitivity analyses regarding patients on non-invasive
-ventilation. Point estimates depict the median and interval bars depict 95th
-quantile intervals.
-
-\newpage
-
-# Supplementary Figure 8
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure8_posteriors_noninvasive.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-
-Posteriors distributions from sensitivity analyses regarding patients on
-non-invasive ventilation. Point estimates depict the median and interval bars
-depict 80% and 95% highest density intervals.
-
-
-# Supplementary Table 6
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable6_hdi_probabilities_noninvasive.png")) # File name
-
-knitr::include_graphics(path) 
-```
-
-HDI: Highest density interval
-
-Posteriors distributions and probabilities from sensitivity analyses regarding
-patients on non-invasive ventilation. This table complements Supplementary
-Figure 8.
-
-# Supplementary Figure 9
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure9_priors_invasive.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-Prior distributions of sensitivity analyses regarding patients on invasive
-mechanical  ventilation. Point estimates depict the median and interval bars
-depict 95th quantile intervals.
-
-\newpage
-
-
-# Supplementary Table 7
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable7_hdi_invasive.png")) # File name
-
-knitr::include_graphics(path) 
-```
-
-HDI: Highest density interval
-
-Posteriors distributions from sensitivity analyses regarding
-patients on invasive mechanical ventilation. This table complements
-Figure 3.
-
-\newpage
-
-# Supplementary Figure 10
+### Supplementary Table 5
 
 ```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure10_varying_baseline_risk_difference_corticosteroids.pdf")) # File name
+                                 "STable5_discharge_table1.png")) # File name
 knitr::include_graphics(path) 
 ```
-
-Sensitivity analyses using multiple different baseline risks for subgroups on
-the use of corticosteroids. Each line represents the posterior distribution for
-the corresponding baseline risk. Point estimates depict the median and interval
-bars depict 80% and 95% highest density intervals.
-
-# Supplementary Figure 11
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure11_varying_baseline_risk_difference_respiratory.pdf")) # File name
-knitr::include_graphics(path) 
-```
-
-Sensitivity analyses using multiple different baseline risks for subgroups on
-respiratory support. Each line represents the posterior distribution for
-the corresponding baseline risk. Point estimates depict the median and interval
-bars depict 80% and 95% highest density intervals.
 
 \newpage
 
-# Supplementary Figure 12
+## Prior, RECOVERY, and Posterior distributions
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
+### Supplementary Figure 3
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1.1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure12_varying_baseline_probabilities_corticosteroids.pdf")) # File name
-knitr::include_graphics(path) 
-```
-
-Sensitivity analyses using multiple different baseline risks for subgroups
-on use of corticosteroids. Each line represents the posterior probability of
-benefit  for a specific cutoff, such as risk difference greater or equal to
-0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk
-(Table 1) used in other analyses. Panel A shows results for patients not using
-corticosteroids; Panel B shows results for patients using corticosteroids.
-
-\newpage
-
-# Hospital discharge outcome
-
-# Supplementary Table 8
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable8_discharge_table1.png")) # File name
-knitr::include_graphics(path) 
-```
-
-# Supplementary Figure 13
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure13_discharge_figure1.pdf")) # File name
+                                 "SFigure3_discharge_figure1.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
 Point estimates depict the median and interval bars depict 95% highest density
 intervals.
 
-# Supplementary Table 9
+### Supplementary Table 6
 
 ```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.6\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "STable9_HDI_intervals_figureS13.png")) # File name
+                                 "STable6_discharge_HDI_intervals_figureS3.png")) # File name
 knitr::include_graphics(path) 
 ```
 
 95% highest density intervals of evidence-based prior, RECOVERY, and posterior
-distributions. This table complements Supplementary Figure 13.
+distributions. This table complements Supplementary Figure 3.
 
-# Supplementary Figure 14
+\newpage
+
+## Posterior distribution and probabilities using evidence-based priors
+
+### Supplementary Figure 4
 
 ```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure14_discharge_figure2.pdf")) # File name
+                                 "SFigure4_discharge_figure2.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
@@ -370,221 +732,133 @@ distributions correspond to the probabilities that the risk difference (RD)
 is lower than or equal to the effect size on the X‐axis. The colors in Panels
 B and D match the ones used in Panels A and C.
 
-# Supplementary Figure 15
+\newpage
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
+## Sensitivity analyses using different priors
+
+### Supplementary Figure 5
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.95\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure15_discharge_posteriors_not_using.pdf")) # File name
+                                 "SFigure5_discharge_priors_sensitivity.pdf")) # File name
 
 knitr::include_graphics(path) 
 ```
 
+Prior distributions for each subgroup.
 
-Posteriors distributions from sensitivity analyses regarding patients not using 
-corticosteroids. Point estimates depict the median and interval bars depict
-80% and 95% highest density intervals.
+Panel A shows results for patients not using corticosteroids; Panel B shows
+results for patients using corticosteroids. 
 
+Panel C shows results for simple oxygen only; Panel D shows results for
+non-invasive ventilation; Panel E shows results for invasive mechanical
+ventilation.
 
-# Supplementary Table 10
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable10_discharge_hdi_probabilities_not_using.png")) # File name
-
-knitr::include_graphics(path) 
-```
-
-HDI: Highest density interval
-
-Posteriors distributions and probabilities from sensitivity analyses regarding
-patients not using corticosteroids. This table complements Supplementary Figure 15.
-
-# Supplementary Figure 16
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure16_discharge_posteriors_using.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-
-Posteriors distributions from sensitivity analyses regarding patients using 
-corticosteroids. Point estimates depict the median and interval bars depict
-80% and 95% highest density intervals.
-
-
-# Supplementary Table 11
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable11_discharge_hdi_probabilities_using.png")) # File name
-
-knitr::include_graphics(path) 
-```
-
-HDI: Highest density interval
-
-Posteriors distributions and probabilities from sensitivity analyses regarding
-patients using corticosteroids. This table complements Supplementary Figure 16.
-
-# Supplementary Figure 17
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure17_discharge_posteriors_simple.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-
-Posteriors distributions from sensitivity analyses regarding patients on simple
-oxygen only. Point estimates depict the median and interval bars depict
-80% and 95% highest density intervals.
-
-
-# Supplementary Table 12
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable12_discharge_hdi_probabilities_simple.png")) # File name
-
-knitr::include_graphics(path) 
-```
-
-HDI: Highest density interval
-
-Posteriors distributions and probabilities from sensitivity analyses regarding
-patients on simple oxygen only. This table complements Supplementary Figure 17.
-
-# Supplementary Figure 18
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure18_discharge_posteriors_noninvasive.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-
-Posteriors distributions from sensitivity analyses regarding patients on
-non-invasive ventilation. Point estimates depict the median and interval bars depict
-80% and 95% highest density intervals.
-
-
-# Supplementary Table 13
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable13_discharge_hdi_probabilities_noninvasive.png")) # File name
-
-knitr::include_graphics(path) 
-```
-
-HDI: Highest density interval
-
-Posteriors distributions and probabilities from sensitivity analyses regarding
-patients on non-invasive ventilation. This table complements Supplementary Figure 18.
-
-# Supplementary Figure 19
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.75\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure19_discharge_posteriors_invasive.pdf")) # File name
-
-knitr::include_graphics(path) 
-```
-
-
-Posteriors distributions from sensitivity analyses regarding patients on
-invasive mechanical ventilation. Point estimates depict the median and
-interval bars depict 80% and 95% highest density intervals.
-
-
-# Supplementary Table 14
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "STable14_discharge_hdi_probabilities_invasive.png")) # File name
-
-knitr::include_graphics(path) 
-```
-
-HDI: Highest density interval
-
-Posteriors distributions and probabilities from sensitivity analyses regarding
-patients on invasive mechanical ventilation. This table complements
-Supplementary Figure 19.
-
-# Supplementary Figure 20
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure20_discharge_varying_baseline_risk_difference_corticosteroids.pdf")) # File name
-knitr::include_graphics(path) 
-```
-
-Sensitivity analyses using multiple different baseline risks for subgroups on
-the use of corticosteroids. Each line represents the posterior distribution for
-the corresponding baseline risk. Point estimates depict the median and interval
-bars depict 80% and 95% highest density intervals.
-
-# Supplementary Figure 21
-
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.9\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure21_discharge_varying_baseline_risk_difference_respiratory.pdf")) # File name
-knitr::include_graphics(path) 
-```
-
-Sensitivity analyses using multiple different baseline risks for subgroups on
-respiratory support. Each line represents the posterior distribution for
-the corresponding baseline risk. Point estimates depict the median and interval
-bars depict 80% and 95% highest density intervals.
+Point estimates depict the median and interval bars depict
+95th quantile intervals.
 
 \newpage
 
-# Supplementary Figure 22
+### Supplementary Figure 6
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1.1\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure6_discharge_figure3.pdf")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posterior distributions from sensitivity analyses using different priors.
+
+Point estimates depict the median. Interval bars depict the 95% highest density
+intervals.
+
+\newpage
+
+### Supplementary Table 7
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.5\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable7_discharge_hdi_figure3.png")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Median and 95% highest density intervals of posteriors distributions from
+sensitivity analyses with different priors. This table complements 
+Supplementary Figure 6.
+
+\newpage
+
+### Supplementary Table 8
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.8\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "STable8_discharge_probabilities_figure3.png")) # File name
+
+knitr::include_graphics(path) 
+```
+
+Posterior probabilities from sensitivity analyses using different priors.
+This table complements Supplementary Figure 6.
+
+\newpage
+
+## Sensitivity analyses using different baseline risks: Use of corticosteroids
+
+### Supplementary Figure 7
+
+```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='0.7\\linewidth'}
+path = (here("final_analyses", "output",
+                                 "plots", "appendix", # File path
+                                 "SFigure7_discharge_varying_baseline_risk_difference.pdf")) # File name
+knitr::include_graphics(path) 
+```
+
+Posterior distributions from sensitivity analyses using multiple different
+baseline risks.
+
+Each line represents posterior distribution for the corresponding baseline risk.
+Horizontal black dashed lines represent the respective baseline risk underlying
+other analyses (Supplementary Figure 4), i.e., risk in the control group in the
+RECOVERY trial for each subgroup (Supplementary Table 5). Vertical red dashed
+line represent 0% risk difference. Point estimates depict the median and
+interval bars depict 95% highest density intervals.
+
+Panel A shows results for patients not using corticosteroids; Panel B shows
+results for patients using corticosteroids. Panel C shows results for simple
+oxygen only; Panel D shows results for non-invasive ventilation; Panel E shows
+results for invasive mechanical ventilation.
+
+\newpage
+
+### Supplementary Figure 8
 
 ```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
 path = (here("final_analyses", "output",
                                  "plots", "appendix", # File path
-                                 "SFigure22_discharge_varying_baseline_probabilities_corticosteroids.pdf")) # File name
+                                 "SFigure8_discharge_figure4.pdf")) # File name
 knitr::include_graphics(path) 
 ```
 
-Sensitivity analyses using multiple different baseline risks for subgroups
-on use of corticosteroids. Each line represents the posterior probability of
-benefit  for a specific cutoff, such as risk difference greater or equal to
-0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk
-(Table 1) used in other analyses. Panel A shows results for patients not using
-corticosteroids; Panel B shows results for patients using corticosteroids.
+Posterior probabilities from sensitivity analyses using multiple different
+baseline risks.
 
-# Supplementary Figure 23
+Each line represents the posterior probability of benefit for a specific cutoff,
+such as risk difference lower to 0%, 1%, 2% and 5%. Vertical black
+dashed lines represent the respective baseline risk underlying other analyses
+(Supplementary Figure 4), i.e., risk in the control group in the RECOVERY trial for each
+subgroup (Supplementary Table 5).
 
-```{r, echo = FALSE, message=FALSE, fig.align='center', out.width='1\\linewidth'}
-path = (here("final_analyses", "output",
-                                 "plots", "appendix", # File path
-                                 "SFigure23_discharge_varying_baseline_probabilities_respiratory.pdf")) # File name
-knitr::include_graphics(path) 
-```
+Panel A shows results for patients not using corticosteroids; Panel B shows
+results for patients using corticosteroids. Panel C shows results for simple
+oxygen only; Panel D shows results for non-invasive ventilation; Panel E shows
+results for invasive mechanical ventilation.
 
-Sensitivity analyses using multiple different baseline risks for subgroups
-on respiratory support. Each line represents the posterior probability of
-benefit  for a specific cutoff, such as risk difference greater or equal to
-0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk
-(Table 1) used in other analyses. Panel A shows results for simple oxygen only;
-Panel B shows results for non-invasive ventilation; Panel C shows results for
-invasive mechanical ventilation.
+
+
+

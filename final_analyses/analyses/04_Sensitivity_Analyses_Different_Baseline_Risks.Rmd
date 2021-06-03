@@ -32,7 +32,7 @@ pacman::p_load(rio, # To import data
                Cairo, # To export PDF files
                ggdist, # To plot distributions
                tidytable, # To work with data frames + tidyverse synthax (fast)
-               ggsci # Color palletes
+               PNWColors # Color palletes
                )
 ```
 
@@ -453,8 +453,7 @@ tibble(
 ```
 
 ```{r}
-plot_baseline_risks = function(data, # Data Object
-                               title_text # Title (within quotes)
+plot_baseline_risks = function(data # Data Object
                                ){
 # Note the "." in each function. This is from {tidytable}
 t1 = data %>% 
@@ -480,12 +479,12 @@ t1 = data %>%
   # Plot!
   t1 %>% 
   ggplot(aes(x = 100*Risk_difference, y = BR))+
+  geom_hline(yintercept = 21, linetype = 2)+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
-                     .width = c(0.8, 0.95)) +
+                     .width = 0.95) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
   labs(x = "Risk Difference (%)",
-       y = "Baseline Risk (%) \n",
-       title = title_text) +
+       y = "Baseline Risk (%) \n") +
     
   theme(plot.title.position = 'plot',
       axis.title.x = element_text(size = 12),
@@ -496,9 +495,10 @@ t1 = data %>%
       axis.ticks.y = element_blank(),
       panel.background = element_blank(),
       panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-      panel.grid.major.y = element_line(color = "gray80", size = 0.3)) +
-    scale_x_continuous(breaks = seq(-16, 16, 4))+
-    coord_cartesian(x = c(-16,16))
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+      plot.margin = margin(20, 20, 20, 20)) +
+    scale_x_continuous(breaks = seq(-12, 12, 4))+
+    coord_cartesian(x = c(-12,12))
   
 }
 ```
@@ -507,13 +507,14 @@ Now, let's plot the posterior distributions for all subgroups using 40 different
 baseline risks
 
 ```{r}
-p1 = plot_baseline_risks(multiple_baseline_risks_not_using_death,
-                         "Not using corticosteroids")
+p1 = plot_baseline_risks(multiple_baseline_risks_not_using_death) +
+  scale_y_discrete(breaks = c(15, 35, 55))
 ```
 
 ```{r}
-p2 = plot_baseline_risks(multiple_baseline_risks_using_death,
-                         "Using corticosteroids")
+p2 = plot_baseline_risks(multiple_baseline_risks_using_death) +
+  labs(y = " ") +
+  scale_y_discrete(breaks = c(15, 35, 55))
 ```
 
 ```{r}
@@ -542,12 +543,12 @@ p3 = multiple_baseline_risks_simple_death %>%
   filter.(BR != "NA") %>%
   
   ggplot(aes(x = 100*Risk_difference, y = BR))+
+  geom_hline(yintercept = 21, linetype = 2)+
   stat_pointinterval(point_interval = median_hdi, # Highest density interval
-                     .width = c(0.8, 0.95)) +
+                     .width = 0.95) +
   geom_vline(xintercept = 0, linetype = 2, size = 1, color = "firebrick")+
   labs(x = "Risk Difference (%)",
-       y = "Baseline Risk (%) \n",
-       title = "Simple oxygen only") +
+       y = "Baseline Risk (%) \n") +
     
   theme(plot.title.position = 'plot',
       axis.title.x = element_text(size = 12),
@@ -558,44 +559,33 @@ p3 = multiple_baseline_risks_simple_death %>%
       axis.ticks.y = element_blank(),
       panel.background = element_blank(),
       panel.grid.major.x = element_line(color = "gray80", size = 0.3),
-      panel.grid.major.y = element_line(color = "gray80", size = 0.3)) +
-    scale_x_continuous(breaks = seq(-16, 16, 4))+
-    coord_cartesian(x = c(-16,16))
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+      plot.margin = margin(20, 20, 20, 20)) +
+    scale_x_continuous(breaks = seq(-12, 12, 4))+
+    coord_cartesian(x = c(-12,12)) +
+    scale_y_discrete(breaks = c(3, 23, 43))
 ```
 
 ```{r}
-p4 = plot_baseline_risks(multiple_baseline_risks_noninvasive_death,
-                         "Non-invasive ventilation")
+p4 = plot_baseline_risks(multiple_baseline_risks_noninvasive_death) +
+  labs(y = " ") +
+  scale_y_discrete(breaks = c(22, 42, 62))
 ```
 
 ```{r}
-p5 = plot_baseline_risks(multiple_baseline_risks_invasive_death,
-                         "Invasive mechanical ventilation")
+p5 = plot_baseline_risks(multiple_baseline_risks_invasive_death) +
+  labs(y = " ") + 
+  scale_y_discrete(breaks = c(31, 51, 71))
 ```
 
-```{r, fig.width = 10, fig.height=6.5}
-p1 + p2 
-```
+```{r, fig.width = 10, fig.height=13}
+(p1 + p2) / (p3 + p4 + p5) + plot_annotation(tag_levels = 'A')
 
-```{r}
 # ggsave(width = 10,
-#        height = 6.5,
+#        height = 13,
 #        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure10_varying_baseline_risk_difference_corticosteroids.pdf")) # # File name
+#                   "SFigure2_varying_baseline_risk_difference.pdf")) # # File name
 ```
-
-
-```{r, fig.width = 10, fig.height=6.5}
-p3 + p4 + p5
-```
-
-```{r}
-# ggsave(width = 10,
-#        height = 6.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure11_varying_baseline_risk_difference_respiratory.pdf")) # File # name
-```
-
 
 Now, we are going to calculate the probability of benefit for each baseline risk
 using different cutoffs for risk difference, such as greater than $0$, $1$, $2$,
@@ -751,6 +741,7 @@ fixed baseline risk used in the primary analyses for each subgroup
 (table above).
 
 ```{r}
+
 # Plot!
 
 p1 = benefit_not_using_death %>% 
@@ -761,7 +752,10 @@ p1 = benefit_not_using_death %>%
   ) %>%
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
   geom_line(aes(color = `Risk Difference`), size = 1.15) +
-  scale_color_nejm() +
+  
+  # https://github.com/jakelawlor/PNWColors#building-palettes
+  scale_color_manual(values= pnw_palette(name="Starfish",n=4)) +
+  
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_not_using_death[[21,1]]*100, linetype = 2) +
@@ -789,26 +783,29 @@ p1 = benefit_not_using_death %>%
   
 
 p2 = benefit_using_death %>%
-  rename("\u2265 0%" = Pr_0,
-         "\u2265 1%" = Pr_0.01,
-         "\u2265 2%" = Pr_0.02,
-         "\u2265 5%" = Pr_0.05) %>% 
+  rename("> 0%" = Pr_0,
+         "> 1%" = Pr_0.01,
+         "> 2%" = Pr_0.02,
+         "> 5%" = Pr_0.05) %>% 
   # Make it tidy for ggplot
   pivot_longer(
-    cols = "\u2265 0%":last_col(),
+    cols = "> 0%":last_col(),
     names_to = "Risk Difference", values_to = "Probabilities"
   ) %>%
   mutate(`Risk Difference` = factor(`Risk Difference`,
       levels = c(
-        "\u2265 0%",
-        "\u2265 1%",
-        "\u2265 2%",
-        "\u2265 5%"
+        "> 0%",
+        "> 1%",
+        "> 2%",
+        "> 5%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
   geom_line(aes(color = `Risk Difference`), size = 1.15)+
-  scale_color_nejm() +
+  
+  # https://github.com/jakelawlor/PNWColors#building-palettes
+  scale_color_manual(values= pnw_palette(name="Starfish",n=4)) +
+  
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_using_death[[21,1]]*100, linetype = 2) +
@@ -844,7 +841,10 @@ p3 = benefit_simple_death %>%
   ) %>%
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
   geom_line(aes(color = `Risk Difference`), size = 1.15) +
-  scale_color_nejm() +
+  
+  # https://github.com/jakelawlor/PNWColors#building-palettes
+  scale_color_manual(values= pnw_palette(name="Starfish",n=4)) +
+  
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_simple_death[[21,1]]*100, linetype = 2) +
@@ -879,7 +879,10 @@ p4 = benefit_noninvasive_death %>%
   ) %>%
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
   geom_line(aes(color = `Risk Difference`), size = 1.15) +
-  scale_color_nejm() +
+  
+  # https://github.com/jakelawlor/PNWColors#building-palettes
+  scale_color_manual(values= pnw_palette(name="Starfish",n=4)) +
+  
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_noninvasive_death[[21,1]]*100, linetype = 2) +
@@ -907,26 +910,29 @@ p4 = benefit_noninvasive_death %>%
         plot.margin = margin(10, 10, 10, 10))
 
 p5 = benefit_invasive_death %>% 
-  rename("\u2265 0%" = Pr_0,
-         "\u2265 1%" = Pr_0.01,
-         "\u2265 2%" = Pr_0.02,
-         "\u2265 5%" = Pr_0.05) %>%
+  rename("> 0%" = Pr_0,
+         "> 1%" = Pr_0.01,
+         "> 2%" = Pr_0.02,
+         "> 5%" = Pr_0.05) %>%
   # Make it tidy for ggplot
   pivot_longer(
-    cols = "\u2265 0%":last_col(),
+    cols = "> 0%":last_col(),
     names_to = "Risk Difference", values_to = "Probabilities"
   ) %>%
   mutate(`Risk Difference` = factor(`Risk Difference`,
       levels = c(
-        "\u2265 0%",
-        "\u2265 1%",
-        "\u2265 2%",
-        "\u2265 5%"
+        "> 0%",
+        "> 1%",
+        "> 2%",
+        "> 5%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
   geom_line(aes(color = `Risk Difference`), size = 1.15) +
-  scale_color_nejm() +
+  
+  # https://github.com/jakelawlor/PNWColors#building-palettes
+  scale_color_manual(values= pnw_palette(name="Starfish",n=4)) +
+  
   # Dashed line corresponding to the fixed baseline risk used in the primary
   # analyses
   geom_vline(xintercept = benefit_invasive_death[[21,1]]*100, linetype = 2) +
@@ -954,28 +960,19 @@ p5 = benefit_invasive_death %>%
         plot.margin = margin(10, 10, 10, 10))
 ```
 
-```{r, fig.align='center', fig.height=5, fig.width=8, fig.cap="Sensitivity analyses using multiple different baseline risks for subgroups on use of corticosteroids. Each line represents the posterior probability of benefit  for a specific cutoff, such as risk difference greater or equal to 0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk (Table 1) used in other analyses. Panel A shows results for patients not using corticosteroids; Panel B shows results for patients using corticosteroids."}
-p1 + p2 + plot_annotation(tag_levels = 'A')
+```{r, fig.width = 10, fig.height = 10, fig.cap = "Sensitivity analyses using multiple different baseline risks for subgroups on use of corticosteroids. Each line represents the posterior probability of benefit  for a specific cutoff, such as risk difference greater or equal to 0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk (Table 1) used in other analyses. Panel A shows results for patients not using corticosteroids; Panel B shows results for patients using corticosteroids. Panel C shows results for simple oxygen only; Panel D shows results for non-invasive ventilation; Panel E shows results for invasive mechanical ventilation."}
+(p1 + p2) / (p3 + p4 + p5) +
+  plot_annotation(tag_levels = 'A') +
+  plot_layout(guides = "collect") &
+  theme(legend.title = element_text(size = 13),
+        legend.text = element_text(size = 14))
 
-# ggsave(width = 8,
-#        height = 5,
-# #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
-#        device=cairo_pdf, 
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure12_varying_baseline_probabilities_corticosteroids.pdf")) # File name
-```
-
-
-```{r, fig.align='center', fig.height=5, fig.width=8, fig.cap="Sensitivity analyses using multiple different baseline risks for subgroups on respiratory support. Each line represents the posterior probability of benefit  for a specific cutoff, such as risk difference greater or equal to 0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk (Table 1) used in other analyses. Panel A shows results for simple oxygen only; Panel B shows results for non-invasive ventilation; Panel C shows results for invasive mechanical ventilation."}
-p3 + p4 + p5 + plot_annotation(tag_levels = 'A')
-
-# ggsave(width = 8,
-#        height = 5,
-# #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
-#        device=cairo_pdf, 
+# ggsave(width = 10,
+#        height = 10,
 #        here("final_analyses", "output", "plots", "manuscript", # File path
 #                   "figure4.pdf")) # File name
 ```
+
 
 ## Tables
 
