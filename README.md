@@ -12,14 +12,14 @@ OSF project: [https://osf.io/qhvcp/](https://osf.io/qhvcp/)
 Folders
 
 │── final_analyses          <- All project data and code to reproduce analyses in the article
-│   ├── analyses            <- RMarkdown files for all analysis
-│   ├── data                <- Raw data from the the extraction process
-|   ├── output              <- Modified data and final figures
-│       ├── data            <- Modified data files
-│           └── analyses       <- .RData files required to run .Rmd analysis files
-│       ├── plots           <- Intermediate visualizations and data for final figures
-│           ├── appendix       <- Figures and tables for the Supplementary Material
-│           ├── manuscript     <- Figures and tables for the article
+│   ├── analyses               <- RMarkdown files for all analysis
+│   ├── data                   <- Raw data from the the extraction process
+|   ├── output                 <- Modified data and final figures
+│       ├── data                  <- Modified data files
+│           └── analyses             <- .RData files required to run .Rmd analysis files
+│       ├── plots                 <- Intermediate visualizations and data for final figures
+│           ├── appendix             <- Figures and tables for the Supplementary Material
+│           ├── manuscript           <- Figures and tables for the article
 │   └── script              
 │       └── functions  
 │           └── analyses     <- Custom functions required to run .Rmd analysis files
