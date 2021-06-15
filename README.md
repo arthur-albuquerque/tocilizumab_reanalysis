@@ -47,14 +47,14 @@ Folders
  There were twelve .RData files that were too large (>50MB) to upload to GitHub. These files are essential to run these .Rmd scripts:
 
  - `/final_analyses/analyses/03_Figures_Draft.Rmd` 
- - `/final_analyses/analyses/04_Sensitivity_Analyses_Different_Baseline_Risks.Rmd`
- - `/final_analyses/analyses/05_Sensitivity_Analyses_Different_Priors.Rmd`
+ - `/final_analyses/analyses/04_Sensitivity_Analyses_Different_Priors.Rmd`
+ - `/final_analyses/analyses/05_Sensitivity_Analyses_Different_Baseline_Risks.Rmd`
  - `/final_analyses/analyses/07_Hospital_Discharge_Varying_Baseline_Risk.Rmd`
 
 We have uploaded these .RData files to [https://osf.io/veazj/](https://osf.io/veazj/). We then wrote code lines in these four .Rmd scripts to be able to load these .RData files directly from OSF without the need to save them into your computer. We used functions such as ``url()``,``gzcon()``, and ``readRDS()``, inspired by [this script](https://osf.io/73thx/) we found online.
 
 In general, the framework explained above works perfectly.
-Yet, we have experienced time-out issues while loading large files from OSF.
+Yet, it requires internet connection and we have experienced time-out issues while loading large files from OSF.
 Thus, if one prefers to load the files from your computer, we suggest to download
 these twelve .Rdata files from [https://osf.io/veazj/](https://osf.io/veazj/) and
 save them in the `/final_analyses/output/data/analyses` folder of this repository in your computer.
