@@ -44,14 +44,14 @@ Folders
 2. We used the R package [{renv}](https://rstudio.github.io/renv/) to make this R project as reproducible as possible. In summary, {renv} guarantees that all required R packages for this project are downloaded to your computer. Please check their ["Get Started" vignette](https://rstudio.github.io/renv/articles/renv.html) in case you would like to learn more about it.
 
 ## Notes
- There were twelve .RData files that were too large (>50MB) to upload to GitHub. These files are essential to run these .Rmd scripts:
+ There were twelve .RData/.rds files that were too large (>50MB) to upload to GitHub. These files are essential to run these .Rmd scripts:
 
  - `/final_analyses/analyses/03_Figures_Draft.Rmd` 
  - `/final_analyses/analyses/04_Sensitivity_Analyses_Different_Priors.Rmd`
  - `/final_analyses/analyses/05_Sensitivity_Analyses_Different_Baseline_Risks.Rmd`
  - `/final_analyses/analyses/07_Hospital_Discharge_Varying_Baseline_Risk.Rmd`
 
-We have uploaded these .RData files to [https://osf.io/veazj/](https://osf.io/veazj/). We then wrote code lines in these four .Rmd scripts to be able to load these .RData files directly from OSF without the need to save them into your computer. We used functions such as ``url()``,``gzcon()``, and ``readRDS()``, inspired by [this script](https://osf.io/73thx/) we found online.
+We have uploaded these .RData/.rds files to [https://osf.io/veazj/](https://osf.io/veazj/). We then wrote code lines in these four .Rmd scripts to be able to load these .RData/.rds files directly from OSF without the need to save them into your computer. We used functions such as ``url()``,``gzcon()``, and ``readRDS()``, inspired by [this script](https://osf.io/73thx/) we found online.
 
 The framework explained above works perfectly. Yet, it requires internet connection and we have experienced time-out issues while loading large files from OSF.
 Thus, if one prefers to load the files from your computer, we suggest to download
@@ -59,5 +59,5 @@ these twelve .Rdata files from [https://osf.io/veazj/](https://osf.io/veazj/) an
 save them in the `/final_analyses/output/data/analyses` folder of this repository in your computer.
 Lastly, one would have to alter the scripts to load the files from the computer, and not from OSF.
 
-In general, we suggest to stay with the framework which loads the .RData files from OSF.
+In general, we suggest to stay with the framework which loads the .RData/.rds files from OSF.
 
