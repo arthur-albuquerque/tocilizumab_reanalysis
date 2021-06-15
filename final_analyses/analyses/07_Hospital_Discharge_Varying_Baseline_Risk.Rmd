@@ -12,12 +12,9 @@ output:
 If you are interested in the code, you can select the "Show all code" option
 on the upper-right corner.
 
-In this document, we will show sensitivity analyses on the hospital discharge
-outcome. We will re-calculate the posterior distribution in risk difference while
-varying the baseline risk. Please check this document regarding the mortality
-outcome for further explanation.
+**In this document, we will show sensitivity analyses using different baseline risks on the hospital discharge outcome (Supplementary Figures 7 and 8)**.
 
-**Of note, for the hospital discharge outcome, negative risk differences mean benefit.**
+We will re-calculate the posterior distribution in risk difference while varying the baseline risk. Please check the 5th file from this folder on the mortality outcome for further explanation.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set()
@@ -55,6 +52,10 @@ pacman::p_load(rio, # To import data
 samples = url("https://osf.io/7t32f/download?version=1")
 load(gzcon(samples))
 
+# In case you have downloaded the file above from OSF, you can run the following
+# function to load the .RData file from your computer
+# load(file = here("final_analyses", "output",  "data", "analyses", # file path
+#                     "samples_posteriors_discharge.RData"))
 
 # Load original data extraction table
 
@@ -559,6 +560,8 @@ p5 = multiple_baseline_risks_invasive_discharge %>%
   scale_y_discrete(breaks = c(1, 16, 36))
 ```
 
+### Supplementary Figure 7
+
 ```{r, fig.width = 10, fig.height=13}
 (p1 + p2) / (p3 + p4 + p5) + plot_annotation(tag_levels = 'A')
 
@@ -912,6 +915,8 @@ p5 = benefit_invasive_discharge %>%
         panel.grid.major.y = element_line(color = "gray80", size = 0.3))
 ```
 
+### Supplementary Figure 8
+
 ```{r, fig.width = 10, fig.height = 10, fig.cap = "Sensitivity analyses using multiple different baseline risks for subgroups on use of corticosteroids. Each line represents the posterior probability of benefit  for a specific cutoff, such as risk difference greater or equal to 0%, 1%, 2% and 5%. Vertical dashed lines represent the respective baseline risk (Table 1) used in other analyses. Panel A shows results for patients not using corticosteroids; Panel B shows results for patients using corticosteroids. Panel C shows results for simple oxygen only; Panel D shows results for non-invasive ventilation; Panel E shows results for invasive mechanical ventilation."}
 (p1 + p2) / (p3 + p4 + p5) +
   plot_annotation(tag_levels = 'A') +
@@ -925,7 +930,7 @@ p5 = benefit_invasive_discharge %>%
 #                   "SFigure8_discharge_figure4.pdf")) # File name
 ```
 
-## Tables
+## Complementary Tables
 
 Next, we are going to put in tables what are the minimum + maximum "Posterior
 Probability of Benefit" and their corresponding "Baseline Risk" for each RD

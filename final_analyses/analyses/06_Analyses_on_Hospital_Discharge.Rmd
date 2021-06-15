@@ -52,8 +52,9 @@ d2 = import(here("final_analyses", "data", # file path
 d2 = clean_names(d2)
 ```
 
-In this document, we will compile most of the analyses regarding hospital
-discharge. First, we will derive the risk difference from odds ratio. Next,
+**In this document, we will show most of the analyses regarding hospital discharge, except sensitivity analyses using different baseline risks. Thus, we will show Supplementary Figures 5-6 and Supplementary Tables 7-8.**
+
+First, we will derive the risk difference from odds ratio. Next,
 we will perform the main analyses and sensitivity analyses. We will be brief, so
 for complete explanation on the rationale of the analyses, please check the files
 on the mortality outcome.
@@ -1667,6 +1668,8 @@ p2 = distributions_respiratory %>%
   facet_wrap(~subgroup, ncol = 1)
 ```
 
+#### Supplementary Figure 3
+
 ```{r, fig.align='center', fig.width=10, fig.height = 6, fig.cap="Point estimates depict the median and interval bars depict 95th quantiles."}
 p1_overlay = p1 + inset_element(arrows_plot,
                                 ignore_tag = TRUE,
@@ -2153,6 +2156,8 @@ ggplot(aes(100*samples, colour = subgroup)) +
   coord_cartesian(x = c(-12.5,0.1))
 ```
 
+#### Supplementary Figure 4
+
 ```{r , fig.align='center', fig.width=10, fig.height = 8.5, warning=FALSE, fig.cap="Panels A and C: Point estimates depict the median. Interval bars depict the 95% highest density intervals. Panels B and D: Cumulative posterior distributions correspond to the probabilities that the risk difference (RD) is less than or equal to the effect size on the X‐axis."}
 p1_overlay = p1 + inset_element(arrows_plot,
                                 ignore_tag = TRUE,
@@ -2549,7 +2554,7 @@ p1 = samples_posteriors_not_using_discharge %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#9EA45B")) +
+  scale_fill_manual(values = c("gray85", "#516F88")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -2578,11 +2583,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
                                 top = unit(1.6, 'cm'))
 
 p1_overlay
-
-# ggsave(width = 7,
-#        height = 4.5,
-#         here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure15_discharge_posteriors_not_using.pdf")) # File name
 ```
 
 <br><br>
@@ -2845,10 +2845,6 @@ tfinal = tfinal %>%
   
 
 tfinal
-
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable10_discharge_hdi_probabilities_not_using.png"))
 ```
 
 <br><br>
@@ -3028,7 +3024,7 @@ p1 = samples_posteriors_using_discharge %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#A65041")) +
+  scale_fill_manual(values = c("gray85", "#8DBEE9")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -3057,11 +3053,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
                                 top = unit(1.6, 'cm'))
 
 p1_overlay
-
-# ggsave(width = 7,
-#       height = 4.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                  "SFigure16_discharge_posteriors_using.pdf")) # File name
 ```
 
 <br><br>
@@ -3324,10 +3315,6 @@ tfinal = tfinal %>%
   
 
 tfinal
-
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable11_discharge_hdi_probabilities_using.png"))
 ```
 
 ### Simple oxygen only
@@ -3504,7 +3491,7 @@ p1 = samples_posteriors_simple_discharge %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#9D75B1")) +
+  scale_fill_manual(values = c("gray85", "#EECE9C")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -3533,11 +3520,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
                                 top = unit(1.6, 'cm'))
 
 p1_overlay
-
-# ggsave(width = 7,
-#        height = 4.5,
-#         here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure17_discharge_posteriors_simple.pdf")) # File name
 ```
 
 <br><br>
@@ -3800,10 +3782,6 @@ tfinal = tfinal %>%
   
 
 tfinal
-
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable12_discharge_hdi_probabilities_simple.png"))
 ```
 
 ### Non-invasive ventilation
@@ -3980,7 +3958,7 @@ p1 = samples_posteriors_noninvasive_discharge %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#CE9F5B")) +
+  scale_fill_manual(values = c("gray85", "#BE6376")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -4009,11 +3987,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
                                 top = unit(1.6, 'cm'))
 
 p1_overlay
-
-# ggsave(width = 7,
-#        height = 4.5,
-#         here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure18_discharge_posteriors_noninvasive.pdf")) # File name
 ```
 
 <br><br>
@@ -4277,10 +4250,6 @@ tfinal = tfinal %>%
   
 
 tfinal
-
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable13_discharge_hdi_probabilities_noninvasive.png"))
 ```
 
 ### Invasive mechanical ventilation
@@ -4458,7 +4427,7 @@ p1 = samples_posteriors_invasive_discharge %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#5891BF")) +
+  scale_fill_manual(values = c("gray85", "#605A91")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -4487,11 +4456,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
                                 top = unit(1.6, 'cm'))
 
 p1_overlay
-
-# ggsave(width = 7,
-#        height = 4.5,
-#         here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure19_discharge_posteriors_invasive.pdf")) # File name
 ```
 
 <br><br>
@@ -4755,14 +4719,10 @@ tfinal = tfinal %>%
   
 
 tfinal
-
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable14_discharge_hdi_probabilities_invasive.png"))
 ```
 # Summary
 
-## Priors
+## Supplementary Figure 5
 
 ```{r, fig.width = 12, fig.height=13}
 (not_using_priors + using_priors) /
@@ -4775,7 +4735,7 @@ tfinal
 #                   "SFigure5_discharge_priors_sensitivity.pdf")) # File name
 ```
 
-## Posteriors
+## Supplementary Figure 6
 
 ```{r}
 not_using = samples_posteriors_not_using_discharge %>% 
@@ -5020,6 +4980,9 @@ p1_overlay + p2 + inset_element(arrows_plot,
 #        here("final_analyses", "output", "plots", "appendix", # File path
 #                   "SFigure6_discharge_figure3.pdf")) # File name
 ```
+
+## Supplementary Table 7
+
 ```{r}
 
 multiply100 = function(x){x*100}
@@ -5087,6 +5050,8 @@ t
 #   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
 #                  "STable7_discharge_hdi_figure3.pdf"))
 ```
+
+## Supplementary Table 8
 
 ```{r}
 multiply100 = function(x){x*100}

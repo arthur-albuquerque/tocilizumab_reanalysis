@@ -40,6 +40,7 @@ d = import(here("final_analyses", "data", # file path
 d = clean_names(d)
 ```
 
+**In this document, we will discuss the rationale underlying the data on use of corticosteroids from the REMAP-CAP trial (mortality outcome). We also showed the details about it in our Supplementary Material.**
 
 Regarding the REMAP-CAP study, we extracted data on corticosteroid subgroups from
 Figure 9 in their appendix. Unfortunately, the authors don't provide raw number
