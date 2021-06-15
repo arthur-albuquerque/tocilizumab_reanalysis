@@ -75,9 +75,9 @@ control group from the RECOVERY trial.
 stated that RD should be derived from the odds ratio (OR). Thus, in combination
 with a fixed BR, we will calculate RDs from OR. Here is the formula provided by
 Doi et al., where $R D$ is risk difference, $B R$ is baseline risk from the
-control group (no-exposure) and $O R$ is odds ratio.
+control group (no-exposure) and $O R$ is odds ratio:
 
-$$R D=\frac{B R * \left(B R-1\right)* \left(O R-1\right)}{B R*O R-B R+1}$$
+$$R D=\frac{B R \cdot \left(B R-1\right)\cdot \left(O R-1\right)}{B R \cdot O R-B R+1}$$
 
 First, we will calculate the log-odds ratio for the RECOVERY trial and its
 corresponding prior in each subgroup.

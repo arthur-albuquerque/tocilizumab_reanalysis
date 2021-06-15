@@ -74,13 +74,12 @@ are performed under a fixed baseline risk per subgroup. We used the following
 formula provided by
 [Doi et al.](https://www.jclinepi.com/article/S0895-4356(20)31171-9/fulltext)
 to derive the risk difference from odds ratio. Here, $R D$ is risk difference,
-$B R$ is baseline risk from the control group (no-exposure) and $O R$ is
-odds ratio.
+$r_{0}$ is the outcome risk in  control arm in RECOVERY and $O R$ is odds ratio.
 
-$$R D=\frac{B R * \left(B R-1\right)* \left(O R-1\right)}{B R*O R-B R+1}$$
+$$R D=\frac{r_{0}\left(r_{0}-1\right)\left(O R-1\right)}{r_{0} O R-r_{0}+1}$$
 
 In the document ["02_Calculating_Posterior_Distribution"](https://github.com/arthur-albuquerque/tocilizumab_reanalysis/tree/master/final_analyses/analyses), we used the risk in RECOVERY's
-control group as the BR for each respective subgroup.
+control group as the baseline risk (BR) for each respective subgroup.
 
 In this document, we are going to go further and vary the BR by 20% up and down.
 For example, in the "simple oxygen only" subgroup, the fixed BR was 23%. Thus, 
@@ -91,8 +90,9 @@ We will use the same formula mentioned above. Below, you can check the code
 used for the analysis.
 
 ```{r}
-
 # Adapted function version to be able to apply it in the code chunk below
+# BR = r0
+
 RD_fun_mod = function(x) {
   z = ( BR*(BR-1)*(x$OR-1) ) / ( BR*x$OR - BR+1)
   z
@@ -120,8 +120,8 @@ RD_fun_mod = function(x) {
 
 #  ### Use of corticosteroids
 
-#   # Not using
-#     
+# Not using
+  
 #   original_fixed_BR =  d2 %>% 
 #       filter(trial == "RECOVERY",
 #              corticosteroids == 0, # Not using
@@ -312,25 +312,25 @@ RD_fun_mod = function(x) {
 
 # Load the files from the code chunks above
 
-multiple_baseline_risks_not_using_death = 
-  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_not_using_death.rds"))
-
-multiple_baseline_risks_using_death = 
-readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_using_death.rds"))
-
-multiple_baseline_risks_simple_death = 
-  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_simple_death.rds"))
-
-multiple_baseline_risks_noninvasive_death = 
-  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_noninvasive_death.rds"))
-
-multiple_baseline_risks_invasive_death = 
-  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_invasive_death.rds"))
+# multiple_baseline_risks_not_using_death = 
+#   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
+#                     # "multiple_baseline_risks_not_using_death.rds"))
+# 
+# multiple_baseline_risks_using_death = 
+# readRDS(file = here("final_analyses", "output", "data", # "analyses", # file path
+#                     # "multiple_baseline_risks_using_death.rds"))
+# 
+# multiple_baseline_risks_simple_death = 
+#   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
+#                     # "multiple_baseline_risks_simple_death.rds"))
+# 
+# multiple_baseline_risks_noninvasive_death = 
+#   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
+#                     # "multiple_baseline_risks_noninvasive_death.rds"))
+# 
+# multiple_baseline_risks_invasive_death = 
+#   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
+#                     # "multiple_baseline_risks_invasive_death.rds"))
 ```
 
 ```{r}
@@ -349,17 +349,17 @@ multiple_baseline_risks_invasive_death =
 
 # Not using
 
-#not_using = url("https://osf.io/fwj2y/download?version=1")
+not_using = url("https://osf.io/fwj2y/download?version=1")
 
-#multiple_baseline_risks_not_using_death = readRDS(gzcon(not_using))
+multiple_baseline_risks_not_using_death = readRDS(gzcon(not_using))
 ```
 
 ```{r}
 # Using
 
-#using = url("https://osf.io/bn6tf/download?version=1")
+using = url("https://osf.io/bn6tf/download?version=1")
 
-#multiple_baseline_risks_using_death = readRDS(gzcon(using))
+multiple_baseline_risks_using_death = readRDS(gzcon(using))
 ```
 
 ```{r}
@@ -367,26 +367,26 @@ multiple_baseline_risks_invasive_death =
 
 # Simple oxygen only
 
-#simple = url("https://osf.io/cqea9/download?version=1")
+simple = url("https://osf.io/cqea9/download?version=1")
 
-#multiple_baseline_risks_simple_death = readRDS(gzcon(simple))
+multiple_baseline_risks_simple_death = readRDS(gzcon(simple))
 
 ```
 
 ```{r}
 # Non-invasive ventilation
 
-#noninvasive = url("https://osf.io/bhfwr/download?version=1")
+noninvasive = url("https://osf.io/bhfwr/download?version=1")
 
-#multiple_baseline_risks_noninvasive_death = readRDS(gzcon(noninvasive))
+multiple_baseline_risks_noninvasive_death = readRDS(gzcon(noninvasive))
 ```
 
 ```{r}
 # Invasive mechanical ventilation
 
-#invasive = url("https://osf.io/7t4hm/download?version=1")
+invasive = url("https://osf.io/7t4hm/download?version=1")
 
-#multiple_baseline_risks_invasive_death = readRDS(gzcon(invasive))
+multiple_baseline_risks_invasive_death = readRDS(gzcon(invasive))
 ```
 
 ## Plotting
@@ -660,11 +660,11 @@ probability_by_baseline_risk = function(data, # "multiple_baseline_risks..." dat
   prob4 = data %>%
     filter(`Underlying_Prior` == type) %>%
     select(-(`Underlying_Prior`:OR)) %>%
-    mutate(across(everything(), ~ sum(. > 0.05) / n())) %>%
+    mutate(across(everything(), ~ sum(. > 0.03) / n())) %>%
     slice(1) %>%
     pivot_longer(
       cols = everything(),
-      names_to = "Baseline_risk", values_to = "Pr_0.05"
+      names_to = "Baseline_risk", values_to = "Pr_0.03"
     ) %>%
     separate(Baseline_risk,
       sep = "_",
@@ -786,7 +786,7 @@ p2 = benefit_using_death %>%
   rename("> 0%" = Pr_0,
          "> 1%" = Pr_0.01,
          "> 2%" = Pr_0.02,
-         "> 5%" = Pr_0.05) %>% 
+         "> 3%" = Pr_0.03) %>% 
   # Make it tidy for ggplot
   pivot_longer(
     cols = "> 0%":last_col(),
@@ -797,7 +797,7 @@ p2 = benefit_using_death %>%
         "> 0%",
         "> 1%",
         "> 2%",
-        "> 5%"
+        "> 3%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
@@ -913,7 +913,7 @@ p5 = benefit_invasive_death %>%
   rename("> 0%" = Pr_0,
          "> 1%" = Pr_0.01,
          "> 2%" = Pr_0.02,
-         "> 5%" = Pr_0.05) %>%
+         "> 3%" = Pr_0.03) %>%
   # Make it tidy for ggplot
   pivot_longer(
     cols = "> 0%":last_col(),
@@ -924,7 +924,7 @@ p5 = benefit_invasive_death %>%
         "> 0%",
         "> 1%",
         "> 2%",
-        "> 5%"
+        "> 3%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
@@ -1091,7 +1091,7 @@ t4 = data %>%
     names_to = "Cutoff", values_to = "Pr of Benefit"
   ) %>% 
   # filter by Pr of Benefit >= 0%
-  filter(Cutoff == "Pr_0.05") %>% 
+  filter(Cutoff == "Pr_0.03") %>% 
   # Multiply by 100
   mutate(Baseline_risk = Baseline_risk*100,
          `Pr of Benefit` = `Pr of Benefit`*100) %>% 

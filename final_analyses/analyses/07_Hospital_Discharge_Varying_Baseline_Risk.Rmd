@@ -296,25 +296,25 @@ RD_fun_mod = function(x) {
 
 # Load the files from the code chunks above
 
-multiple_baseline_risks_not_using_discharge = 
-  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_not_using_discharge.rds"))
-
-multiple_baseline_risks_using_discharge = 
-readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_using_discharge.rds"))
-
-multiple_baseline_risks_simple_discharge = 
-  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_simple_discharge.rds"))
-
-multiple_baseline_risks_noninvasive_discharge = 
-  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_noninvasive_discharge.rds"))
-
-multiple_baseline_risks_invasive_discharge = 
-  readRDS(file = here("final_analyses", "output", "data", "analyses", # file path
-                    "multiple_baseline_risks_invasive_discharge.rds"))
+# multiple_baseline_risks_not_using_discharge = 
+#   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
+#                     # "multiple_baseline_risks_not_using_discharge.rds"))
+# 
+# multiple_baseline_risks_using_discharge = 
+# readRDS(file = here("final_analyses", "output", "data", # "analyses", # file path
+#                     # "multiple_baseline_risks_using_discharge.rds"))
+# 
+# multiple_baseline_risks_simple_discharge = 
+#   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
+#                     # "multiple_baseline_risks_simple_discharge.rds"))
+# 
+# multiple_baseline_risks_noninvasive_discharge = 
+#   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
+#                     # "multiple_baseline_risks_noninvasive_discharge.rds"))
+# 
+# multiple_baseline_risks_invasive_discharge = 
+#   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
+#                     # "multiple_baseline_risks_invasive_discharge.rds"))
 ```
 
 ```{r}
@@ -333,17 +333,17 @@ multiple_baseline_risks_invasive_discharge =
 
 # Not using
 
-#not_using = url("https://osf.io/vja24/download?version=1")
+not_using = url("https://osf.io/vja24/download?version=1")
 
-#multiple_baseline_risks_not_using_discharge = readRDS(gzcon(not_using))
+multiple_baseline_risks_not_using_discharge = readRDS(gzcon(not_using))
 ```
 
 ```{r}
 # Using
 
-#using = url("https://osf.io/p8nes/download?version=1")
+using = url("https://osf.io/p8nes/download?version=1")
 
-#multiple_baseline_risks_using_discharge = readRDS(gzcon(using))
+multiple_baseline_risks_using_discharge = readRDS(gzcon(using))
 ```
 
 ```{r}
@@ -351,26 +351,26 @@ multiple_baseline_risks_invasive_discharge =
 
 # Simple oxygen only
 
-#simple = url("https://osf.io/q25z4/download?version=1")
+simple = url("https://osf.io/q25z4/download?version=1")
 
-#multiple_baseline_risks_simple_discharge = readRDS(gzcon(simple))
+multiple_baseline_risks_simple_discharge = readRDS(gzcon(simple))
 
 ```
 
 ```{r}
 # Non-invasive ventilation
 
-#noninvasive = url("https://osf.io/muxaj/download?version=1")
+noninvasive = url("https://osf.io/muxaj/download?version=1")
 
-#multiple_baseline_risks_noninvasive_discharge = readRDS(gzcon(noninvasive))
+multiple_baseline_risks_noninvasive_discharge = readRDS(gzcon(noninvasive))
 ```
 
 ```{r}
 # Invasive mechanical ventilation
 
-#invasive = url("https://osf.io/y8ruc/download?version=1")
+invasive = url("https://osf.io/y8ruc/download?version=1")
 
-#multiple_baseline_risks_invasive_discharge = readRDS(gzcon(invasive))
+multiple_baseline_risks_invasive_discharge = readRDS(gzcon(invasive))
 ```
 
 ## Plotting
@@ -633,11 +633,11 @@ probability_by_baseline_risk = function(data, # "multiple_baseline_risks..." dat
   prob4 = data %>%
     filter(`Underlying_Prior` == type) %>%
     select(-(`Underlying_Prior`:OR)) %>%
-    mutate(across(everything(), ~ sum(. < -0.05) / n())) %>%
+    mutate(across(everything(), ~ sum(. < -0.03) / n())) %>%
     slice(1) %>%
     pivot_longer(
       cols = everything(),
-      names_to = "Baseline_risk", values_to = "Pr_0.05"
+      names_to = "Baseline_risk", values_to = "Pr_0.03"
     ) %>%
     separate(Baseline_risk,
       sep = "_",
@@ -745,7 +745,7 @@ p2 = benefit_using_discharge %>%
   rename("<   0%" = Pr_0,
          "< -1%" = Pr_0.01,
          "< -2%" = Pr_0.02,
-         "< -5%" = Pr_0.05) %>% 
+         "< -3%" = Pr_0.03) %>% 
   # Make it tidy for ggplot
   pivot_longer(
     cols = "<   0%":last_col(),
@@ -756,7 +756,7 @@ p2 = benefit_using_discharge %>%
         "<   0%",
         "< -1%",
         "< -2%",
-        "< -5%"
+        "< -3%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
@@ -810,6 +810,7 @@ p3 = benefit_simple_discharge %>%
                          8)) +
   scale_y_continuous("Posterior Probability of Benefit (%)\n",
                      seq(0, 100, 10))+
+  coord_cartesian(y = c(0,100)) +
   theme(legend.position = 'none') +
   
   theme(legend.position = 'none',
@@ -866,7 +867,7 @@ p5 = benefit_invasive_discharge %>%
   rename("<   0%" = Pr_0,
          "< -1%" = Pr_0.01,
          "< -2%" = Pr_0.02,
-         "< -5%" = Pr_0.05) %>%
+         "< -3%" = Pr_0.03) %>%
   # Make it tidy for ggplot
   pivot_longer(
     cols = "<   0%":last_col(),
@@ -877,7 +878,7 @@ p5 = benefit_invasive_discharge %>%
         "<   0%",
         "< -1%",
         "< -2%",
-        "< -5%"
+        "< -3%"
         )
     )) %>% 
   ggplot(aes(x = 100*Baseline_risk, y = 100*Probabilities))+
@@ -890,9 +891,9 @@ p5 = benefit_invasive_discharge %>%
   # analyses
   geom_vline(xintercept = benefit_invasive_discharge[[21,1]]*100, linetype = 2) +
   scale_x_continuous("Baseline Risk (%)",
-                     seq((benefit_invasive_discharge[[1,1]]*100),
+                     seq((benefit_invasive_discharge[[6,1]]*100),
                          (benefit_invasive_discharge[[41,1]]*100),
-                         8)) +
+                         7)) +
   scale_y_continuous(" ",
                      seq(0, 100, 10))+
   coord_cartesian(x = c(2, 36),
@@ -1041,7 +1042,7 @@ t4 = data %>%
     names_to = "Cutoff", values_to = "Pr of Benefit"
   ) %>% 
   # filter by Pr of Benefit >= 0%
-  filter(Cutoff == "Pr_0.05") %>% 
+  filter(Cutoff == "Pr_0.03") %>% 
   # Multiply by 100
   mutate(Baseline_risk = Baseline_risk*100,
          `Pr of Benefit` = `Pr of Benefit`*100) %>% 

@@ -12,8 +12,8 @@ COVACTA,discharge,non-invasive ventilation,56,94,19,39
 COVACTA,discharge,invasive ventilation,35,113,13,55
 TOCIBRAS,mortality,"pooled simple, non-invasive or invasive ventilation",14,65,6,64
 TOCIBRAS,discharge,"pooled simple, non-invasive or invasive ventilation",42,65,48,64
-Salvarini,mortality,non-invasive ventilation,2,60,1,63
-Salvarini,discharge,non-invasive ventilation,54,60,58,63
+Salvarani,mortality,non-invasive ventilation,2,60,1,63
+Salvarani,discharge,non-invasive ventilation,54,60,58,63
 RECOVERY,mortality,simple oxygen,180,935,214,933
 RECOVERY,mortality,non-invasive ventilation,310,819,366,867
 RECOVERY,mortality,invasive ventilation,131,268,149,294

@@ -35,8 +35,7 @@ pacman::p_load(plyr, # for the Varying baseline risk calculations
                janitor, # To change column names
                ggdist, # To plot distributions
                patchwork, # To arrange plots
-               PNWColors, # Color palettes
-               Cairo # To export PDF files
+               PNWColors # Color palettes
                )
 
 # Load data on respiratory support subgroups
@@ -1211,7 +1210,7 @@ table1 = both_tables %>%
                                    "COVACTA",
                                    "REMAP-CAP",
                                    "CORIMUNO-19",
-                                   "Salvarini"))) %>%
+                                   "Salvarani"))) %>%
   # Re-arrange based on Study name
   arrange(Study) %>% 
   # Gropup to create row tabs with gt()
@@ -1240,286 +1239,7 @@ table1
 
 # table1 %>% 
 #   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                    "STable5_discharge_table1.png"))
-```
-
-
-```{r}
-
-## DEPRECATED
-
-t = tibble(
-  
-  "Subgroup" = c(
-    "Not using",
-    "Using",
-    
-    "Simple oxygen only",
-    "Non-invasive ventilation",
-    "Invasive mechanical ventilation"
-    
-  ),
-  
-  ## Priors
-  
-  "Number of studies" = c(
-    
-    priors_not_using %>%
-      count() %>% pull(),
-    priors_using %>%
-      count() %>% pull(),
-    
-    priors_simple_oxygen_raw %>%
-      count() %>% pull(),
-    priors_noninvasive_raw %>%
-      count() %>% pull(),
-    priors_invasive_raw %>%
-      count() %>% pull()
-    
-  ),
-  
-  # Control arm
-  
-  "Events  " = c(
-    
-    priors_not_using %>%
-    summarise(n = sum(events_control)) %>% pull(),
-    priors_using %>%
-      summarise(n = sum(events_control)) %>% pull(),
-    
-    priors_simple_oxygen_raw %>%
-      summarise(n = sum(events_control)) %>% pull(),
-    priors_noninvasive_raw %>%
-      summarise(n = sum(events_control)) %>% pull(),
-    priors_invasive_raw %>%
-      summarise(n = sum(events_control)) %>% pull()
-
-  ),
-  
-  "Total  " = c(
-    
-    priors_not_using %>%
-      summarise(n = sum(total_control)) %>% pull(),
-    priors_using %>%
-      summarise(n = sum(total_control)) %>% pull(),
-    
-    priors_simple_oxygen_raw %>%
-      summarise(n = sum(total_control)) %>% pull(),
-    priors_noninvasive_raw %>%
-      summarise(n = sum(total_control)) %>% pull(),
-    priors_invasive_raw %>%
-      summarise(n = sum(total_control)) %>% pull()
-
-  ),
-  
-   "Risk (%)" = c(
-    
-    priors_not_using %>%
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull(),
-    priors_using %>%
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull(),
-    
-    priors_simple_oxygen_raw %>%
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull(),
-    priors_noninvasive_raw %>%
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull(),
-    priors_invasive_raw %>%
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull()
-
-  ),
-  
-  # Tocilizumab arm
-  
-  "Events   " = c(
-    priors_not_using %>%
-      summarise(n = sum(events_toci)) %>% pull(),
-    priors_using %>%
-      summarise(n = sum(events_toci)) %>% pull(),
-    
-    priors_simple_oxygen_raw %>%
-      summarise(n = sum(events_toci)) %>% pull(),
-    priors_noninvasive_raw %>%
-      summarise(n = sum(events_toci)) %>% pull(),
-    priors_invasive_raw %>%
-      summarise(n = sum(events_toci)) %>% pull()
-    
-  ),
-  
-  "Total   " = c(
-    priors_not_using %>%
-      summarise(n = sum(total_toci)) %>% pull(),
-    priors_using %>%
-      summarise(n = sum(total_toci)) %>% pull(),
-    
-    priors_simple_oxygen_raw %>%
-      summarise(n = sum(total_toci)) %>% pull(),
-    priors_noninvasive_raw %>%
-      summarise(n = sum(total_toci)) %>% pull(),
-    priors_invasive_raw %>%
-      summarise(n = sum(total_toci)) %>% pull()
-
-  ),
-  
-  "Risk (%) " = c(
-  
-  priors_not_using %>%
-    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull(),
-  priors_using %>%
-    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull(),
-  
-  priors_simple_oxygen_raw %>%
-    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull(),
-  priors_noninvasive_raw %>%
-    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull(),
-  priors_invasive_raw %>%
-    summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull()
-  
-),
-  
-  ## RECOVERY
-  
-  # Control arm
-  
-  "Events" = c(
-    recovery_not_using %>% 
-      select(events_control) %>% pull(),
-    recovery_using %>% 
-      select(events_control) %>% pull(),
-    
-    recovery_simple_oxygen %>% 
-      select(events_control) %>% pull(),
-    recovery_noninvasive %>% 
-      select(events_control) %>% pull(),
-    recovery_invasive %>% 
-      select(events_control) %>% pull()
-
-  ),
-  
-  "Total" = c(
-    
-    recovery_not_using %>% 
-      select(total_control) %>% pull(),
-    recovery_using %>% 
-      select(total_control) %>% pull(),
-    
-    recovery_simple_oxygen %>% 
-      select(total_control) %>% pull(),
-    recovery_noninvasive %>% 
-      select(total_control) %>% pull(),
-    recovery_invasive %>% 
-      select(total_control) %>% pull()
-
-  ),
-
-  "Risk (%)  " = c(
-    
-    recovery_not_using %>% 
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull(),
-    recovery_using %>% 
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull(),
-    
-    recovery_simple_oxygen %>% 
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull(),
-    recovery_noninvasive %>% 
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull(),
-    recovery_invasive %>% 
-      summarise(n = round(100*sum(events_control)/sum(total_control),1)) %>%
-      pull()
-
-  ),
-  
-  # Tocilizumab arm
-  
-  "Events " = c(
-    recovery_not_using %>% 
-      select(events_toci) %>% pull(),
-    recovery_using %>% 
-      select(events_toci) %>% pull(),
-    
-   recovery_simple_oxygen %>% 
-      select(events_toci) %>% pull(),
-    recovery_noninvasive %>% 
-      select(events_toci) %>% pull(),
-   recovery_invasive %>% 
-      select(events_toci) %>% pull()
-
-  ),
-  
-  "Total " = c(
-    
-    recovery_not_using %>% 
-      select(total_toci) %>% pull(),
-    recovery_using %>% 
-      select(total_toci) %>% pull(),
-    
-    recovery_simple_oxygen %>% 
-      select(total_toci) %>% pull(),
-    recovery_noninvasive %>% 
-      select(total_toci) %>% pull(),
-    recovery_invasive %>% 
-      select(total_toci) %>% pull()
-
-  ),
-
-  "Risk (%)   " = c(
-    
-    recovery_not_using %>% 
-      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull(),
-    recovery_using %>% 
-      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull(),
-    
-    recovery_simple_oxygen %>% 
-      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull(),
-    recovery_noninvasive %>% 
-      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull(),
-    recovery_invasive %>% 
-      summarise(n = round(100*sum(events_toci)/sum(total_toci),1)) %>%
-    pull()
-
-  )
-  
-)
-
-# Use kableExtra to have a nice table
-
-# t1 = t %>% 
-#   kbl(booktabs = T, align = 'c') %>% 
-#   kable_styling(bootstrap_options = "striped", full_width = T) %>%
-#   column_spec(c(5,8,11,14), bold = T) %>% 
-#   add_header_above(c(" " = 2,
-#                      "Control" = 3,
-#                      "Tocilizumab" = 3,
-#                      "Control" = 3,
-#                      "Tocilizumab" = 3)) %>% 
-#   add_header_above(c(" " = 1,
-#                      "Priors" = 7,
-#                      "RECOVERY" = 6)) %>% 
-#   pack_rows("Use of corticosteroids", 1, 2) %>% 
-#   pack_rows("Respiratory support", 3, 5)
-# 
-# t1
-
-# t1 %>% 
-#   save_kable(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable13_discharge_table1.pdf")) # File name
+#                    "STable5_discharge_table1.pdf"))
 ```
 
 ### Prior and RECOVERY distributions
@@ -2086,7 +1806,7 @@ tfinal
 
 # tfinal %>% 
 #  gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                  "STable6_discharge_hdi_intervals_figureS3.png")) # File name
+#                  "STable6_discharge_hdi_intervals_figureS3.pdf")) # File name
   
 ```
 
@@ -2254,7 +1974,7 @@ ggplot(aes(100 * samples, colour = subgroup)) +
   geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
     labs(
       x = "\nRisk Difference (%)",
-      y = "Probability RD \u2264 X\n"
+      y = expression("Probability RD" <= "X")
       ) +
     scale_x_continuous(
       breaks = seq(from = -15, to = 10, 1),
@@ -2413,7 +2133,7 @@ ggplot(aes(100*samples, colour = subgroup)) +
   geom_vline(xintercept = 0, linetype = 2, size = 0.6) +
     labs(
       x = "\nRisk Difference (%)",
-      y = "Probability RD \u2264 X\n"
+      y = expression("Probability RD" <= "X")
       ) +
     scale_x_continuous(
       breaks = seq(from = -15, to = 10, 1),
@@ -2458,8 +2178,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
 
 # ggsave(width = 10,
 #        height = 8.5,
-#  #https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
-#        device=cairo_pdf, 
 #        here("final_analyses", "output", "plots", "appendix", # File path
 #                  "SFigure4_discharge_figure2.pdf")) # File name
 ```
@@ -2480,7 +2198,7 @@ t1 = distributions_cortico_posterior %>%
   summarise("Pr(\u2264 0%)" = (sum( samples <= 0))/ n(),
             "Pr(\u2264 -1%)" = (sum( samples <= -0.01))/ n(),
             "Pr(\u2264 -2%)" = (sum( samples <= -0.02))/ n(),
-            "Pr(\u2264 -5%)" = (sum( samples <= -0.05))/ n()) %>% 
+            "Pr(\u2264 -3%)" = (sum( samples <= -0.03))/ n()) %>% 
   mutate(across(-Subgroup, ~multiply100(.))) %>% 
   mutate(across(-Subgroup, ~round(.,1))) %>% 
   mutate(
@@ -2502,7 +2220,7 @@ t2 = distributions_cortico_posterior %>%
   ) %>% 
   # Group by distribution so we can apply median_hdi
   group_by(Subgroup) %>% 
-  # Calculate the median and 95% quantile interval in log-odds ratio
+  # Calculate the median and 95% HDI in log-odds ratio
   ggdist::median_hdi(.width = 0.95) %>% 
   # Select only the relevant columns
   select(Subgroup:.upper) %>%
@@ -2531,7 +2249,7 @@ t3 = distributions_respiratory_posterior %>%
   summarise("Pr(\u2264 0%)" = (sum( samples <= 0))/ n(),
             "Pr(\u2264 -1%)" = (sum( samples <= -0.01))/ n(),
             "Pr(\u2264 -2%)" = (sum( samples <= -0.02))/ n(),
-            "Pr(\u2264 -5%)" = (sum( samples <= -0.05))/ n()) %>% 
+            "Pr(\u2264 -3%)" = (sum( samples <= -0.03))/ n()) %>% 
   mutate(across(-Subgroup, ~multiply100(.))) %>% 
   mutate(across(-Subgroup, ~round(.,1))) %>%
   arrange(desc(Subgroup)) %>% 
@@ -2555,7 +2273,7 @@ t4 = distributions_respiratory_posterior %>%
   ) %>% 
   # Group by distribution so we can apply median_hdi
   group_by(Subgroup) %>% 
-  # Calculate the median and 95% quantile interval in log-odds ratio
+  # Calculate the median and 95% HDI in log-odds ratio
   ggdist::median_hdi(.width = 0.95) %>% 
   # Select only the relevant columns
   select(Subgroup:.upper) %>%
@@ -2883,29 +2601,29 @@ t = tibble(
   ),
   
   
-  "Pr(< -5%)" = c(round((samples_posteriors_not_using_discharge %>%
+  "Pr(< -3%)" = c(round((samples_posteriors_not_using_discharge %>%
                            filter(`Underlying_Prior` == "Non-informative") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_not_using_discharge %>%
                            filter(`Underlying_Prior` == "Evidence-based") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_not_using_discharge %>%
                            filter(`Underlying_Prior` == "Skeptical") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_not_using_discharge %>%
                            filter(`Underlying_Prior` == "Optimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_not_using_discharge %>%
                            filter(`Underlying_Prior` == "Pessimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100
   ),
   
@@ -3040,29 +2758,29 @@ t = tibble(
                           pull()), 2) * 100
   ),
   
-  "Pr(> 5%)" = c(round((samples_posteriors_not_using_discharge %>%
+  "Pr(> 3%)" = c(round((samples_posteriors_not_using_discharge %>%
                           filter(`Underlying_Prior` == "Non-informative") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_not_using_discharge %>%
                           filter(`Underlying_Prior` == "Evidence-based") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_not_using_discharge %>%
                           filter(`Underlying_Prior` == "Skeptical") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_not_using_discharge %>%
                           filter(`Underlying_Prior` == "Optimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_not_using_discharge %>%
                           filter(`Underlying_Prior` == "Pessimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100
   )
 ) 
@@ -3117,9 +2835,9 @@ tfinal = tfinal %>%
   tab_spanner(label = "95% HDI",
               columns = c(2:4)) %>% 
   tab_spanner(label = "Propability of Benefit",
-              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
+              columns = c("Pr(< -3%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
   tab_spanner(label = "Probability of Harm",
-              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 3%)")) %>%
   cols_align(
     align = "center",
     columns = everything()
@@ -3362,29 +3080,29 @@ t = tibble(
   ),
   
   
-  "Pr(< -5%)" = c(round((samples_posteriors_using_discharge %>%
+  "Pr(< -3%)" = c(round((samples_posteriors_using_discharge %>%
                            filter(`Underlying_Prior` == "Non-informative") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_using_discharge %>%
                            filter(`Underlying_Prior` == "Evidence-based") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_using_discharge %>%
                            filter(`Underlying_Prior` == "Skeptical") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_using_discharge %>%
                            filter(`Underlying_Prior` == "Optimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_using_discharge %>%
                            filter(`Underlying_Prior` == "Pessimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100
   ),
   
@@ -3519,29 +3237,29 @@ t = tibble(
                           pull()), 2) * 100
   ),
   
-  "Pr(> 5%)" = c(round((samples_posteriors_using_discharge %>%
+  "Pr(> 3%)" = c(round((samples_posteriors_using_discharge %>%
                           filter(`Underlying_Prior` == "Non-informative") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_using_discharge %>%
                           filter(`Underlying_Prior` == "Evidence-based") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_using_discharge %>%
                           filter(`Underlying_Prior` == "Skeptical") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_using_discharge %>%
                           filter(`Underlying_Prior` == "Optimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_using_discharge %>%
                           filter(`Underlying_Prior` == "Pessimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100
   )
 ) 
@@ -3596,9 +3314,9 @@ tfinal = tfinal %>%
   tab_spanner(label = "95% HDI",
               columns = c(2:4)) %>% 
   tab_spanner(label = "Propability of Benefit",
-              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
+              columns = c("Pr(< -3%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
   tab_spanner(label = "Probability of Harm",
-              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 3%)")) %>%
   cols_align(
     align = "center",
     columns = everything()
@@ -3838,29 +3556,29 @@ t = tibble(
   ),
   
   
-  "Pr(< -5%)" = c(round((samples_posteriors_simple_discharge %>%
+  "Pr(< -3%)" = c(round((samples_posteriors_simple_discharge %>%
                            filter(`Underlying_Prior` == "Non-informative") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_simple_discharge %>%
                            filter(`Underlying_Prior` == "Evidence-based") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_simple_discharge %>%
                            filter(`Underlying_Prior` == "Skeptical") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_simple_discharge %>%
                            filter(`Underlying_Prior` == "Optimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_simple_discharge %>%
                            filter(`Underlying_Prior` == "Pessimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100
   ),
   
@@ -3995,29 +3713,29 @@ t = tibble(
                           pull()), 2) * 100
   ),
   
-  "Pr(> 5%)" = c(round((samples_posteriors_simple_discharge %>%
+  "Pr(> 3%)" = c(round((samples_posteriors_simple_discharge %>%
                           filter(`Underlying_Prior` == "Non-informative") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_simple_discharge %>%
                           filter(`Underlying_Prior` == "Evidence-based") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_simple_discharge %>%
                           filter(`Underlying_Prior` == "Skeptical") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_simple_discharge %>%
                           filter(`Underlying_Prior` == "Optimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_simple_discharge %>%
                           filter(`Underlying_Prior` == "Pessimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100
   )
 ) 
@@ -4072,9 +3790,9 @@ tfinal = tfinal %>%
   tab_spanner(label = "95% HDI",
               columns = c(2:4)) %>% 
   tab_spanner(label = "Propability of Benefit",
-              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
+              columns = c("Pr(< -3%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
   tab_spanner(label = "Probability of Harm",
-              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 3%)")) %>%
   cols_align(
     align = "center",
     columns = everything()
@@ -4314,29 +4032,29 @@ t = tibble(
   ),
   
   
-  "Pr(< -5%)" = c(round((samples_posteriors_noninvasive_discharge %>%
+  "Pr(< -3%)" = c(round((samples_posteriors_noninvasive_discharge %>%
                            filter(`Underlying_Prior` == "Non-informative") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_noninvasive_discharge %>%
                            filter(`Underlying_Prior` == "Evidence-based") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_noninvasive_discharge %>%
                            filter(`Underlying_Prior` == "Skeptical") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_noninvasive_discharge %>%
                            filter(`Underlying_Prior` == "Optimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_noninvasive_discharge %>%
                            filter(`Underlying_Prior` == "Pessimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100
   ),
   
@@ -4471,29 +4189,29 @@ t = tibble(
                           pull()), 2) * 100
   ),
   
-  "Pr(> 5%)" = c(round((samples_posteriors_noninvasive_discharge %>%
+  "Pr(> 3%)" = c(round((samples_posteriors_noninvasive_discharge %>%
                           filter(`Underlying_Prior` == "Non-informative") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_noninvasive_discharge %>%
                           filter(`Underlying_Prior` == "Evidence-based") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_noninvasive_discharge %>%
                           filter(`Underlying_Prior` == "Skeptical") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_noninvasive_discharge %>%
                           filter(`Underlying_Prior` == "Optimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_noninvasive_discharge %>%
                           filter(`Underlying_Prior` == "Pessimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100
   )
 ) 
@@ -4549,9 +4267,9 @@ tfinal = tfinal %>%
   tab_spanner(label = "95% HDI",
               columns = c(2:4)) %>% 
   tab_spanner(label = "Propability of Benefit",
-              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
+              columns = c("Pr(< -3%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
   tab_spanner(label = "Probability of Harm",
-              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 3%)")) %>%
   cols_align(
     align = "center",
     columns = everything()
@@ -4792,29 +4510,29 @@ t = tibble(
   ),
   
   
-  "Pr(< -5%)" = c(round((samples_posteriors_invasive_discharge %>%
+  "Pr(< -3%)" = c(round((samples_posteriors_invasive_discharge %>%
                            filter(`Underlying_Prior` == "Non-informative") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_invasive_discharge %>%
                            filter(`Underlying_Prior` == "Evidence-based") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_invasive_discharge %>%
                            filter(`Underlying_Prior` == "Skeptical") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_invasive_discharge %>%
                            filter(`Underlying_Prior` == "Optimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100,
                   
                   round((samples_posteriors_invasive_discharge %>%
                            filter(`Underlying_Prior` == "Pessimistic") %>%
-                           summarise(n = sum(RD < -0.05) / n()) %>%
+                           summarise(n = sum(RD < -0.03) / n()) %>%
                            pull()), 2) * 100
   ),
   
@@ -4949,29 +4667,29 @@ t = tibble(
                           pull()), 2) * 100
   ),
   
-  "Pr(> 5%)" = c(round((samples_posteriors_invasive_discharge %>%
+  "Pr(> 3%)" = c(round((samples_posteriors_invasive_discharge %>%
                           filter(`Underlying_Prior` == "Non-informative") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_invasive_discharge %>%
                           filter(`Underlying_Prior` == "Evidence-based") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_invasive_discharge %>%
                           filter(`Underlying_Prior` == "Skeptical") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_invasive_discharge %>%
                           filter(`Underlying_Prior` == "Optimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100,
                  
                  round((samples_posteriors_invasive_discharge %>%
                           filter(`Underlying_Prior` == "Pessimistic") %>%
-                          summarise(n = sum(RD > 0.05) / n()) %>%
+                          summarise(n = sum(RD > 0.03) / n()) %>%
                           pull()), 2) * 100
   )
 ) 
@@ -5027,9 +4745,9 @@ tfinal = tfinal %>%
   tab_spanner(label = "95% HDI",
               columns = c(2:4)) %>% 
   tab_spanner(label = "Propability of Benefit",
-              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
+              columns = c("Pr(< -3%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
   tab_spanner(label = "Probability of Harm",
-              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 3%)")) %>%
   cols_align(
     align = "center",
     columns = everything()
@@ -5367,7 +5085,7 @@ t
 
 # t %>% 
 #   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                  "STable7_discharge_hdi_figure3.png"))
+#                  "STable7_discharge_hdi_figure3.pdf"))
 ```
 
 ```{r}
@@ -5379,15 +5097,15 @@ probabilities = function(name # Subgroup (within quotes)
   filter(subgroup == name) %>% 
   # Group by distribution so we can apply median_hdi
   group_by(`Underlying_Prior`) %>% 
-  summarise("Pr(< -5%)" = sum(RD < -0.05) / n(),
+  summarise("Pr(< -3%)" = sum(RD < -0.03) / n(),
             "Pr(< -2%)" = sum(RD < -0.02) / n(),
             "Pr(< -1%)" = sum(RD < -0.01) / n(),
             "Pr(< 0%)" =  sum(RD < 0) / n(),
             "Pr(> 1%)" =  sum(RD > 0.01) / n(),
             "Pr(> 2%)" =  sum(RD > 0.02) / n(),
-            "Pr(> 5%)" =  sum(RD > 0.05) / n()) %>% 
-  mutate(across(`Pr(< -5%)`:`Pr(> 5%)`, ~multiply100(.))) %>%
-  mutate(across(`Pr(< -5%)`:`Pr(> 5%)`, ~round(., 1))) %>%
+            "Pr(> 3%)" =  sum(RD > 0.03) / n()) %>% 
+  mutate(across(`Pr(< -3%)`:`Pr(> 3%)`, ~multiply100(.))) %>%
+  mutate(across(`Pr(< -3%)`:`Pr(> 3%)`, ~round(., 1))) %>%
   arrange(factor(`Underlying_Prior`,
                  levels = c("Evidence-based",
                             "Non-informative",
@@ -5420,9 +5138,9 @@ t = bind_rows(probabilities("Not using corticosteroids"),
           ) %>% 
   gt() %>% 
   tab_spanner(label = "Propability of Benefit",
-              columns = c("Pr(< -5%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
+              columns = c("Pr(< -3%)", "Pr(< -2%)", "Pr(< -1%)", "Pr(< 0%)")) %>% 
   tab_spanner(label = "Probability of Harm",
-              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 5%)")) %>%
+              columns = c("Pr(> 1%)", "Pr(> 2%)", "Pr(> 3%)")) %>%
   cols_align(
     align = "center",
     columns = everything()
@@ -5435,7 +5153,7 @@ t
 
 # t %>% 
 #   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                  "STable8_discharge_probabilities_figure3.png"))
+#                  "STable8_discharge_probabilities_figure3.pdf"))
  
 ```
 
