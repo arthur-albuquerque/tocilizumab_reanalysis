@@ -11,7 +11,7 @@
 
 <meta name="author" content="Arthur M. Albuquerque" />
 
-<meta name="date" content="2021-06-14" />
+<meta name="date" content="2021-06-15" />
 
 <title>04_Sensitivity_Analyses_Different_Baseline_Risks</title>
 
@@ -258,12 +258,13 @@ div.tocify {
 
 <h1 class="title toc-ignore">04_Sensitivity_Analyses_Different_Baseline_Risks</h1>
 <h4 class="author">Arthur M. Albuquerque</h4>
-<h4 class="date">June 14, 2021</h4>
+<h4 class="date">June 15, 2021</h4>
 
 </div>
 
 
 <p>If you are interested in the code, you can select the “Show all code” option on the upper-right corner.</p>
+<p><strong>In this document, we will discuss about the underlying analyses of Supplementary Figures 2 and 4 about sensitivity analyses using different baseline risks. We will only focus on the mortality outcome</strong></p>
 <pre class="r"><code>## Load posterior distributions&#39; samples with logOR, OR and RD
 
 # I uploaded these data objects to OSF since the .RData file is 54MB.
@@ -272,6 +273,12 @@ div.tocify {
 
 samples = url(&quot;https://osf.io/3qexw/download?version=1&quot;)
 load(gzcon(samples))
+
+
+# In case you have downloaded the file above from OSF, you can run the following
+# function to load the .RData file from your computer
+# load(file = here(&quot;final_analyses&quot;, &quot;output&quot;,  &quot;data&quot;, &quot;analyses&quot;, # file path
+#                     &quot;samples_posteriors_death.RData&quot;))
 
 
 # Load original data extraction table
@@ -510,23 +517,23 @@ RD_fun_mod = function(x) {
 
 # multiple_baseline_risks_not_using_death = 
 #   readRDS(file = here(&quot;final_analyses&quot;, &quot;output&quot;, # &quot;data&quot;, &quot;analyses&quot;, # file path
-#                     # &quot;multiple_baseline_risks_not_using_death.rds&quot;))
+#                      &quot;multiple_baseline_risks_not_using_death.rds&quot;))
 # 
 # multiple_baseline_risks_using_death = 
 # readRDS(file = here(&quot;final_analyses&quot;, &quot;output&quot;, &quot;data&quot;, # &quot;analyses&quot;, # file path
-#                     # &quot;multiple_baseline_risks_using_death.rds&quot;))
+#                      &quot;multiple_baseline_risks_using_death.rds&quot;))
 # 
 # multiple_baseline_risks_simple_death = 
 #   readRDS(file = here(&quot;final_analyses&quot;, &quot;output&quot;, # &quot;data&quot;, &quot;analyses&quot;, # file path
-#                     # &quot;multiple_baseline_risks_simple_death.rds&quot;))
+#                      &quot;multiple_baseline_risks_simple_death.rds&quot;))
 # 
 # multiple_baseline_risks_noninvasive_death = 
 #   readRDS(file = here(&quot;final_analyses&quot;, &quot;output&quot;, # &quot;data&quot;, &quot;analyses&quot;, # file path
-#                     # &quot;multiple_baseline_risks_noninvasive_death.rds&quot;))
+#                      &quot;multiple_baseline_risks_noninvasive_death.rds&quot;))
 # 
 # multiple_baseline_risks_invasive_death = 
 #   readRDS(file = here(&quot;final_analyses&quot;, &quot;output&quot;, # &quot;data&quot;, &quot;analyses&quot;, # file path
-#                     # &quot;multiple_baseline_risks_invasive_death.rds&quot;))</code></pre>
+#                      &quot;multiple_baseline_risks_invasive_death.rds&quot;))</code></pre>
 <pre class="r"><code># In case you did not download the files from OSF, run this code chunk 
 # Here, you can load the .rds files directly from OSF, without having to
 # download it
@@ -683,6 +690,8 @@ t1 = data %&gt;%
   
 }</code></pre>
 <p>Now, let’s plot the posterior distributions for all subgroups using 40 different baseline risks</p>
+<div id="supplementary-figure-2" class="section level3">
+<h3>Supplementary Figure 2</h3>
 <pre class="r"><code>p1 = plot_baseline_risks(multiple_baseline_risks_not_using_death) +
   scale_y_discrete(breaks = c(15, 35, 55))</code></pre>
 <pre class="r"><code>p2 = plot_baseline_risks(multiple_baseline_risks_using_death) +
@@ -746,7 +755,7 @@ p3 = multiple_baseline_risks_simple_death %&gt;%
 #        height = 13,
 #        here(&quot;final_analyses&quot;, &quot;output&quot;, &quot;plots&quot;, &quot;appendix&quot;, # File path
 #                   &quot;SFigure2_varying_baseline_risk_difference.pdf&quot;)) # # File name</code></pre>
-<p>Now, we are going to calculate the probability of benefit for each baseline risk using different cutoffs for risk difference, such as greater than <span class="math inline">\(0\)</span>, <span class="math inline">\(1\)</span>, <span class="math inline">\(2\)</span>, <span class="math inline">\(5\)</span> and <span class="math inline">\(10\)</span>%. The <strong>idea</strong> for the following analysis was heavily influenced by <a href="https://jamanetwork.com/journals/jama/article-abstract/2709620">Goligher et al. 2018</a>. Although they do not show these figures in the manuscript, they made their <a href="https://thebru.ca/code-data">code available elsewhere</a>.</p>
+<p>Now, we are going to calculate the probability of benefit for each baseline risk using different cutoffs for risk difference, such as greater than <span class="math inline">\(0\)</span>, <span class="math inline">\(1\)</span>, <span class="math inline">\(2\)</span>, <span class="math inline">\(3\)</span>%. The <strong>idea</strong> for the following analysis was heavily influenced by <a href="https://jamanetwork.com/journals/jama/article-abstract/2709620">Goligher et al. 2018</a>. Although they do not show these figures in the manuscript, they made their <a href="https://thebru.ca/code-data">code available elsewhere</a>.</p>
 <pre class="r"><code># Function to generate tibble with probability of benefit vs. baseline risk
 
 probability_by_baseline_risk = function(data, # &quot;multiple_baseline_risks...&quot; data object
@@ -877,7 +886,7 @@ benefit_invasive_death =
   benefit_invasive_death) # Tibble output name</code></pre>
 <p>Here is an example of the first six rows of one of these tibbles:</p>
 <pre class="r"><code>benefit_invasive_death %&gt;% head() %&gt;% flextable() </code></pre>
-<template id="79a87ba9-23b2-4b87-bd17-95be7fb6d33c"><style>
+<template id="10a3fe17-b384-4aed-aadb-0750236009de"><style>
 .tabwid table{
   border-collapse:collapse;
   line-height:1;
@@ -911,11 +920,11 @@ benefit_invasive_death =
 .tabwid table tr {
 background-color: transparent;
 }
-</style><div class="tabwid"><style>.cl-4bde38a8{border-collapse:collapse;}.cl-4bd79fca{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-4bd7bc44{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-4bd7f330{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4bd7f34e{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4bd7f358{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class="cl-4bde38a8"><thead><tr style="overflow-wrap:break-word;"><td class="cl-4bd7f358"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">Baseline_risk</span></p></td><td class="cl-4bd7f358"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">Pr_0</span></p></td><td class="cl-4bd7f358"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">Pr_0.01</span></p></td><td class="cl-4bd7f358"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">Pr_0.02</span></p></td><td class="cl-4bd7f358"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">Pr_0.03</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.31</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.77581</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.65600</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.51630</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.37063</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.32</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.77581</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.65839</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.52141</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.37865</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.33</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.77581</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.66055</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.52647</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.38565</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.34</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.77581</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.66268</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.53068</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.39238</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.35</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.77581</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.66459</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.53465</span></p></td><td class="cl-4bd7f330"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.39826</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4bd7f34e"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.36</span></p></td><td class="cl-4bd7f34e"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.77581</span></p></td><td class="cl-4bd7f34e"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.66622</span></p></td><td class="cl-4bd7f34e"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.53835</span></p></td><td class="cl-4bd7f34e"><p class="cl-4bd7bc44"><span class="cl-4bd79fca">0.40364</span></p></td></tr></tbody></table></div></template>
-<div class="flextable-shadow-host" id="ec1e7896-7220-4c16-9004-2d84cd7b1bd9"></div>
+</style><div class="tabwid"><style>.cl-786bea62{border-collapse:collapse;}.cl-78658082{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-78659b3a{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-7865d01e{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-7865d03c{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-7865d046{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class="cl-786bea62"><thead><tr style="overflow-wrap:break-word;"><td class="cl-7865d046"><p class="cl-78659b3a"><span class="cl-78658082">Baseline_risk</span></p></td><td class="cl-7865d046"><p class="cl-78659b3a"><span class="cl-78658082">Pr_0</span></p></td><td class="cl-7865d046"><p class="cl-78659b3a"><span class="cl-78658082">Pr_0.01</span></p></td><td class="cl-7865d046"><p class="cl-78659b3a"><span class="cl-78658082">Pr_0.02</span></p></td><td class="cl-7865d046"><p class="cl-78659b3a"><span class="cl-78658082">Pr_0.03</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.31</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.77581</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.65600</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.51630</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.37063</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.32</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.77581</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.65839</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.52141</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.37865</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.33</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.77581</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.66055</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.52647</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.38565</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.34</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.77581</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.66268</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.53068</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.39238</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.35</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.77581</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.66459</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.53465</span></p></td><td class="cl-7865d01e"><p class="cl-78659b3a"><span class="cl-78658082">0.39826</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-7865d03c"><p class="cl-78659b3a"><span class="cl-78658082">0.36</span></p></td><td class="cl-7865d03c"><p class="cl-78659b3a"><span class="cl-78658082">0.77581</span></p></td><td class="cl-7865d03c"><p class="cl-78659b3a"><span class="cl-78658082">0.66622</span></p></td><td class="cl-7865d03c"><p class="cl-78659b3a"><span class="cl-78658082">0.53835</span></p></td><td class="cl-7865d03c"><p class="cl-78659b3a"><span class="cl-78658082">0.40364</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="e6d47385-ffce-4a48-86ad-04eeea37decf"></div>
 <script>
-var dest = document.getElementById("ec1e7896-7220-4c16-9004-2d84cd7b1bd9");
-var template = document.getElementById("79a87ba9-23b2-4b87-bd17-95be7fb6d33c");
+var dest = document.getElementById("e6d47385-ffce-4a48-86ad-04eeea37decf");
+var template = document.getElementById("10a3fe17-b384-4aed-aadb-0750236009de");
 var caption = template.content.querySelector("caption");
 if(caption) {
   caption.style.cssText = "display:block;text-align:center;";
@@ -929,6 +938,9 @@ fantome.appendChild(templateContent);
 </script>
 
 <p>Finally, let’s plot these posterior probabilities of benefit for each subgroup, while varying the baseline risk. Black vertical dashed lines represent the fixed baseline risk used in the primary analyses for each subgroup (table above).</p>
+</div>
+<div id="figure-4" class="section level3">
+<h3>Figure 4</h3>
 <pre class="r"><code># Plot!
 
 p1 = benefit_not_using_death %&gt;% 
@@ -1161,8 +1173,9 @@ Sensitivity analyses using multiple different baseline risks for subgroups on us
 #        here(&quot;final_analyses&quot;, &quot;output&quot;, &quot;plots&quot;, &quot;manuscript&quot;, # File path
 #                   &quot;figure4.pdf&quot;)) # File name</code></pre>
 </div>
-<div id="tables" class="section level2">
-<h2>Tables</h2>
+</div>
+<div id="complementary-tables" class="section level2">
+<h2>Complementary Tables</h2>
 <p>Next, we are going to put in tables what are the minimum + maximum “Posterior Probability of Benefit” and their corresponding “Baseline Risk” for each RD cutoff.</p>
 <pre class="r"><code># Create function to make tables
 

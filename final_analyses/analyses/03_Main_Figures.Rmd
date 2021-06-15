@@ -48,6 +48,11 @@ load(file = here("final_analyses", "output", "data", "analyses", # file path
 samples = url("https://osf.io/3qexw/download?version=1")
 load(gzcon(samples))
 
+# In case you have downloaded the file above from OSF, you can run the following
+# function to load the .RData file from your computer
+# load(file = here("final_analyses", "output",  "data", "analyses", # file path
+#                     "samples_posteriors_death.RData"))
+
 # Load original data extraction table
 
 d = import((here("final_analyses", "output", "data", # file path
@@ -142,7 +147,7 @@ set.seed = 123
 
 <br>
 
-**In this document, I will only present data regarding the mortality outcome. Thus, positive risk differences mean benefit.**
+**In this document, I will plot Figure 1, 2 and 3 from the manuscript. I will also show Supplementary Tables 1-4.**
 
 ## Table 1: Overall view of the data
 
@@ -257,14 +262,6 @@ table1
 <br><br>
 
 ## Figure 1: Overall view of the data
-
-Here, the primary aim is to visually present our priors and the RECOVERY.
-I believe it is extremely important to present this data in a figure since
-they are the foundation underlying the posterior distributions in the next
-figures. I note that the x axis in Panel B is still "under construction". I want
-to maintain the scale on Odds Ratio, but the prior for simple oxygen only is
-very uncertain, ranging from ~0.49 to ~3.8. So I am trying to simulate an axis
-break.
 
 ```{r}
 # Corticosteroids subgroups
@@ -684,7 +681,7 @@ p2 = distributions_respiratory %>%
   facet_wrap(~subgroup, ncol = 1)
 ```
 
-```{r, fig.align='center', fig.width=10, fig.height = 6, fig.cap="Point estimates depict the median and interval bars depict 95% highest density intervals"}
+```{r, fig.align='center', fig.width=10, fig.height = 6}
 
 p1_overlay = p1 + inset_element(arrows_plot,
                                 ignore_tag = TRUE,
@@ -721,6 +718,8 @@ p1_overlay +
 ```
 
 <br><br>
+
+## Supplementary Table 1
 
 Here are the 95% HDIs in *odds ratio* for each distribution from
 the figure above.
@@ -840,10 +839,6 @@ tfinal
 <br><br>
 
 ## Figure 2: Posterior distributions
-
-In my opinion, this is the most important figure. I decided not to use tables,
-because there are too much data and Panel B and D seem to handle well this
-great amount of data.
 
 ```{r}
 # Create data frame
@@ -1196,7 +1191,7 @@ ggplot(aes(100*samples, colour = subgroup)) +
   coord_cartesian(x = c(-0.1,10))
 ```
 
-```{r , fig.align='center', fig.width=10, fig.height = 8.5, warning=FALSE, fig.cap="Panels A and C: Point estimates depict the median. Interval bars depict the 80% and 95% highest density intervals. Panels B and D: Cumulative posterior distributions correspond to the probabilities that the risk difference (RD) is greater than or equal to the effect size on the X‐axis."}
+```{r , fig.align='center', fig.width=10, fig.height = 8.5, warning=FALSE}
 p1_overlay = p1 + inset_element(arrows_plot,
                                 ignore_tag = TRUE,
                                 align_to = "full",
@@ -1227,9 +1222,12 @@ p1_overlay = p1 + inset_element(arrows_plot,
 
 <br><br>
 
+## Supplementary Table 2
+
+This table complements Figure 2.
+
 ```{r}
 multiply100 = function(x){x*100}
-
 t1 = distributions_cortico_posterior %>%
   # make it tidy to be able to use group_by()
   pivot_longer(
@@ -1248,7 +1246,6 @@ t1 = distributions_cortico_posterior %>%
       str_detect(Subgroup, "_u") ~ "Using",
       str_detect(Subgroup, "_not") ~ "Not using"
     ))
-
 ```
 
 
@@ -1280,7 +1277,6 @@ t2 = distributions_cortico_posterior %>%
 
 ```{r}
 multiply100 = function(x){x*100}
-
 t3 = distributions_respiratory_posterior %>%
   # make it tidy to be able to use group_by()
   pivot_longer(
@@ -1301,12 +1297,10 @@ t3 = distributions_respiratory_posterior %>%
       str_detect(Subgroup, "_n") ~ "Non-invasive ventilation",
       str_detect(Subgroup, "_i") ~ "Invasive mechanical ventilation"
     ))
-
 ```
 
 ```{r}
 multiply100 = function(x){x*100}
-
 t4 = distributions_respiratory_posterior %>% 
   # make it tidy to be able to use group_by()
   pivot_longer(
@@ -1335,9 +1329,7 @@ t4 = distributions_respiratory_posterior %>%
 
 ```{r}
 table_rd = bind_rows(t1,t3) 
-
 table_prob = bind_rows(t2,t4)
-
 tfinal = left_join(table_prob, table_rd) %>% 
   gt() %>% 
   tab_spanner(label = "95% Highest Density Interval",
@@ -1357,9 +1349,7 @@ tfinal = left_join(table_prob, table_rd) %>%
     align = "center",
     columns = everything()
   ) 
-
 tfinal
-
 # tfinal %>% 
 #   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
 #                   "STable2_hdi_probabilities_figure2.pdf")) # File name
@@ -1559,7 +1549,7 @@ p1_overlay + p2 + inset_element(arrows_plot,
 ```
 
 
-```{r, , fig.align='center', fig.width=7, fig.height = 4.5, fig.cap="Point estimates depict the median. Interval bars depict the 50 and 95% highest density intervals."}
+```{r, , fig.align='center', fig.width=7, fig.height = 4.5}
 
 # level_order = c("Pessimistic",
 #                 "Optimistic",
@@ -1654,7 +1644,7 @@ p1_overlay + p2 + inset_element(arrows_plot,
 
 <br><br>
 
-## Supplementary Tables 3 and 4: Posterior distributions; Sensitivity analysis using different priors
+## Supplementary Table 3
 
 This table complements Figure 3.
 
@@ -1727,6 +1717,10 @@ t
 ```
 
 <br><br>
+
+## Supplementary Table 4
+
+This table complements Figure 3.
 
 ```{r}
 multiply100 = function(x){x*100}

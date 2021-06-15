@@ -40,6 +40,11 @@ pacman::p_load(tidyverse, # Data wrangling and plotting
 samples = url("https://osf.io/3qexw/download?version=1")
 load(gzcon(samples))
 
+# In case you have downloaded the file above from OSF, you can run the following
+# function to load the .RData file from your computer
+# load(file = here("final_analyses", "output",  "data", "analyses", # file path
+#                     "samples_posteriors_death.RData"))
+
 ## Load objects with mean + SD of multiple priors along with
 ## RECOVERY data and posterior distributions
 
@@ -52,9 +57,7 @@ set.seed = 123 # set seed for reproducibility
 ```
 
 
-In this document, we will present the sensivity analyses of all posterior
-distributions estimated from the evidence-based prior + extra priors:
-non-informative, skeptical, optimistic and pessimistic.
+**In this document, we will present results on sensitivity analyses using different priors on the mortality outcome. Thus, we break down Figure 3 and Supplementary Figure 1.**
 
 # Use of corticosteroids
 
@@ -201,11 +204,6 @@ not_using_priors =
   facet_wrap(~dist, ncol = 1, scales = "free_y")
 
 not_using_priors
-
-# ggsave(width = 5.5,
-#        height = 5.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure1_priors_not_using.pdf")) # File name
   
 ```
 
@@ -290,7 +288,7 @@ p1 = samples_posteriors_not_using_death %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#9EA45B")) +
+  scale_fill_manual(values = c("gray85", "#516F88")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -319,11 +317,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
                                 top = unit(1.6, 'cm'))
 
 p1_overlay
-
-# ggsave(width = 7,
-#        height = 4.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure2_posteriors_not_using.pdf")) # File name
 ```
 
 <br><br>
@@ -589,10 +582,6 @@ tfinal = tfinal %>%
 
 tfinal
 
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable3_hdi_probabilities_not_using.png"))
-
 ```
 
 ## Using
@@ -739,11 +728,6 @@ using_priors =
 
 using_priors
 
-# ggsave(width = 5.5,
-#        height = 5.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure2_priors_using.pdf")) # File name
-# 
 ```
 
 ### Posterior distributions
@@ -775,7 +759,7 @@ p1 = samples_posteriors_using_death %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#A65041")) +
+  scale_fill_manual(values = c("gray85", "#8DBEE9")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -804,11 +788,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
                                 top = unit(1.6, 'cm'))
 
 p1_overlay
-
-# ggsave(width = 7,
-#        height = 4.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure4_posteriors_using.pdf")) # File name
 ```
 
 <br><br>
@@ -1074,10 +1053,6 @@ tfinal = tfinal %>%
   
 
 tfinal
-
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable4_hdi_probabilities_using.png"))
 ```
 
 # Respiratory support
@@ -1226,11 +1201,6 @@ simple_priors =
 
 simple_priors
 
-# ggsave(width = 5.5,
-#        height = 5.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure3_priors_simple.pdf")) # File name
-
 ```
 
 ### Posterior distributions
@@ -1261,7 +1231,7 @@ p1 = samples_posteriors_simple_death %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#9D75B1")) +
+  scale_fill_manual(values = c("gray85", "#EECE9C")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -1290,11 +1260,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
                                 top = unit(1.6, 'cm'))
 
 p1_overlay
-
-# ggsave(width = 7,
-#        height = 4.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure6_posteriors_simple.pdf")) # File name
 ```
 
 <br><br>
@@ -1558,10 +1523,6 @@ tfinal = tfinal %>%
 
 tfinal
 
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable5_hdi_probabilities_simple.png"))
-
 
 ```
 
@@ -1708,10 +1669,6 @@ noninvasive_priors =
   facet_wrap(~dist, ncol = 1, scales = "free_y")
 
 noninvasive_priors
-# ggsave(width = 5.5,
-#        height = 5.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure4_priors_noninvasive.pdf")) # File name
 
 ```
 
@@ -1743,7 +1700,7 @@ p1 = samples_posteriors_noninvasive_death %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#CE9F5B")) +
+  scale_fill_manual(values = c("gray85", "#BE6376")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -1772,11 +1729,6 @@ p1_overlay = p1 + inset_element(arrows_plot,
                                 top = unit(1.6, 'cm'))
 
 p1_overlay
-
-# ggsave(width = 7,
-#        height = 4.5,
-#        here("final_analyses", "output", "plots", "appendix", # File path
-#                   "SFigure8_posteriors_noninvasive.pdf")) # File name
 ```
 
 <br><br>
@@ -2041,10 +1993,6 @@ tfinal = tfinal %>%
 
 tfinal
 
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable6_hdi_probabilities_noninvasive.png"))
-
 
 ```
 
@@ -2192,11 +2140,6 @@ invasive_priors =
 
 invasive_priors
 
-# ggsave(width = 5.5,
-#       height = 5.5,
-#       here("final_analyses", "output", "plots", "appendix", # File path
-#                  "SFigure5_priors_invasive.pdf")) # File name
-
 ```
 
 
@@ -2228,7 +2171,7 @@ p1 = samples_posteriors_invasive_death %>%
                # https://github.com/mjskay/ggdist/issues/70
                interval_size_range = c(1.1,1.9)
   ) +
-  scale_fill_manual(values = c("gray85", "#5891BF")) +
+  scale_fill_manual(values = c("gray85", "#605A91")) +
   labs(x = "\nRisk Difference (%)",
        y = "Underlying Prior\n"
   ) +
@@ -2514,10 +2457,6 @@ tfinal = t1 %>%
 
 tfinal
 
-# tfinal %>% 
-#   gtsave(here("final_analyses", "output", "plots", "appendix", # File path
-#                   "STable7_hdi_invasive.png"))
-
 ```
 
 ```{r}
@@ -2686,7 +2625,7 @@ p2 = altogether %>%
 
 # Summary
 
-## Priors
+## Supplementary Figure 1
 
 ```{r, fig.width = 12, fig.height=13}
 (not_using_priors + using_priors) /

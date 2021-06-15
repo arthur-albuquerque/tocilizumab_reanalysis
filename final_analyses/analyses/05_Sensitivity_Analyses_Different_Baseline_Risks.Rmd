@@ -12,6 +12,8 @@ output:
 If you are interested in the code, you can select the "Show all code" option
 on the upper-right corner.
 
+**In this document, we will discuss about the underlying analyses of Supplementary Figures 2 and 4 about sensitivity analyses using different baseline risks. We will only focus on the mortality outcome**
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set()
 ```
@@ -47,6 +49,12 @@ pacman::p_load(rio, # To import data
 
 samples = url("https://osf.io/3qexw/download?version=1")
 load(gzcon(samples))
+
+
+# In case you have downloaded the file above from OSF, you can run the following
+# function to load the .RData file from your computer
+# load(file = here("final_analyses", "output",  "data", "analyses", # file path
+#                     "samples_posteriors_death.RData"))
 
 
 # Load original data extraction table
@@ -303,6 +311,7 @@ RD_fun_mod = function(x) {
 #                     "multiple_baseline_risks_invasive_death.rds"))
 ```
 
+
 ```{r}
 ## I uploaded all the .rds files above into OSF
 ## here is the link for one of them https://osf.io/7t4hm/
@@ -314,23 +323,23 @@ RD_fun_mod = function(x) {
 
 # multiple_baseline_risks_not_using_death = 
 #   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
-#                     # "multiple_baseline_risks_not_using_death.rds"))
+#                      "multiple_baseline_risks_not_using_death.rds"))
 # 
 # multiple_baseline_risks_using_death = 
 # readRDS(file = here("final_analyses", "output", "data", # "analyses", # file path
-#                     # "multiple_baseline_risks_using_death.rds"))
+#                      "multiple_baseline_risks_using_death.rds"))
 # 
 # multiple_baseline_risks_simple_death = 
 #   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
-#                     # "multiple_baseline_risks_simple_death.rds"))
+#                      "multiple_baseline_risks_simple_death.rds"))
 # 
 # multiple_baseline_risks_noninvasive_death = 
 #   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
-#                     # "multiple_baseline_risks_noninvasive_death.rds"))
+#                      "multiple_baseline_risks_noninvasive_death.rds"))
 # 
 # multiple_baseline_risks_invasive_death = 
 #   readRDS(file = here("final_analyses", "output", # "data", "analyses", # file path
-#                     # "multiple_baseline_risks_invasive_death.rds"))
+#                      "multiple_baseline_risks_invasive_death.rds"))
 ```
 
 ```{r}
@@ -506,6 +515,8 @@ t1 = data %>%
 Now, let's plot the posterior distributions for all subgroups using 40 different
 baseline risks
 
+### Supplementary Figure 2
+
 ```{r}
 p1 = plot_baseline_risks(multiple_baseline_risks_not_using_death) +
   scale_y_discrete(breaks = c(15, 35, 55))
@@ -589,7 +600,7 @@ p5 = plot_baseline_risks(multiple_baseline_risks_invasive_death) +
 
 Now, we are going to calculate the probability of benefit for each baseline risk
 using different cutoffs for risk difference, such as greater than $0$, $1$, $2$,
-$5$ and $10$%. The **idea** for the following analysis was heavily influenced by 
+$3$%. The **idea** for the following analysis was heavily influenced by 
 [Goligher et al. 2018](https://jamanetwork.com/journals/jama/article-abstract/2709620).
 Although they do not show these figures in the manuscript, they made their
 [code available elsewhere](https://thebru.ca/code-data).
@@ -739,6 +750,8 @@ Finally, let's plot these posterior probabilities of benefit for each subgroup,
 while varying the baseline risk. Black vertical dashed lines represent the 
 fixed baseline risk used in the primary analyses for each subgroup
 (table above).
+
+### Figure 4
 
 ```{r}
 
@@ -974,7 +987,7 @@ p5 = benefit_invasive_death %>%
 ```
 
 
-## Tables
+## Complementary Tables
 
 Next, we are going to put in tables what are the minimum + maximum "Posterior
 Probability of Benefit" and their corresponding "Baseline Risk" for each RD
