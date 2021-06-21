@@ -1,5 +1,7 @@
 # Tocilizumab in COVID-19 – A Bayesian reanalysis of RECOVERY
 
+[Preprint](https://www.medrxiv.org/content/10.1101/2021.06.15.21258966v1)
+
 This repository contains code and data to reproduce analysis in the research article "Tocilizumab in COVID-19 – A Bayesian reanalysis of RECOVERY"
 
 Authors: [Arthur M. Albuquerque](https://twitter.com/arthur_alb1), Lucas Tramujas, Lorenzo R. Sewanan and [James M. Brophy](https://twitter.com/brophyj)
