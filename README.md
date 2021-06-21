@@ -14,7 +14,7 @@ OSF project: [https://osf.io/qhvcp/](https://osf.io/qhvcp/)
 Folders
 
 │── final_analyses          <- All project data and code to reproduce analyses in the article
-│   ├── analyses               <- RMarkdown files for all analysis
+│   ├── analyses               <- RMarkdown files for all analyses
 │   ├── data                   <- Raw data from the the extraction process
 |   ├── output                 <- Modified data and final figures
 │       ├── data                  <- Modified data files
