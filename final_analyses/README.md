@@ -2,7 +2,7 @@
 Folders
 
 
-├── analyses               <- RMarkdown files for all analysis
+├── analyses               <- RMarkdown files for all analyses
 ├── data                   <- Raw data from the the extraction process
 ├── output                 <- Modified data and final figures
 │   ├── data                  <- Modified data files
