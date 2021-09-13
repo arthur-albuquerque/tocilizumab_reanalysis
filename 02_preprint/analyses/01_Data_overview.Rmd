@@ -1,0 +1,237 @@
+---
+title: "01_Data_overview"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+# p_load() installs (if necessary) and loads the following packages
+
+pacman::p_load(rio, # to import/export files
+               tidyverse, # Data wrangling and plotting
+               here, # To find file paths within R project
+               janitor, # To change quickly change names of columns
+               flextable # To create tables
+               )
+```
+
+```{r}
+# Load the data
+d = import(here("02_preprint", "data", # file path
+                            "extracted-data.xlsx"),   # file name
+                       na = "NA")   
+d = clean_names(d) # to change the names of columns
+```
+**The purpose of this document is to get an overall view of how each trial will**
+**contribute to our analyses.**
+<br>
+
+Let's check the dimensions of the original data extraction table.
+```{r}
+tibble(
+  rows = dim(d)[1],
+  columns = dim(d)[2]
+  ) %>% 
+  flextable()
+```
+
+<br>
+
+Here is a sneak peek into the format of the table. There is one row per
+subgroup/outcome.
+
+```{r}
+d %>% 
+  slice(1) %>% 
+  flextable() %>% 
+  autofit()
+```
+
+<br>
+
+Let's check from what trials we have data regarding **"respiratory support"** subgroups
+for the **mortality** outcome.
+
+```{r}
+d %>% 
+  filter(!is.na(oxygen),
+         outcome == "mortality") %>% 
+  group_by(trial) %>% 
+  count() %>%
+  arrange(desc(n)) %>% 
+  rename("number of rows" = n) %>%
+  flextable() %>% 
+  autofit()
+
+```
+
+<br>
+
+Let's check from what trials we have data regarding **"respiratory support"** subgroups
+for the **hospital discharge** outcome.
+
+```{r}
+d %>% 
+  filter(!is.na(oxygen),
+         outcome == "discharge") %>% 
+  group_by(trial) %>% 
+  count() %>%
+  arrange(desc(n)) %>% 
+  rename("number of rows" = n) %>%
+  flextable() %>% 
+  autofit()
+
+```
+
+<br>
+
+Let's check from what trials we have data regarding **"days since symptom onset"**
+subgroups for the **mortality** outcome
+
+```{r}
+d %>% 
+  filter(!is.na(symptom_cutoff),
+         outcome == "mortality") %>% 
+  group_by(trial) %>% 
+  count() %>%
+  arrange(desc(n)) %>% 
+  rename("number of rows" = n) %>%
+  flextable() %>% 
+  autofit()
+
+```
+
+<br>
+
+Let's check from what trials we have data regarding **"days since symptom onset"**
+subgroups for the **hospital discharge** outcome
+
+```{r}
+d %>% 
+  filter(!is.na(symptom_cutoff),
+         outcome == "discharge") %>% 
+  group_by(trial) %>% 
+  count() %>%
+  arrange(desc(n)) %>% 
+  rename("number of rows" = n) %>%
+  flextable() %>% 
+  autofit()
+
+```
+
+<br>
+
+Since we only have data from the RECOVERY trial regarding **"days since symptom onset"**
+subgroups, we **will not further analyze** these in this project.
+
+```{r}
+d_respiratory = d %>% 
+  filter(!is.na(oxygen)) %>% 
+  select(!starts_with("symptom"))
+```
+
+<br>
+
+Let's check the dimensions of the new data frame without data from
+**"days since symptom onset"** subgroups.
+
+```{r}
+tibble(
+  rows = dim(d_respiratory)[1],
+  columns = dim(d_respiratory)[2]
+  ) %>% 
+  flextable()
+```
+
+<br>
+
+Now, let's check from what trials (other than RECOVERY) we have data
+regarding **"respiratory support"** subgroups for **both outcomes**.
+
+```{r}
+d_respiratory %>% 
+  filter(trial != "RECOVERY") %>% 
+  group_by(trial) %>% 
+  count() %>% 
+  arrange(desc(n)) %>% 
+  rename("number of rows" = n) %>%
+  flextable() %>%
+  autofit()
+  
+```
+
+<br>
+
+Let's break it down and check what type of data we have from each trial.
+
+```{r}
+d_respiratory %>%
+  filter(!str_detect(oxygen, "pooled"),
+         outcome == "mortality") %>%
+  group_by(outcome, trial, oxygen) %>%
+  arrange(oxygen) %>%
+  count() %>%
+  ungroup() %>% 
+  select(-n) %>% 
+  flextable() %>%
+  autofit()
+```
+
+<br>
+
+```{r}
+d_respiratory %>%
+  filter(!str_detect(oxygen, "pooled"),
+         outcome == "discharge") %>%
+  group_by(outcome, trial, oxygen) %>%
+  arrange(oxygen) %>%
+  count() %>%
+  select(-n) %>% 
+  flextable() %>%
+  autofit()
+```
+
+<br>
+
+Lastly, let's check from what trials we have **pooled data available** 
+(in addition to what was described above).
+
+```{r}
+d_respiratory %>%
+  filter(str_detect(oxygen, "pooled")) %>%
+  group_by(outcome, trial, oxygen) %>%
+  arrange(oxygen) %>%
+  count() %>%
+  select(-n) %>% 
+  flextable() %>%
+  autofit()
+```
+
+As displayed above, while the TOCIBRAS trial only provides pooled data, the REMAP-CAP trial provides both subgroup and pooled data.
+
+
+```{r}
+# Let's save our output with only data regarding respiratory support
+
+# export(d_respiratory, paste(here(
+#   "02_preprint", "output", "data", # file path
+#   "respiratory-data.csv")) # file name
+#   ) 
+```
+
+<br><br>
+
+```{r echo=TRUE}
+sessionInfo()
+```
+
