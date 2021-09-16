@@ -3,8 +3,6 @@
 In this folder, we present all scripts with which we performed our analyses.
  There are 1 .Rmd (script) and 1 .html (output) files per subject. 
 
- One could either run the .Rmd files or download the .html files and open the final outputs in their computer.
-
  Here is a brief description of each file:
 
 - 01_Data_overview
