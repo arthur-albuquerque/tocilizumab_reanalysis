@@ -1,4 +1,4 @@
-## Project organization
+## Folder organization
 
 ```
 Folders
