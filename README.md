@@ -12,7 +12,7 @@ Authors: [Arthur M. Albuquerque](https://twitter.com/arthur_alb1), Lucas Tramuja
 There are three main folders in this repository:
 
 - `01_preregistration`, which corresponds to files regarding our preregistered [project in OSF](https://osf.io/qhvcp/)
-- `02_preprint`, which corresponds to files regarding our preprint ["Tocilizumab in COVID-19 – A Bayesian reanalysis of RECOVERY"](https://www.medrxiv.org/content/10.1101/2021.06.15.21258966v1)
+- `02_preprint`, which corresponds to files regarding our preprint "[Tocilizumab in COVID-19 – A Bayesian reanalysis of RECOVERY](https://www.medrxiv.org/content/10.1101/2021.06.15.21258966v1)"
 - `03_updated_analyses_who`, which corresponds to files regarding our newest research article **"Effect of Tocilizumab in Hospitalized COVID-19 Patients on Corticosteroids – A Bayesian Reanalysis"** (under review)
 
 In each folder, one can find further instructions on how to reproduce the analysis (in the corresponding `README.md` file). 
