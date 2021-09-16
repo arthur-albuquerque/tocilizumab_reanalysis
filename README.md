@@ -1,6 +1,6 @@
 # Tocilizumab in COVID-19 – A Bayesian Reanalysis
 
-Thiss repository contains code and data to reproduce analysis in the research articles:
+This repository contains code and data to reproduce analysis in the research articles:
 
 - ["Tocilizumab in COVID-19 – A Bayesian reanalysis of RECOVERY"](https://www.medrxiv.org/content/10.1101/2021.06.15.21258966v1) (preprint)
 - **"Effect of Tocilizumab in Hospitalized COVID-19 Patients on Corticosteroids – A Bayesian Reanalysis"** (under review)
