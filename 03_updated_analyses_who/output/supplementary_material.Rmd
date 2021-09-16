@@ -1,0 +1,2091 @@
+---
+title: "Supplementary Material"
+author: "Arthur M. Albuquerque, Lucas Tramujas, Lorenzo R. Sewanan, Donald R. Williams, James M. Brophy"
+output:
+  word_document:
+    toc: yes
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(tidyverse, # data wrangling + plotting
+               gt, # to create tables
+               brms, # to fit Bayesian models
+               here, # reproducible file paths
+               rio, # to import files
+               ggdist, # to use scale_fill_ramp_discrete()
+               bayesmeta, # to use TurnerEtAl()
+               tidybayes, # to plot distributions 
+               extraDistr, # to plot distributions 
+               PNWColors, # color pallete
+               flextable, # table
+               patchwork) # arrange plots
+
+# Load data
+d_logOR = readRDS(
+  here("03_updated_analyses_who", "output", "data", "effect_sizes.Rds")
+  )
+
+# Load main model
+m1 = readRDS(here("03_updated_analyses_who", "output", "fits", "m1.Rds"))
+
+# Load sensitivity models
+
+sensitivity_models =
+  readRDS(here("03_updated_analyses_who", "output", "fits", "sensitivity.Rds"))
+
+# Load models with simulated priors (mean = log(0.77))
+
+simulated_priors_models = readRDS(here("03_updated_analyses_who",
+                          "output",
+                          "fits",
+                          "simulated_priors_models.rds"))
+
+# Load models with simulated priors (mean = log(1))
+
+sensitivity_simulated_priors_models =
+  readRDS(here("03_updated_analyses_who",
+               "output",
+               "fits",
+               "sensitivity_simulated_priors_models.rds"))
+
+# Load prediction intervals from the model using weakly informative priors
+
+preds = readRDS(here("03_updated_analyses_who", "output", "data",
+              "prediction_intervals.rds"))
+
+# Load function
+source(here("03_updated_analyses_who/functions/diag_plot.R"))
+```
+
+# eMethods
+
+## Bayesian meta-analysis
+
+Our meta-regression random-effect model is defined as:
+
+$$
+\begin{align*}
+y_i & \sim Normal(\theta_i, \sigma_i^2) \\
+\theta_i & \sim Normal(\mu, \tau^2)\\
+\mu & =  \alpha  + \beta_{SOO} x_i + \beta_{NIV}x_i\\
+\end{align*}
+$$
+
+where $y_i$ is the observed mean log odds ratio of tocilizumab versus control
+and $\sigma_i^2$ is the known sampling variance in study $i$. $\alpha$ is the
+intercept, which represents the overall effect of tocilizumab in patients on
+**invasive mechanical ventilation**. $\beta_{SOO}$ is the difference between
+patients on simple oxygen only (SOO) and patients on invasive mechanical
+ventilation ($\alpha$). $\beta_{NIV}$ is the difference between patients on
+noninvasive ventilation (NIV) and patients on invasive mechanical
+ventilation ($\alpha$). Both coefficients are multiplied by $x_i$, which is
+dummy-coded. Lastly, $\tau^2$ represents the between-study heterogeneity.
+
+In this case, we are able to assess tocilizumab's effect in each subgroup while
+assuming a common between-study heterogeneity:
+
+* SOO = $\alpha + \beta_{SOO}$
+* NIV = $\alpha + \beta_{NIV}$
+* IMV = $\alpha$
+
+### Weakly informative priors
+
+Because we applied the Bayesian framework, we assigned a prior distribution for
+each parameter. In our main model, we implemented priors that cover plausible
+values for all parameters, assigning limited density to impossible values, and
+thus employed little influence in the results (hereafter, known as weakly
+informative priors). These are our weakly informative priors:
+
+$$
+\begin{align*}
+\alpha & \sim \operatorname{Normal}(0, 0.82^2)  \\
+\beta_{SOO}, \beta_{NIV} & \sim \operatorname{Normal}(0, 1.5^2) \\
+\tau & \sim \operatorname{Half-Normal}(0.5^2) \\
+\end{align*}
+$$
+
+Now, we will explain the rationale underlying these distributions.
+
+We find highly unlikely that a pharmacological treatment, such as tocilizumab,
+will yield a 80% odds reduction in 28-days all-cause mortality regardless of
+the subgroup of patients, as suggested by empirical evidence. Thus, for $\alpha$ (Intercept), we set a prior distribution of
+$Normal(0, 0.82)$ in the log odds ratio scale.
+
+Moreover, we set very weakly informative priors for $\beta_{SOO}$ and
+$\beta_{NIV}$ (Coefficients), because we did not expect large differences
+between the invasive mechanical subgroup ($\alpha$) and the other two
+respiratory support subgroups.
+
+```{r, fig.align='center', fig.height=3.5, fig.width=8}
+sd_alpha = 0.82
+sd_beta = 1.5
+
+twosd_alpha = sd_alpha*1.96
+twosd_beta = sd_beta*1.96
+
+# https://stackoverflow.com/questions/19950219/using-legend-with-stat-function-in-ggplot2
+
+ggplot(data = data.frame(x = c(-5, 5)), aes(x)) + #Empty plot
+  
+  # Normal(0, 0.82)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_alpha), linetype=1, size = 1.2,
+              aes(colour = "0.82")) +
+  # Normal(0, 1.5)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_beta), linetype=1, size = 1.2,
+              aes(colour = "1.5")) +
+  
+  scale_colour_manual(latex2exp::TeX("Normal(0, $\\sigma)"),
+                      values = pnw_palette("Starfish", 3, type = "discrete")) +
+  geom_vline(xintercept = c(-twosd_alpha, twosd_alpha),
+             linetype = 2,
+             color = pnw_palette("Starfish", 3, type = "discrete")[1]) +
+  geom_vline(xintercept = c(-twosd_beta, twosd_beta),
+             linetype = 2,
+             color = pnw_palette("Starfish", 3, type = "discrete")[2]) +
+  
+  scale_y_continuous(breaks = seq(0, 0.6, 0.3),
+                     limits = c(0, 0.6),
+                     expand = c(0, 0)) + # remove gap between X and Y axis
+  scale_x_continuous(breaks = c(-twosd_beta, -twosd_alpha, 
+                                0, twosd_alpha, twosd_beta),
+                     labels = function(x) round(as.numeric(x), 2),
+                     expand = c(0, 0)) +
+  coord_cartesian(x = c(-5, 5)) +
+  labs(x = "\nLog Odds Ratio",
+       y = "Density\n") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(20,20,0,20),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    legend.position = 'right',
+    legend.text = element_text(size=12),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    panel.background = element_blank()
+    )
+```
+
+To facilitate the understanding of these distributions, here are the corresponding
+95% quantile intervals in the linear scale. 
+
+```{r}
+tibble(
+  "Prior" = c("Intercept", "Coefficients"),
+  Mean = 0,
+  "SD" = c(sd_alpha, sd_beta)
+) %>% 
+  mutate("Mean " = exp(Mean),
+         "95% CI" =
+           str_c(" [",
+                 round(exp(Mean - 1.96*`SD`), 1),
+                 ", ", round(exp(Mean + 1.96*`SD`), 1),
+                 "]")) %>% 
+  flextable() %>% 
+  autofit() %>% 
+  add_header_row(
+    values = c(" ","Log scale", "Linear scale"),
+  colwidths = c(1, 2, 2)) %>% 
+  align(align = "center", part = "all")
+```
+
+Of note, while the "Intercept" can be interpreted as tocilizumab's effect (odds ratio)
+in the linear scale, the coefficients pose a different interpretation. In
+this model, the coefficients correspond to the difference between a subgroup (SOO
+or NIV) in comparison to the intercept (IMV subgroup) in the log scale. While
+each coefficient corresponds to subtraction operation per se, the interpretation
+changes in the linear scale. When exponentiated, a subtraction in the log scale
+yields a division operation. Thus, the coefficient parameters should be
+interpreted as the ratio of odds ratios between the IMV and the other
+corresponding subgroup (SOO or NIV).
+
+Another way to assess the plausibility of the aforementioned priors is to 
+perform a prior predictive check, which can be visualized below:
+
+```{r fig.align='center', fig.cap="Point estimates depict the median and interval bars depict the 80% and 95% quantile intervals."}
+m1 %>% 
+  prior_draws() %>% 
+  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
+            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  
+  # Plot!
+  ggplot(aes(
+    # exp() to transform to Odds Ratio
+    x = exp(value), fill = name)
+  ) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(point_interval = median_qi, 
+               .width = c(0.8, 0.95), 
+               n = 1e4) +
+  scale_fill_manual(values = c("#EECE9C", # Simple oxygen
+                               "#BE6376", # Non-invasive
+                               "#605A91") # Invasive 
+                    ) +
+  geom_vline(xintercept = 1, linetype = 2, size = 0.4, alpha = 0.7) +
+  labs(
+    x = "\nOdds Ratio",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = c(1, seq(from = 0, to = 30, 5))) +
+  coord_cartesian(xlim = c(0, 30)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  facet_wrap(~ name, ncol = 1, scales = "free_y")
+```
+
+As expected, the distribution for IMV approximately ranges from 0.2 to 5.0.
+The intervals for SOO and NIV are wider given the addition of another prior
+distribution for each subgroup in comparison to IMV. Nevertheless, the prior 
+predictive check above confirms the weakly informative nature of the aforementioned
+prior distributions.
+
+Lastly, we will now discuss the weakly informative prior distribution for $\tau$. 
+Because we wanted to perform unconditional inferences beyond the included
+studies, we fitted a random-effect meta-analysis. In this model, one assumes 
+there is within-study heterogeneity (represented by $\sigma_i^2$, the known
+sampling variance in study $i$) and the between-study heterogeneity (represented
+by $\tau$).
+
+Although the definition of small or large between-study heterogeneity is
+arbitrary, previous work suggests cutoff values (“reasonable” heterogeneity
+between 0.1 and 0.5, “fairly high” between 0.5 and 1.0, and  “fairly extreme”
+for values larger than 1.0 log odds ratio).[7,13] We added a category for low
+heterogeneity (between 0 and 0.1).
+
+The $\operatorname{Half-Normal}(0.5)$ distribution yields plausible
+probabilities in each of these ranges.
+
+```{r, fig.align='center', fig.height=3.5, fig.width=8}
+sd_w = 0.5
+
+
+# https://stackoverflow.com/questions/19950219/using-legend-with-stat-function-in-ggplot2
+
+ggplot(data = data.frame(x = c(0, 2)), aes(x)) + #Empty plot
+  
+  geom_area(stat = "function", fun = extraDistr::dhnorm,
+            args = list(sigma = sd_w),
+            fill = "#A9713F", xlim = c(0.1, 0.5), alpha=0.9) +
+  geom_area(stat = "function", fun = extraDistr::dhnorm,
+            args = list(sigma = sd_w),
+            fill = "#D1A14F", xlim = c(0.5, 1), alpha=0.9) +
+  # Half-Normal(0.5)
+  stat_function(fun = extraDistr::dhnorm, n = 1000,
+              args = list(sigma = sd_w), linetype=1, size = 1.2,
+              aes(colour = "0.5")) +
+  scale_colour_manual(values = "gray60") +
+  
+  scale_y_continuous(breaks = seq(0, 2, 1),
+                     limits = c(0, 2),
+                     expand = c(0, 0)) + # remove gap between X and Y axis
+  scale_x_continuous(breaks = c(0, 0.1, 0.5, 1, 1.5),
+                     labels = function(x) round(as.numeric(x), 1),
+                     expand = c(0, 0)) +
+  coord_cartesian(x = c(0, 1.5)) +
+  labs(x = "\nLog Odds Ratio",
+       y = "Density\n") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(20,20,0,20),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    legend.position = 'none',
+    legend.text = element_text(size=12),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    panel.background = element_blank()
+    )
+```
+
+Here are the corresponding probabilities within each of the aforementioned
+heterogeneity ranges:
+
+```{r}
+tibble(
+   "Low" = c(
+    100*round(phnorm(0.1, sigma = sd_w) - phnorm(0, sigma = sd_w),2)
+  ),
+  "Reasonable" = c(
+    100*round(phnorm(0.5, sigma = sd_w) - phnorm(0.1, sigma = sd_w),2)
+  ),
+  "Fairly High" = c(
+    100*round(phnorm(1, sigma = sd_w) - phnorm(0.5, sigma = sd_w),2)
+  ),
+  "Fairly Extreme" = c(
+    100*round(1 - phnorm(1, sigma = sd_w), 2)
+  )) %>% 
+  mutate(across(everything(), ~str_c(., "%"))) %>% 
+  flextable() %>% 
+  autofit() %>% 
+  add_header_row(
+    values = c("Heterogeneity Range"),
+  colwidths = c(4)) %>% 
+  align(align = "center", part = "all")
+```
+
+### Alternative priors
+
+To check whether the choice of weakly informative priors meaningfully impacted 
+our results or our conclusions, we also fitted models using vague or informative
+priors.
+
+Vague priors:
+
+$$
+\begin{align*}
+\alpha & \sim \operatorname{Normal}(0, 4^2)  \\
+\beta_{SOO}, \beta_{NIV} & \sim \operatorname{Normal}(0, 4^2) \\
+\tau & \sim \operatorname{Half-Normal}(4^2) \\
+\end{align*}
+$$
+
+Informative priors:
+
+$$
+\begin{align*}
+\alpha & \sim \operatorname{Normal}(0, 0.35^2)  \\
+\beta_{SOO}, \beta_{NIV} & \sim \operatorname{Normal}(0, 0.2^2) \\
+\tau & \sim \operatorname{Log-Normal}(-1.975, 0.67^2) \\
+\end{align*}
+$$
+
+Here are graphical representations of these normal distributions (along with the weakly
+informative mentioned before):
+
+```{r, fig.align='center', fig.height=3.5, fig.width=9}
+sd_w = 0.82
+sd_v = 4
+sd_i = 0.35
+sd_ii = 0.2
+
+twosd_w = sd_w*1.96
+twosd_v = sd_v*1.96
+twosd_i = sd_i*1.96
+twosd_ii = sd_ii*1.96
+
+# https://stackoverflow.com/questions/19950219/using-legend-with-stat-function-in-ggplot2
+
+ggplot(data = data.frame(x = c(-5, 5)), aes(x)) + #Empty plot
+  
+  # Normal(0, 0.82)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_w), linetype=1, size = 1.2,
+              aes(colour = "0.82")) +
+  # Normal(0, 4.0)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_v), linetype=1, size = 1.2,
+              aes(colour = "4.0")) +
+  # Normal(0, 0.35)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_i), linetype=1, size = 1.2,
+              aes(colour = "0.35")) +
+  # Normal(0, 0.20)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_ii), linetype=1, size = 1.2,
+              aes(colour = "0.2")) +
+  
+  scale_colour_manual(latex2exp::TeX("Normal(0, $\\sigma)"),
+                      values = pnw_palette("Starfish", 4, type = "discrete")) +
+  geom_vline(xintercept = c(-twosd_w, twosd_w),
+             linetype = 2,
+             color = pnw_palette("Starfish", 4, type = "discrete")[2]) +
+  geom_vline(xintercept = c(-twosd_i, twosd_i),
+             linetype = 2,
+             color = pnw_palette("Starfish", 4, type = "discrete")[1]) +
+  
+  scale_y_continuous(breaks = seq(0, 2, 0.5),
+                     limits = c(0, 2.3),
+                     expand = c(0, 0)) + # remove gap between X and Y axis
+  scale_x_continuous(breaks = c(-3.92, -twosd_w, -twosd_i, 
+                                0, twosd_w, twosd_i, 3.92),
+                     labels = function(x) round(as.numeric(x), 2),
+                     expand = c(0, 0)) +
+  coord_cartesian(x = c(-5, 5)) +
+  labs(x = "\nLog Odds Ratio",
+       y = "Density") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(20,20,0,20),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 15),
+    legend.position = 'right',
+    legend.text = element_text(size=12),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    panel.background = element_blank()
+    )
+```
+
+```{r}
+tibble(
+  Mean = 0,
+  "SD" = c(sd_ii, sd_i, sd_w, sd_v)
+) %>% 
+  mutate("Mean " = exp(Mean),
+         "95% CI" =
+           str_c(" [",
+                 round(exp(Mean - 1.96*`SD`), 1),
+                 ", ", round(exp(Mean + 1.96*`SD`), 1),
+                 "]")) %>% 
+  flextable() %>% 
+  autofit() %>% 
+  add_header_row(
+    values = c("Log scale", "Linear scale"),
+  colwidths = c(2, 2)) %>% 
+  align(align = "center", part = "all")
+```
+
+Again, we note that the interpretation in the linear scale is different between
+the Intercept (tocilizumab's effect as odds ratio) and Coefficients (relative difference between subgroups as ratio of odds ratios).
+
+Here are graphical representations of distributions for the between-study
+standard deviation ($\tau$) (along with the weakly informative mentioned before):
+
+```{r, fig.align='center', fig.height=3.5, fig.width=9}
+sd_w = 0.5
+sd_v = 4
+
+informative = TurnerEtAlPrior("all-cause mortality",
+                              "pharma", "placebo / control")
+
+logmean = informative$parameters["tau", "mu"]
+logsd = informative$parameters["tau", "sigma"]
+
+mean_i = -1.975 # logmean
+sd_i = 0.67 # logsd
+
+# https://stackoverflow.com/questions/19950219/using-legend-with-stat-function-in-ggplot2
+
+ggplot(data = data.frame(x = c(0, 2)), aes(x)) + #Empty plot
+  
+  # Half-Normal(0.5)
+  stat_function(fun = extraDistr::dhnorm, n = 1000,
+              args = list(sigma = sd_w), linetype=1, size = 1.2,
+              aes(colour = "Weakly informative")) +
+  
+  # Half-Normal(4)
+  stat_function(fun = extraDistr::dhnorm, n = 1000,
+              args = list(sigma = sd_v), linetype=1, size = 1.2,
+              aes(colour = "Vague")) +
+  
+  # Log-Normal(-1.975, 0.67)
+  stat_function(fun = dlnorm, n = 1000,
+              args = list(meanlog = mean_i,
+                          sdlog = sd_i),
+              linetype=1, size = 1.2,
+              aes(colour = "Informative")) +
+  
+  scale_colour_manual("Prior",
+                      values = pnw_palette("Bay", 3, type = "continuous")) +
+  
+  
+  scale_y_continuous(breaks = seq(0, 6, 1.5),
+                     limits = c(0, 6),
+                     expand = c(0, 0)) + # remove gap between X and Y axis
+  scale_x_continuous(breaks = c(0, 0.1, 0.5, 1, 2),
+                     labels = function(x) round(as.numeric(x), 1),
+                     expand = c(0, 0)) +
+  coord_cartesian(x = c(0, 2)) +
+  labs(x = "\nLog Odds Ratio",
+       y = "Density") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(20,20,0,20),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 15),
+    legend.position = 'right',
+    legend.text = element_text(size=12),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    panel.background = element_blank()
+    )
+```
+
+
+
+```{r}
+tibble(
+  "Prior" = c("Weakly informative", "Vague", "Informative"),
+  "Distribution" = c("Half-Normal(0.5)", "Half-Normal(4.0)",
+                     "Log-Normal(-1.975, 0.67)"),
+   "Low" = c(
+    100*round(phnorm(0.1, sigma = sd_w) - phnorm(0, sigma = sd_w),2),
+    100*round(phnorm(0.1, sigma = sd_v) - phnorm(0, sigma = sd_v),2),
+    100*round(plnorm(0.1, meanlog = mean_i, sdlog = sd_i) -
+            plnorm(0, meanlog = mean_i, sdlog = sd_i),2)
+  ),
+  "Reasonable" = c(
+    100*round(phnorm(0.5, sigma = sd_w) - phnorm(0.1, sigma = sd_w),2),
+    100*round(phnorm(0.5, sigma = sd_v) - phnorm(0.1, sigma = sd_v),2),
+    100*round(plnorm(0.5, meanlog = mean_i, sdlog = sd_i) -
+            plnorm(0.1, meanlog = mean_i, sdlog = sd_i),2)
+  ),
+  "Fairly High" = c(
+    100*round(phnorm(1, sigma = sd_w) - phnorm(0.5, sigma = sd_w),2),
+    100*round(phnorm(1, sigma = sd_v) - phnorm(0.5, sigma = sd_v),2),
+    100*round(plnorm(1, meanlog = mean_i, sdlog = sd_i) -
+            plnorm(0.5, meanlog = mean_i, sdlog = sd_i),2)
+  ),
+  "Fairly Extreme" = c(
+    100*round(1 - phnorm(1, sigma = sd_w), 2) ,
+    100*round(1 - phnorm(1, sigma = sd_v), 2),
+    100*round(1 - plnorm(1, meanlog = mean_i, sdlog = sd_i),2))
+  ) %>% 
+  mutate(across(3:last_col(), ~str_c(., "%"))) %>% 
+  flextable() %>% 
+  autofit() %>% 
+  add_header_row(
+    values = c(" ","Heterogeneity Range"),
+  colwidths = c(2, 4)) %>% 
+  align(align = "center", part = "all")
+```
+
+## Simulation analysis
+
+Bayesian methods allows one to incorporate external evidence in the analysis 
+through the prior distribution. Here, we simulated six randomized controlled trials
+(RCT) of different sample sizes comparing tocilizumab and control treatment in
+patients on invasive mechanical ventilation. We then incorporated these
+RCTs in our analysis by defining the prior distribution for this subgroup based
+on these simulations.
+
+```{r}
+### Overall mean odds ratio in WHO's meta-analysis on tocilizumab in patients
+# using corticosteroids:
+
+# The mean odds ratio in patients using corticosteroids (toci vs control)
+# was 0.77 (page 14 in Supplement 2 doi:10.1001/jama.2021.11330)
+
+mean_OR_WHO = 0.77 
+```
+
+All RCTs were set to find an effect size of
+log odds ratio of `r round(log(mean_OR_WHO),2)`. This value is the equal to log(`r mean_OR_WHO`),
+which was chosen based on WHO's meta-analysis ([page 14 in Supplement 2](doi:10.1001/jama.2021.11330)). This is the mean odds ratio of tocilizumab vs. control in patients using corticosteroids (overall results). We decided to use this value to reflect an skeptical view to 
+heterogeneity of treatment effect across subgroups, and thus the "real" effect
+in this subgroup would be equal to the largest body of evidence for tocilizumab
+in all hospitalized COVID-19 patients on corticosteroids.
+
+As mentioned above, we incorporated these RCTs through the prior distribution.
+To this end, we re-fitted our primary model six different times to incorporate
+these RCTs separately. More specifically, we did not sequentially
+incorporate these RCTs to our model. Instead, we fitted six separate models.
+
+Here is the model in which we incorporated these simulations:
+
+$$
+\begin{align*}
+y_i & \sim Normal(\theta_i, \sigma_i^2)\\
+\theta_i & \sim Normal(\mu, \tau^2)\\
+\mu & =  \alpha  + \beta_{SOO} x_i + \beta_{NIV}x_i\\
+\\Priors\\
+\alpha & \sim \operatorname{Normal}(-0.26, SD^2)\\
+\beta_{SOO}, \beta_{NIV} & \sim \operatorname{Normal}(0, 1.5^2) \\
+\tau & \sim \operatorname{Half-Normal}(0.5^2)
+\end{align*}
+$$
+
+This is identical to our primary model in which we used weakly informative priors.
+However, now the prior for the intercept ($\alpha$) - which corresponds to
+tocilizumab's effect in the invasive mechanical ventilation subgroup - was set to
+incorporate the RCTs mentioned above. 
+
+A normally distributed prior is defined by
+the mean and standard deviation (SD). We set the mean to be equal to 
+`r round(log(mean_OR_WHO),2)`, as explained before. We will now explain how
+we defined the SD of each corresponding prior distribution.
+
+Given that all six simulated RCTs were set to find the same effect size, 
+the only difference between them was the total number of included patients:
+200, 500, 1000, 1500, 2000, or 4000. To calculate the standard deviation of
+each corresponding prior based on the number of total patients included, one must
+also assume the proportion of patients included in each treatment arm and
+the mortality risk in the control arm:
+
+```{r}
+
+control_risk = 0.43
+
+# Now, we need to calculate the risk in the tocilizumab arm based on the odds ratio
+# and control risk mentioned above
+
+# Reference for formula: Box 1 in https://doi.org/10.1016/j.jclinepi.2020.08.019
+
+toci_risk = (control_risk*mean_OR_WHO)/(control_risk*(mean_OR_WHO - 1) + 1)
+```
+
+1. We assumed equal allocation in both treatment arms
+
+2. Adapting from the suggestions in the
+[GRADE guidelines](http://dx.doi.org/10.1016/j.jclinepi.2012.01.012), we found
+a striking discrepancy between the control mortality risk in this data (52%)
+in comparison to another [previously published meta-analysis](https://jamanetwork.com/journals/jama/fullarticle/2770279?utm_campaign=articlePDF&utm_medium=articlePDFlink&utm_source=articlePDF&utm_content=jama.2020.17023) (34% in patients on IVM and using corticosteroids).
+Thus, we have decided to use 43% (arithmetic mean between 34 and 52) as our
+reference risk in the IVM subgroup
+
+3. The mortality risk in the tocilizumab was calculated using the following
+formula (Box 1 in [Doi et al., 2020](https://doi.org/10.1016/j.jclinepi.2020.08.019)):
+
+$$R_{T} = \frac{R_{C} O R}{R_{C}\left(O R-1\right)+1}$$
+
+where $R_{T}$ is the mortality risk in the tocilizumab group, $R_{C}$ is the
+mortality risk in the control group and $OR$ is the odds ratio mentioned above.
+Thus, the tocilizumab risk is equal to `r round(toci_risk,2)`.
+
+In summary, we are simulating RCTs with mean OR equal to `r mean_OR_WHO`, control
+risk mortality of `r 100*round(control_risk,2)`, and tocilizumab risk of 
+`r 100*round(toci_risk,2)`.
+
+Based on these values, we can estimate the standard deviation (SD) with the following
+[formula](https://doi.org/10.1016/j.jclinepi.2008.07.006):
+
+$$SD=\sqrt{\frac{1}{a+\frac{1}{2}}+\frac{1}{b+\frac{1}{2}}+\frac{1}{c+\frac{1}{2}}+\frac{1}{d+\frac{1}{2}}}$$
+
+where $a$, $b$, $c$ and $d$ are number of events and follow this 2x2 table:
+
+```{r}
+tribble(
+  
+  ~"Event", ~"Tocilizumab", ~"Control",
+  
+  "Death", "a", "c",
+  "No death", "b", "d"
+) %>% 
+  flextable() %>% 
+  autofit() %>% 
+  align(align = "center", part = "all")
+```
+
+As similarly shown in the supplementary material of [Higgins and Spiegelhalter, 2002](https://academic.oup.com/ije/article/31/1/96/655931?login=true), we can estimate these values as:
+
+* $a = R_{T}SS_{T}$ 
+* $b = SS_{T} - R_{T}SS_{T}$ 
+* $c = R_{C}SS_{C}$ 
+* $d = SS_{C} - R_{C}SS_{C}$ 
+
+where $SS_{T}$ and $SS_{C}$ are the sample sizes in the tocilizumab and control
+arms, respectively. As mentioned above, we assume equal allocation in
+both treatment arms, thus $SS_{T} = SS_{C}$.
+
+```{r}
+# Function to calculate the standard deviation of odds ratio from simulated RCT ,
+# based on risk and total sample size in each treatment arm
+# Here we assume both arms have the same number of total patients (total_arm)
+
+# Adapted from:
+# Appendix in https://doi.org/10.1093/ije/31.1.96
+# +
+# Appendix in https://doi.org/10.1016/j.jclinepi.2008.07.006
+
+SD_fun = function(risk_toci, # Risk in tocilizumab arm
+                  risk_control, # Risk in control arm
+                  total_arm){ # Total sample size in each arm
+  
+# Tocilizumab
+a = risk_toci*total_arm                     # Deaths
+b = total_arm - risk_toci*total_arm         # No deaths
+# Control
+c = risk_control*total_arm                  # Deaths
+d = total_arm - risk_control*total_arm      # No deaths
+
+# Standard deviation =
+sqrt(1/(a + 1/2) + 1/(b + 1/2) + 1/(c + 1/2) + 1/(d + 1/2)) 
+
+                  }
+```
+
+```{r}
+# Lastly, we should apply the function above to calculate the standard deviation
+# of multiple simulated RCTs will the same risk_toci and risk_control, but 
+# different amounts of patients
+
+df = 
+  tibble(risk_toci = toci_risk,
+         risk_control = control_risk,
+         total_arm = c(100, 250, 500, 750, 1000, 2000)) %>% 
+  mutate(SD = SD_fun(risk_toci, risk_control, total_arm))
+```
+
+Finally, we can estimate the $SD$ based on the 6 different sample sizes 
+mentioned above:
+
+```{r}
+df %>% 
+  summarise("Sample size in each treatment arm" = total_arm,
+            "Total sample size" = 2*total_arm,
+            " SD" = round(SD,2)) %>% 
+  flextable() %>% 
+  autofit() %>% 
+  align(align = "center", part = "all")
+```
+
+In summary, there are 4 parameters in these models, which are $\alpha$, $\beta_{SOO}$,
+$\beta_{NIV}$, and $\tau$. The priors for the latter three parameters will be the 
+same in every model:
+
+$$
+\begin{align*}
+\beta_{SOO}, \beta_{NIV} & \sim \operatorname{Normal}(0, 1.5^2)\\
+\tau & \sim \operatorname{Half-Normal}(0.5^2)
+\end{align*}
+$$
+
+On the other hand, the priors for $\alpha$ are described as:
+
+$$
+\begin{align*}
+\alpha & \sim \operatorname{Normal}(\mu, SD^2) 
+\end{align*}
+$$
+
+where $\mu$ is equal to `r round(log(mean_OR_WHO),2)` in every model, and the
+$SD$ ranges from `r round(df[[1,4]],2)` to `r round(df[[6,4]],2)`,
+as described in the table above.
+
+## Deriving risk difference from odds ratio
+
+We used the odds ratio as our primary estimand, following the suggestions
+by [Doi et al., 2020](https://doi.org/10.1016/j.jclinepi.2020.08.019)
+and [Doi et al., 2021](https://doi.org/10.1016/j.jclinepi.2021.08.003).
+
+Moreover, we derived the risk in the tocilizumab group using the following
+formula (Box 1 in [Doi et al., 2020](https://doi.org/10.1016/j.jclinepi.2020.08.019)):
+
+$$R_{T} = \frac{R_{C} O R}{R_{C}\left(O R-1\right)+1}$$
+
+where $R_{T}$ is the mortality risk in the tocilizumab group, $R_{C}$ is the
+mortality risk in the control group and $OR$ is the odds ratio.
+
+We then calculated the risk difference (RD) with the following formula, which
+was also the procedure suggested by [Doi et al., 2020](https://doi.org/10.1016/j.jclinepi.2020.08.019)
+(page 4):
+
+$$RD = R_{T} - R_{C}$$
+
+Adapting from the suggestions in the [GRADE guidelines](http://dx.doi.org/10.1016/j.jclinepi.2012.01.012),
+we assumed different mortality risks in each subgroup. For the simple oxygen only and
+noninvasive ventilation subgroups, we used the average mortality risk in each
+subgroup based on the data included in this reanalysis of a [previously published
+meta-analysis](10.1001/jama.2021.11330). In contrast, regarding the invasive
+mechanical ventilation (IVM) subgroup, we found a striking discrepancy between
+the control mortality risk in this data (52%)
+in comparison to another [previously published meta-analysis](https://jamanetwork.com/journals/jama/fullarticle/2770279?utm_campaign=articlePDF&utm_medium=articlePDFlink&utm_source=articlePDF&utm_content=jama.2020.17023) (34% in patients on IVM and using corticosteroids).
+Thus, we have decided to use 43% (arithmetic mean between 34 and 52) as our
+reference risk in the IVM subgroup. Recognizing the potential variability of the
+subgroup baseline risks, we estimated the risk differences with twenty different
+plausible baseline risks for each subgroup (spanning +- 10% change from the
+reference risks mentioned above).
+
+```{r}
+
+risks = 
+  d_logOR %>% 
+  filter(corticoid == 1,
+         oxygen != "IMV") %>% 
+  mutate("Subgroup" = case_when(
+    oxygen == "low" ~ "Simple oxygen only",
+    oxygen == "NIV" ~ "Noninvasive ventilation"
+  )) %>% 
+  group_by(Subgroup) %>% 
+  summarise("Control Risk" = sum(control_events)/sum(control_total))
+
+ivm = tibble(Subgroup = "Invasive mechanical ventilation",
+             "Control Risk" = 0.42)
+
+risks = risks %>% bind_rows(ivm) %>% mutate(Subgroup = fct_rev(Subgroup))
+
+risks %>% 
+  mutate(`Control Risk` = str_c(100*round(`Control Risk`, 2), " +- 10", "%")) %>% 
+  arrange(Subgroup) %>% 
+  flextable() %>% 
+  autofit() %>% 
+  align(align = "center", part = "all")
+```
+
+# eFigures and eTables
+
+## eFigure 1
+
+```{r}
+
+risks = 
+  d_logOR %>% 
+  filter(oxygen != "IMV") %>% 
+  mutate("Subgroup" = case_when(
+    oxygen == "low" ~ "Simple oxygen only",
+    oxygen == "NIV" ~ "Noninvasive ventilation"
+  )) %>% 
+  group_by(Subgroup) %>% 
+  summarise("Control Risk" = sum(control_events)/sum(control_total))
+
+ivm = tibble(Subgroup = "Invasive mechanical ventilation",
+             "Control Risk" = 0.42)
+
+risks = risks %>%
+  bind_rows(ivm) %>%
+  mutate(Subgroup = fct_rev(Subgroup)) %>% 
+  arrange(Subgroup)
+
+```
+
+
+```{r}
+
+# Extract Odds ratio from the main model in each subgorup
+
+d = 
+  m1 %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
+            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  pivot_longer(1:3,
+               names_to = "Subgroup",
+               values_to = "logOR") %>% 
+  summarise(
+    Subgroup = Subgroup,
+    # Calculate Odds ratio
+    OR = exp(logOR))
+```
+
+```{r}
+# Equation 8 in https://doi.org/10.1016/j.jclinepi.2020.08.019
+
+Rt_fun = function(x){
+z = (Rc*x$OR)/(Rc*(x$OR - 1) + 1)
+
+z
+}
+```
+
+```{r}
+### Simple oxygen only
+
+SOO_risk = round(risks[[1,2]],2)
+
+lower_bound = SOO_risk - 0.1
+upper_bound = SOO_risk + 0.1
+
+Rc = seq(lower_bound, upper_bound, 0.01)
+
+SOO_data = plyr::adply(.data = d %>% filter(Subgroup == "Simple oxygen only"), 
+            .margins = 1, 
+            .fun = function(x) Rt_fun(x)) %>% 
+  setNames(c(colnames(d)[1], colnames(d)[2], paste0("Rt_", Rc)))
+
+### Noninvasive ventilation
+
+NIV_risk = round(risks[[2,2]],2)
+
+lower_bound = NIV_risk - 0.1
+upper_bound = NIV_risk + 0.1
+
+Rc = seq(lower_bound, upper_bound, 0.01)
+
+NIV_data = plyr::adply(.data = d %>%
+                         filter(Subgroup == "Noninvasive ventilation"), 
+            .margins = 1, 
+            .fun = function(x) Rt_fun(x)) %>% 
+  setNames(c(colnames(d)[1], colnames(d)[2], paste0("Rt_", Rc)))
+
+### Invasive mechanical ventilation
+
+IMV_risk = round(risks[[3,2]],2)
+
+lower_bound = IMV_risk - 0.1
+upper_bound = IMV_risk + 0.1
+
+Rc = seq(lower_bound, upper_bound, 0.01)
+
+IMV_data = plyr::adply(.data = d %>%
+                         filter(Subgroup == "Invasive mechanical ventilation"), 
+            .margins = 1, 
+            .fun = function(x) Rt_fun(x)) %>% 
+  setNames(c(colnames(d)[1], colnames(d)[2], paste0("Rt_", Rc)))
+
+```
+
+```{r fig.align='center', fig.width=11, fig.height=5, fig.cap="Posterior probabilities of benefit per subgroup in the risk difference scale assuming weakly informative priors.  Each line represents the posterior probability of benefit for a specific cutoff, such as risk difference greater than 0% or 1%, across plausible ranges of mortality risk under control treatment. Underlying weakly informative priors are N(0, 0.82) for the mean effect, N(0, 1.5) for the coefficients, and HN(0.5) for the between-study standard deviation. N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation)"}
+pp_fun = function(data,
+                  subgroup){
+data %>% 
+  select(starts_with("Rt")) %>% 
+  pivot_longer(
+    cols = everything(),
+    names_to = "Risk_control", values_to = "Risk_toci"
+  ) %>%
+  # Isolate the Baseline risk from the string (it takes a long time)
+  # Extract the risk control value
+  separate(Risk_control,
+           sep = "_",
+           c("NA","Risk_control")
+  ) %>% 
+  select(!"NA") %>% 
+  # Risk difference (Risk toci - Risk control)
+  mutate(Risk_control = as.numeric(Risk_control),
+         RD = Risk_toci - Risk_control) %>%  
+  # Transform to percentage
+  mutate(Risk_control = Risk_control*100,
+         RD = RD*-100) %>% 
+  group_by(Risk_control) %>% 
+  summarise("> 0%" = mean(RD > 0),
+            "> 1.0%" = mean(RD > 1)) %>% 
+  pivot_longer(2:3,
+               names_to = "Risk Difference") %>% 
+  mutate(Subgroup = subgroup)
+}
+
+pp_SOO = pp_fun(SOO_data, "Simple oxygen only")
+pp_NIV = pp_fun(NIV_data, "Noninvasive ventilation")
+pp_IMV = pp_fun(IMV_data, "Invasive mechanical ventilation")
+
+ 
+bind_rows(pp_SOO, pp_NIV, pp_IMV) %>% 
+  # Re-order
+  mutate(Subgroup = fct_rev(Subgroup)) %>% 
+  
+  ggplot(aes(x = Risk_control, y = 100*value,
+             group = `Risk Difference`, color = `Risk Difference`)) +
+  geom_hline(yintercept = seq(10, 90, 20), color = "gray80", size = 0.3) +
+  geom_line(size = 1.2) +
+  scale_color_manual(values=rev(pnw_palette("Moth",2, type = "discrete"))) +
+  labs(x = "\nRisk Under Control Treatment (%)",
+       y = "Posterior Probability of Benefit (%)") +
+  scale_y_continuous(breaks = seq(0, 100, 20)) +
+  coord_cartesian(y = c(0, 100)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13),
+    axis.text.y = element_text(size = 11),
+    panel.background = element_blank(),
+    panel.spacing = unit(1.5, "lines"), 
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+    legend.position = 'right',
+    legend.text = element_text(size=13),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  facet_wrap(~Subgroup, ncol = 3, scales = "free_x")
+
+```
+
+## eFigure 2
+
+```{r fig.width=12, fig.height=3}
+
+probs = 
+  m1 %>% 
+  tidy_draws() %>% 
+  summarise("SO vs. NIV" = 100*mean(
+    # -1* to invert ratio
+    -1*((b_Intercept + b_oxygenlow) - (b_Intercept + b_oxygenNIV)) > 0),
+            "SO vs. IVM" = 100*mean(-1*b_oxygenlow > 0), 
+            "NIV vs. IVM" = 100*mean((-1*b_oxygenNIV) > 0)) %>% 
+  mutate(across(everything(), ~ round(.)))
+
+
+# https://r-graphics.org/recipe-annotate-facet
+data_text = data.frame(
+  label = c(paste0(probs[[1]], "%"),
+            paste0(probs[[2]], "%"),
+            paste0(probs[[3]], "%")), 
+  name = c("Simple oxygen only vs. Noninvasive ventilation",
+           "Simple oxygen only vs. Invasive mechanical ventilation",
+           "Noninvasive ventilation vs. Invasive mechanical ventilation"
+           ),
+  x = 1.2,
+  y = 0.15)
+
+data_text$name = as.factor(data_text$name)
+
+triplot = 
+  m1 %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only vs. Noninvasive ventilation" =
+              # -1* to invert ratio
+              -1*((b_Intercept + b_oxygenlow) - (b_Intercept + b_oxygenNIV)),
+            "Simple oxygen only vs. Invasive mechanical ventilation" = 
+              -1*b_oxygenlow,
+            "Noninvasive ventilation vs. Invasive mechanical ventilation" =
+             -1*b_oxygenNIV
+            ) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  
+  
+  ggplot(aes(
+    # Transform from difference of odds ratio in the log scale to 
+    # ratio of odds ratio
+    # exp(log_odds1 - log_odds2) = odds1/odds2
+    x = exp(value),
+    fill = name,
+    # https://github.com/mjskay/ggdist/issues/71
+    fill_ramp = stat(x > 1))
+  ) +
+
+  scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
+  scale_fill_manual(values = c("#EECE9C", # Simple oxygen
+                               "#EECE9C", # Simple oxygen
+                               "#BE6376") # Invasive 
+                    ) + 
+  stat_slab(show.legend = FALSE) +
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  scale_y_discrete(breaks = NULL,
+                   expand = c(0, 0.1)) +
+  labs(x = NULL, y = "Density") +
+  scale_x_continuous(breaks = seq(0, 2, 0.5)) +
+  coord_cartesian(x = c(0, 2)) +
+  facet_wrap(~name, ncol = 3, scales = "free_y") +
+  theme(
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12),
+      axis.text.y = element_text(size = 12),
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 14),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+      legend.position = 'none',
+      plot.margin = margin(20, 20, 80, 20),
+      
+      panel.spacing = unit(4, "lines")
+    ) +
+  # Annotation
+  geom_text(data = data_text,
+            size = 5,
+            aes(x = x,
+                y = y,
+                label = label))
+```
+
+```{r}
+### Arrow plots
+
+# Define general parameters for plots
+xlim = c(0, 20)
+
+a_small_amount = abs(xlim[1] - xlim[2])/35
+
+null_line_at = 10
+
+arrow_df = data.frame(id = c(1,2),
+                      xstart = c(null_line_at - a_small_amount,
+                                      null_line_at + a_small_amount),
+                      xend = c(xlim[1] + a_small_amount, xlim[2] - a_small_amount),
+                      y = c(1, 1))
+
+
+arrow_fun = function(output,
+                     input){
+
+output = ggplot() +
+      geom_segment(data = arrow_df,
+                   aes(x = .data$xstart,
+                       xend = .data$xend,
+                       y = .data$y,
+                       yend = .data$y),
+                   arrow = arrow(angle = 15, type = "closed", length = grid::unit(0.1, "in"))) +
+  
+  geom_text(data = input, # Input
+            
+            aes(x = .data$x,
+                y = .data$y,
+                label = .data$text,
+                hjust = .data$hjust), size = 3.5) +
+  scale_y_continuous(expand = c(0,0), limits = c(-0.5, 1.75)) +
+  scale_x_continuous(expand = c(0,0), limits = xlim) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_rect(fill = "transparent"),
+        legend.box.background = element_rect(fill = "transparent"),
+        panel.border = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.x = element_blank())
+
+return(output)
+}
+```
+
+```{r}
+
+## Simple oxygen only vs. Noninvasive ventilation
+
+S_NIV_labels = c("Favors\nNoninvasive\nVentilation", "Favors\nSimple Oxygen Only\n ")
+
+
+S_NIV_df = data.frame(text = S_NIV_labels,
+                          x = c(1,19),
+                          y = c(0.2, 0.2),
+                          hjust = c(0, 1))
+
+S_NIV_arrows = arrow_fun(S_NIV_arrows, S_NIV_df)
+
+## Simple oxygen only vs. Invasive Mechanical Ventilation
+
+S_IVM_labels = c("Favors\nInvasive Mechanical\nVentilation", "Favors\nSimple Oxygen Only\n ")
+
+
+S_IVM_df = data.frame(text = S_IVM_labels,
+                          x = c(1,19),
+                          y = c(0.2, 0.2),
+                          hjust = c(0, 1))
+
+S_IVM_arrows = arrow_fun(S_IVM_arrows, S_IVM_df)
+
+## Simple oxygen only vs. Invasive Mechanical Ventilation
+
+NIV_IVM_labels = c("Favors\nInvasive Mechanical\nVentilation", "Favors\nNoninvasive\nVentilation")
+
+
+NIV_IVM_df = data.frame(text = NIV_IVM_labels,
+                          x = c(1,19),
+                          y = c(0.2, 0.2),
+                          hjust = c(0, 1))
+
+NIV_IVM_arrows = arrow_fun(NIV_IVM_arrows, NIV_IVM_df)
+
+```
+
+```{r}
+# triplot +
+#   inset_element(S_NIV_arrows,
+#                             ignore_tag = TRUE,
+#                             align_to = "full",
+#                             left = unit(1, 'cm'),
+#                             bottom = unit(0.2, 'cm'),
+#                             right = unit(9.6, 'cm'),
+#                             top = unit(3.5, 'cm'))    +
+#   
+#   inset_element(S_IVM_arrows,
+#                             ignore_tag = TRUE,
+#                             align_to = "full",
+#                             left = unit(11.0, 'cm'),
+#                             bottom = unit(0.2, 'cm'),
+#                             right = unit(19.6, 'cm'),
+#                             top = unit(3.5, 'cm'))   +
+#   
+#   inset_element(NIV_IVM_arrows,
+#                             ignore_tag = TRUE,
+#                             align_to = "full",
+#                             left = unit(21.2, 'cm'),
+#                             bottom = unit(0.2, 'cm'),
+#                             right = unit(29.6, 'cm'),
+#                             top = unit(3.5, 'cm'))   
+# 
+# ggsave(width = 12,
+#        height = 3,
+#         here("03_updated_analyses_who", "output", "figures", # File path
+#                    "supplementary_figure_02.png")) # File name
+```
+
+
+```{r}
+knitr::include_graphics(here("03_updated_analyses_who", "output", "figures",
+                             "supplementary_figure_02.png"))
+```
+
+Posterior distributions for comparisons of effect sizes between subgroups while
+assuming weakly informative priors. Each distribution represents the ratio of
+odds ratios of two subgroups. 
+On top of each distribution, there is a percentage representing the posterior
+probability of a ratio of odds ratios greater than 1.0.
+Arrows on the bottom represent - in that comparison - which subgroup benefited
+to a greater extent tocilizumab's effect on mortality reduction. For example,
+assuming our model, there was a 85% probability that tocilizumab reduces
+mortality to a greater extent in the simple oxygen subgroup in comparison to
+noninvasive ventilation. Underlying weakly informative priors are N(0, 0.82) for
+the mean effect, N(0, 1.5) for the coefficients, and HN(0.5) for the
+between-study standard deviation. N(mu, sigma) = Normal(mean, standard
+deviation); HN(sigma) = Half-Normal(standard deviation).
+
+## eTable 1
+
+```{r}
+# ROR = ratio of odds ratio
+
+ROR_fun = function(model){
+  
+t1 = 
+  sensitivity_models[[model]] %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only vs. Noninvasive ventilation" =
+              # -1* to invert ratio
+              -1*((b_Intercept + b_oxygenlow) - (b_Intercept + b_oxygenNIV)),
+            "Simple oxygen only vs. Invasive mechanical ventilation" = 
+              -1*b_oxygenlow,
+            "Noninvasive ventilation vs. Invasive mechanical ventilation" =
+             -1*b_oxygenNIV
+            ) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  group_by(name) %>% 
+  # Transform from difference of odds ratio in the log scale to 
+  # ratio of odds ratio
+  # exp(log_odds1 - log_odds2) = odds1/odds2
+  median_hdi(exp(value)) %>% 
+  mutate(across(2:4, ~ round(.,2))) %>% 
+  summarise("Priors / Comparisons" = name,
+            "Ratio of Odds Ratios [95% CI]" =
+              str_c(`exp(value)`, " [", .lower, ", ", .upper, "]"))
+
+t2 = 
+  sensitivity_models[[model]] %>% 
+  tidy_draws() %>% 
+    # -1* to invert ratio
+  summarise(
+    "Simple oxygen only vs. Noninvasive ventilation" =
+      mean(-1*((b_Intercept + b_oxygenlow) - (b_Intercept + b_oxygenNIV)) >
+                    log(1)),
+    "Simple oxygen only vs. Invasive mechanical ventilation" = 
+      mean(-1*b_oxygenlow > log(1)), 
+    "Noninvasive ventilation vs. Invasive mechanical ventilation" =
+      mean((-1*b_oxygenNIV) > log(1))
+    ) %>% 
+  mutate(across(everything(), ~ round(100*., 1))) %>% 
+  pivot_longer(1:3,
+               names_to = "Priors / Comparisons",
+               values_to = "Pr(> 1.00)") 
+
+t3 = 
+  sensitivity_models[[model]] %>% 
+  tidy_draws() %>% 
+    # -1* to invert ratio
+  summarise(
+    "Simple oxygen only vs. Noninvasive ventilation" =
+      mean(-1*((b_Intercept + b_oxygenlow) - (b_Intercept + b_oxygenNIV)) >
+                    log(1.25)),
+    "Simple oxygen only vs. Invasive mechanical ventilation" = 
+      mean(-1*b_oxygenlow > log(1.25)), 
+    "Noninvasive ventilation vs. Invasive mechanical ventilation" =
+      mean((-1*b_oxygenNIV) > log(1.25))
+    ) %>% 
+  mutate(across(everything(), ~ round(100*., 1))) %>% 
+  pivot_longer(1:3,
+               names_to = "Priors / Comparisons",
+               values_to = "Pr(> 1.25)")
+
+t1 %>%
+  left_join(t2) %>% 
+  left_join(t3) %>% 
+  mutate(Model = model)
+
+}
+```
+
+```{r}
+etable1 = 
+  ROR_fun("Weakly informative") %>% 
+  bind_rows(
+    ROR_fun("Vague"), ROR_fun("Informative")
+    ) %>% 
+  mutate(Model = fct_rev(Model)) %>% 
+  group_by(Model) %>% 
+  # https://stackoverflow.com/questions/43832434/arrange-within-a-group-with-dplyr
+  arrange(Model, .by_group = TRUE) %>% 
+  gt() %>% 
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>%
+  cols_align(
+    align = "left",
+    columns = "Priors / Comparisons"
+  ) %>%
+  # Expand the size of first column
+  cols_width(
+    "Priors / Comparisons" ~ px(250)
+  ) %>% 
+  tab_footnote(
+    footnote = "Weakly informative priors: Intercept N(0, 0.82); Coefficients N(0, 1.5); Between-study standard deviation HN(0.5) / Vague priors: Intercept N(0, 4); Coefficients N(0, 4); Between-study standard deviation HN(4) / Informative priors: Intercept N(0, 0.35); Coefficients N(0, 0.2); Between-study standard deviation LN(-1.975, 0.67)",
+    locations = cells_column_labels(
+      columns = c("Priors / Comparisons")
+    )) %>% 
+  tab_source_note(
+    source_note =
+      md("N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation); LN(mu, sigma) = Log-Normal(mean, standard deviation)"
+  )
+  )
+
+# etable1 %>% 
+#   gtsave("etable_1.html",
+#          path =  here("03_updated_analyses_who", "output",
+#                       "tables", "supplementary"))
+
+etable1
+```
+
+## eFigure 3
+
+```{r}
+
+weakly_posterior = 
+  sensitivity_models[["Weakly informative"]] %>% 
+  tidy_draws() %>% 
+  select(sd_study__Intercept) %>% 
+  rename("Weakly informative" = sd_study__Intercept)
+
+vague_posterior = 
+  sensitivity_models[["Vague"]] %>% 
+  tidy_draws() %>% 
+  select(sd_study__Intercept) %>% 
+  rename("Vague" = sd_study__Intercept)
+
+informative_posterior = 
+  sensitivity_models[["Informative"]] %>% 
+  tidy_draws() %>% 
+  select(sd_study__Intercept) %>% 
+  rename("Informative" = sd_study__Intercept)
+
+distributions = 
+  bind_cols(weakly_posterior, vague_posterior, informative_posterior) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name))
+
+posteriors  =
+  distributions %>% 
+  ggplot(aes(value, fill = name)) +
+  stat_halfeye(point_interval = median_hdi,
+               .width = .95) +
+  scale_fill_manual(values = pnw_palette("Starfish",3, type = "discrete")) +
+  geom_vline(xintercept = c(0.1, 0.5), linetype = 2, size = 0.5) +
+  scale_x_continuous(breaks = seq(0, 0.7, 0.1)) +
+  scale_y_continuous(breaks = seq(0,1, 0.5)) +
+  coord_cartesian(x = c(0, 0.7)) + 
+  labs(x = latex2exp::TeX("Between-study standard deviation ($\\tau)"),
+       y = "Density\n") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )  + 
+  facet_wrap(~name, ncol = 1)
+
+
+```
+
+```{r fig.align='center', fig.width = 4, fig.height=4, fig.cap="Posterior distributions (log scale) of the between study standard deviation (tau) upon different underlying prior distributions (weakly informative, vague or informative). Tau is a proxy for the between-study heterogeneity in random-effect meta-analyses. Weakly informative priors: Intercept N(0, 0.82); Coefficients N(0, 1.5); Between-study standard deviation HN(0.5) / Vague priors: Intercept N(0, 4); Coefficients N(0, 4); Between-study standard deviation HN(4) / Informative priors: Intercept N(0, 0.35); Coefficients N(0, 0.2); Between-study standard deviation LN(-1.975, 0.67). N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation); LN(mu, sigma) = Log-Normal(mean, standard deviation)."}
+posteriors
+```
+
+## eTable 2
+
+
+```{r}
+
+t1 =
+distributions %>% 
+  rename("Underlying Prior" = name) %>% 
+  group_by(`Underlying Prior`) %>% 
+  median_hdi() %>% 
+  mutate(across(2:4, ~round(.,2))) %>% 
+  summarise("Underlying Prior" = `Underlying Prior`,
+            "Median [95% CI]" = str_c(value, " [", .lower, ", ", .upper, "]"))
+ 
+t2 =
+  distributions %>% 
+  rename("Underlying Prior" = name) %>% 
+  group_by(`Underlying Prior`) %>% 
+  summarise("Low" = mean(value < 0.1),
+            "Reasonable" = mean(value > 0.1 & value < 0.5),
+            "Fairly High" = mean(value > 0.5 & value < 1)) %>% 
+  mutate(across(2:4, ~round(100*., 1))) 
+
+etable2 = left_join(t1, t2) %>% 
+  gt() %>% 
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>% 
+  cols_align(
+    align = "left",
+    columns = "Underlying Prior"
+  ) %>% 
+   tab_spanner(label = "Posterior Probability (%) within Heterogeneity Ranges",
+                columns = c("Low",
+                            "Reasonable",
+                            "Fairly High"))
+
+# etable2 %>% 
+#   gtsave("etable_2.html",
+#          path =  here("03_updated_analyses_who", "output",
+#                       "tables", "supplementary"))
+
+etable2
+```
+
+
+## eTable 3
+
+```{r}
+t1 = 
+  preds %>% 
+  group_by(name) %>% 
+  median_hdi(exp(value)) %>% 
+  mutate(across(2:4, ~round(.,2))) %>% 
+  summarise("Subgroup" = name,
+            "Odds Ratio [95% CI]" = str_c(`exp(value)`, " [", .lower, ", ", .upper, "]"))
+
+t2 = 
+  preds %>% 
+  rename("Subgroup" = name) %>% 
+  group_by(Subgroup) %>% 
+  summarise("Pr(< 0.9)" = mean(exp(value) < 0.9),
+            "Pr(< 1.00)" = mean(exp(value) < 1),
+            "Pr(> 1.11)" = mean(exp(value) > 1/0.9)) %>% 
+  mutate(across(2:last_col(), ~100*round(., 2)))
+
+etable3 =
+  left_join(t1, t2) %>% 
+
+  gt() %>% 
+  cols_align(
+      align = "center",
+      columns = everything()
+    ) %>% 
+  cols_align(
+      align = "left",
+      columns = "Subgroup"
+    )
+
+# etable3 %>% 
+#   gtsave("etable_3.html",
+#          path =  here("03_updated_analyses_who", "output",
+#                       "tables", "supplementary"))
+
+etable3
+```
+
+
+## eTable 4
+
+```{r}
+# Explanation of the code can be found in the RMarkdown file regarding these
+# models
+
+control_risk = 0.42
+
+mean_OR_WHO = 0.77 
+
+toci_risk = (control_risk*mean_OR_WHO)/(control_risk*(mean_OR_WHO - 1) + 1)
+
+SD_fun = function(risk_toci, # Risk Under Tocilizumab Treatment
+                  risk_control, # Risk Under Control Treatment
+                  total_arm){ # Total sample size in each arm
+  
+# Tocilizumab
+a = risk_toci*total_arm                     # Deaths
+b = total_arm - risk_toci*total_arm         # No deaths
+# Control
+c = risk_control*total_arm                  # Deaths
+d = total_arm - risk_control*total_arm      # No deaths
+
+# Standard deviation =
+sqrt(1/(a + 1/2) + 1/(b + 1/2) + 1/(c + 1/2) + 1/(d + 1/2)) 
+
+}
+
+current_total = 
+  d_logOR %>% 
+  filter(oxygen == "IMV") %>% 
+  summarise(total = sum(trt_total + control_total)) %>% 
+  pull()
+
+ 
+etable4 = 
+  tibble("Model" = "Main Model",
+       "Evidence Equivalence" = "-",
+       "Mean OR" = 1,
+       "SD of Log OR" = 0.82,
+       "Mean [95% CI]" = 
+              str_c(`Mean OR`,
+                    " [",
+                    round(exp(log(`Mean OR`) - 1.96*`SD of Log OR`),2),
+                    ", ",
+                    round(exp(log(`Mean OR`) + 1.96*`SD of Log OR`),2),
+                    "]"),
+       "Pr(OR < 1.0)" = round(
+              100*pnorm(log(1), mean = log(`Mean OR`), sd = `SD of Log OR`)
+              ),
+       "Pr(OR < 0.9)" = round(
+              100*pnorm(log(0.9), mean = log(`Mean OR`), sd = `SD of Log OR`)),
+       "Number of Patients Included" = str_c(current_total, " (Current Evidence)"),
+       ) %>% 
+  bind_rows(
+  tibble(risk_toci = toci_risk,
+         risk_control = control_risk,
+         model = seq(2, 7, 1),
+         total_arm = c(100, 250, 500, 750, 1000, 2000)) %>% 
+    summarise("Model" = str_c("Model ", model),
+              "Evidence Equivalence" =
+              str_c("RCT enrolling ",
+                    2*total_arm, " patients"),
+            "Mean OR" = mean_OR_WHO,
+            "SD of Log OR" =
+              SD_fun(risk_toci, risk_control, total_arm),
+            "Mean [95% CI]" = 
+              str_c(`Mean OR`,
+                    " [",
+                    round(exp(log(`Mean OR`) - 1.96*`SD of Log OR`),2),
+                    ", ",
+                    round(exp(log(`Mean OR`) + 1.96*`SD of Log OR`),2),
+                    "]"),
+            "Pr(OR < 1.0)" = round(
+              100*pnorm(log(1), mean = log(`Mean OR`), sd = `SD of Log OR`)
+              ),
+            "Pr(OR < 0.9)" = round(
+              100*pnorm(log(0.9), mean = log(`Mean OR`), sd = `SD of Log OR`)
+              ),
+            "Number of Patients Included" =
+              str_c(current_total,
+                    " + ",
+                    2*total_arm,
+                    " = ",
+                    (current_total + 2*total_arm))
+            )
+  ) %>% 
+  select(-c("Mean OR","SD of Log OR")) %>% 
+  gt() %>% 
+    tab_spanner(label = "Prior Distribution Characteristics",
+                columns = c("Evidence Equivalence",
+                            "Mean [95% CI]",
+                            "Pr(OR < 1.0)", "Pr(OR < 0.9)")) %>% 
+  tab_footnote(
+    footnote = "Probability of Treatment Effect (%)",
+    locations = cells_column_labels(
+      columns = c("Pr(OR < 1.0)", "Pr(OR < 0.9)")
+    )
+  ) %>% 
+  tab_footnote(
+    footnote = "Only considering the invasive mechanical ventilation subgroup",
+    locations = cells_column_labels(
+      columns = c("Number of Patients Included")
+    )
+  ) %>% 
+  tab_source_note(
+    source_note =
+      md("Abbreviations: CI, Confidence Interval; OR, Odds Ratio; RCT, Randomized Controlled Trial")
+  )
+
+# etable4 %>% 
+#   gtsave("etable_4.html",
+#          path =  here("03_updated_analyses_who", "output",
+#                       "tables", "supplementary"))
+  
+etable4   
+
+```
+
+## eFigure 4
+
+```{r message=FALSE, warning=FALSE, fig.align = "center", fig.width=8, fig.height=4,fig.cap="Results for the invasive mechanical ventilation subgroup from meta-analyses using an informative prior based on simulated randomized controlled trials (eTable 4). Each panel represents a different model, in which the prior distribution in centered at 0.77 odds ratio. The label on top of each panel depict the number of total patients on invasive mechanical ventilation included in each respective model (current plus simulated patients). Point estimates depict the median and interval bars represent the 95% compatibility (highest density) intervals for both prior and posterior distributions. The posterior distribution for '(Current) 717 patients' depicts the results previously shown in Figures 1A and 1B for this subgroup. Underlying weakly informative priors are N(0, 1.5) for the coefficients, and HN(0.5) for the between-study standard deviation. N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation)."}
+
+current_events = 
+  d_logOR %>% 
+  filter(oxygen == "IMV") %>% 
+  summarise(total = sum(trt_events + control_events)) %>% 
+  pull()
+
+current_total = 
+  d_logOR %>% 
+  filter(oxygen == "IMV") %>% 
+  summarise(total = sum(trt_total + control_total)) %>% 
+  pull()
+
+sample_sizes = c(100, 250, 500, 750, 1000, 2000)
+
+labels = c(str_c("(Current) ", current_total), c(2*sample_sizes + current_total)) # times 2 because we want the total number of patients
+
+
+priors = data.frame(x = rep(NA, 8000))
+posteriors = tibble(x = rep(NA, 8000))
+
+for (i in 1:length(labels)) {
+  
+prior =  
+  simulated_priors_models[[i]] %>% 
+  prior_samples() %>% 
+  select(b_Intercept)
+  
+  priors = priors %>% bind_cols(prior)
+
+post =  
+  simulated_priors_models[[i]] %>% 
+  posterior_samples() %>% 
+  select(b_Intercept)
+  
+  posteriors = posteriors %>% bind_cols(post)
+  
+}
+
+priors =
+  priors %>% 
+  select(-1) %>% 
+  pivot_longer(1:last_col(),
+               names_to = "Model",
+               values_to = "Prior") %>% 
+  mutate(Model = case_when(
+    Model == "b_Intercept...2" ~ labels[1],
+    Model == "b_Intercept...3" ~ labels[2],
+    Model == "b_Intercept...4" ~ labels[3],
+    Model == "b_Intercept...5" ~ labels[4],
+    Model == "b_Intercept...6" ~ labels[5],
+    Model == "b_Intercept...7" ~ labels[6],
+    Model == "b_Intercept...8" ~ labels[7],
+  )) %>% 
+  arrange(Model)
+
+posteriors =
+  posteriors %>% 
+  select(-1) %>% 
+  pivot_longer(1:last_col(),
+               names_to = "Model",
+               values_to = "Posterior") %>% 
+  mutate(Model = case_when(
+    Model == "b_Intercept...2" ~ labels[1],
+    Model == "b_Intercept...3" ~ labels[2],
+    Model == "b_Intercept...4" ~ labels[3],
+    Model == "b_Intercept...5" ~ labels[4],
+    Model == "b_Intercept...6" ~ labels[5],
+    Model == "b_Intercept...7" ~ labels[6],
+    Model == "b_Intercept...8" ~ labels[7],
+  )) %>% 
+  arrange(Model)
+
+# Plot!
+
+bind_cols(priors, posteriors$Posterior) %>% 
+  rename("Posterior" = "...3") %>% 
+  pivot_longer(2:3) %>% 
+  mutate(Model = factor(Model,
+                        levels = c(labels[1],
+                                   labels[2],
+                                   labels[3],
+                                   labels[4],
+                                   labels[5],
+                                   labels[6],
+                                   labels[7])),
+         Distribution = factor(name,
+                       levels = c("Posterior",
+                                  "Prior"))) %>% 
+  
+  ggplot(aes(x = exp(value), group = Distribution, color = Distribution)) +
+  geom_vline(xintercept = 1, linetype = 2) +
+  stat_pointinterval(.width = 0.95, n = 1e4, position = "dodge", size = 7,
+                     point_interval = median_hdi) +
+  scale_color_manual(values= c("#E2B55C", "#5C8FBE")) +
+  labs(x = "\nOdds Ratio",
+       y = NULL) +
+  scale_x_continuous(breaks = seq(0.4, 1.4, 0.2)) +
+  coord_cartesian(x = c(0.4, 1.4)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 12),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.spacing = unit(1.5, "lines"), 
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'top',
+    legend.key = element_rect(fill = "transparent"),
+    legend.title = element_text(size=15),
+    legend.text = element_text(size=14),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  facet_wrap(~ Model, nrow = 2)
+```
+
+## eTable 5
+
+```{r}
+# Explanation of the code can be found in the RMarkdown file regarding these
+# models
+
+control_risk = 
+  d_logOR %>% 
+  filter(study == "RECOVERY", 
+         oxygen == "IMV"     
+         ) %>% 
+  mutate(control_risk = control_events/control_total) %>% 
+  pull()
+
+mean_OR = 1
+
+toci_risk = (control_risk*mean_OR)/(control_risk*(mean_OR - 1) + 1)
+
+SD_fun = function(risk_toci, # Risk Under Tocilizumab Treatment
+                  risk_control, # Risk Under Control Treatment
+                  total_arm){ # Total sample size in each arm
+  
+# Tocilizumab
+a = risk_toci*total_arm                     # Deaths
+b = total_arm - risk_toci*total_arm         # No deaths
+# Control
+c = risk_control*total_arm                  # Deaths
+d = total_arm - risk_control*total_arm      # No deaths
+
+# Standard deviation =
+sqrt(1/(a + 1/2) + 1/(b + 1/2) + 1/(c + 1/2) + 1/(d + 1/2)) 
+
+}
+
+current_total = 
+  d_logOR %>% 
+  filter(oxygen == "IMV") %>% 
+  summarise(total = sum(trt_total + control_total)) %>% 
+  pull()
+
+ 
+etable5 = 
+  tibble("Model" = "Main Model",
+       "Evidence Equivalence" = "-",
+       "Mean OR" = 1,
+       "SD of Log OR" = 0.82,
+       "Mean [95% CI]" = 
+              str_c(`Mean OR`,
+                    " [",
+                    round(exp(log(`Mean OR`) - 1.96*`SD of Log OR`),2),
+                    ", ",
+                    round(exp(log(`Mean OR`) + 1.96*`SD of Log OR`),2),
+                    "]"),
+       "Pr(OR < 1.0)" = round(
+              100*pnorm(log(1), mean = log(`Mean OR`), sd = `SD of Log OR`)
+              ),
+       "Pr(OR < 0.9)" = round(
+              100*pnorm(log(0.9), mean = log(`Mean OR`), sd = `SD of Log OR`)),
+       "Number of Patients Included" = str_c(current_total, " (Current Evidence)"),
+       ) %>% 
+  bind_rows(
+  tibble(risk_toci = toci_risk,
+         risk_control = control_risk,
+         model = seq(2, 7, 1),
+         total_arm = c(100, 250, 500, 750, 1000, 2000)) %>% 
+    summarise("Model" = str_c("Model ", model),
+              "Evidence Equivalence" =
+              str_c("RCT enrolling ",
+                    2*total_arm, " patients"),
+            "Mean OR" = mean_OR,
+            "SD of Log OR" =
+              SD_fun(risk_toci, risk_control, total_arm),
+            "Mean [95% CI]" = 
+              str_c(`Mean OR`,
+                    " [",
+                    round(exp(log(`Mean OR`) - 1.96*`SD of Log OR`),2),
+                    ", ",
+                    round(exp(log(`Mean OR`) + 1.96*`SD of Log OR`),2),
+                    "]"),
+            "Pr(OR < 1.0)" = round(
+              100*pnorm(log(1), mean = log(`Mean OR`), sd = `SD of Log OR`)
+              ),
+            "Pr(OR < 0.9)" = round(
+              100*pnorm(log(0.9), mean = log(`Mean OR`), sd = `SD of Log OR`)
+              ),
+            "Number of Patients Included" =
+              str_c(current_total,
+                    " + ",
+                    2*total_arm,
+                    " = ",
+                    (current_total + 2*total_arm))
+            )
+  ) %>% 
+  select(-c("Mean OR","SD of Log OR")) %>% 
+  gt() %>% 
+    tab_spanner(label = "Prior Distribution Characteristics",
+                columns = c("Evidence Equivalence",
+                            "Mean [95% CI]",
+                            "Pr(OR < 1.0)", "Pr(OR < 0.9)")) %>% 
+  tab_footnote(
+    footnote = "Probability of Treatment Effect (%)",
+    locations = cells_column_labels(
+      columns = c("Pr(OR < 1.0)", "Pr(OR < 0.9)")
+    )
+  ) %>% 
+  tab_footnote(
+    footnote = "Only considering the invasive mechanical ventilation subgroup",
+    locations = cells_column_labels(
+      columns = c("Number of Patients Included")
+    )
+  ) %>% 
+  tab_source_note(
+    source_note =
+      md("Abbreviations: CI, Confidence Interval; OR, Odds Ratio; RCT, Randomized Controlled Trial")
+  )
+
+# etable5 %>% 
+#   gtsave("etable_5.html",
+#          path =  here("03_updated_analyses_who", "output",
+#                       "tables", "supplementary"))
+
+etable5
+  
+```
+
+## eFigure 5
+
+```{r message=FALSE, warning=FALSE}
+
+current_events = 
+  d_logOR %>% 
+  filter(oxygen == "IMV") %>% 
+  summarise(total = sum(trt_events + control_events)) %>% 
+  pull()
+
+current_total = 
+  d_logOR %>% 
+  filter(oxygen == "IMV") %>% 
+  summarise(total = sum(trt_total + control_total)) %>% 
+  pull()
+
+sample_sizes = c(100, 250, 500, 750, 1000, 2000)
+
+labels = c(str_c("(Current) ", current_total), c(2*sample_sizes + current_total)) # times 2 because we want the total number of patients
+
+
+priors = data.frame(x = rep(NA, 8000))
+posteriors = tibble(x = rep(NA, 8000))
+
+for (i in 1:length(labels)) {
+  
+prior =  
+  sensitivity_simulated_priors_models[[i]] %>% 
+  prior_samples() %>% 
+  select(b_Intercept)
+  
+  priors = priors %>% bind_cols(prior)
+
+post =  
+  sensitivity_simulated_priors_models[[i]] %>% 
+  posterior_samples() %>% 
+  select(b_Intercept)
+  
+  posteriors = posteriors %>% bind_cols(post)
+  
+}
+
+priors =
+  priors %>% 
+  select(-1) %>% 
+  pivot_longer(1:last_col(),
+               names_to = "Model",
+               values_to = "Prior") %>% 
+  mutate(Model = case_when(
+    Model == "b_Intercept...2" ~ labels[1],
+    Model == "b_Intercept...3" ~ labels[2],
+    Model == "b_Intercept...4" ~ labels[3],
+    Model == "b_Intercept...5" ~ labels[4],
+    Model == "b_Intercept...6" ~ labels[5],
+    Model == "b_Intercept...7" ~ labels[6],
+    Model == "b_Intercept...8" ~ labels[7],
+  )) %>% 
+  arrange(Model)
+
+posteriors =
+  posteriors %>% 
+  select(-1) %>% 
+  pivot_longer(1:last_col(),
+               names_to = "Model",
+               values_to = "Posterior") %>% 
+  mutate(Model = case_when(
+    Model == "b_Intercept...2" ~ labels[1],
+    Model == "b_Intercept...3" ~ labels[2],
+    Model == "b_Intercept...4" ~ labels[3],
+    Model == "b_Intercept...5" ~ labels[4],
+    Model == "b_Intercept...6" ~ labels[5],
+    Model == "b_Intercept...7" ~ labels[6],
+    Model == "b_Intercept...8" ~ labels[7],
+  )) %>% 
+  arrange(Model)
+
+# Plot!
+
+p1 = 
+  bind_cols(priors, posteriors$Posterior) %>% 
+  rename("Posterior" = "...3") %>% 
+  pivot_longer(2:3) %>% 
+  mutate(Model = factor(Model,
+                        levels = c(labels[1],
+                                   labels[2],
+                                   labels[3],
+                                   labels[4],
+                                   labels[5],
+                                   labels[6],
+                                   labels[7])),
+         Distribution = factor(name,
+                       levels = c("Posterior",
+                                  "Prior"))) %>% 
+  
+  ggplot(aes(x = exp(value), group = Distribution, color = Distribution)) +
+  geom_vline(xintercept = 1, linetype = 2) +
+  stat_pointinterval(.width = 0.95, n = 1e4, position = "dodge", size = 7,
+                     point_interval = median_hdi) +
+  scale_color_manual(values= c("#E2B55C", "#5C8FBE")) +
+  labs(x = "\nOdds Ratio",
+       y = NULL) +
+  scale_x_continuous(breaks = seq(0.4, 1.4, 0.2)) +
+  coord_cartesian(x = c(0.4, 1.4)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 12),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.spacing = unit(1.5, "lines"), 
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'top',
+    legend.key = element_rect(fill = "transparent"),
+    legend.title = element_text(size=15),
+    legend.text = element_text(size=14),
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  facet_wrap(~ Model, nrow = 2)
+```
+
+```{r, fig.width=7, fig.height=3.5}
+
+probabilities = data.frame()
+
+for (i in 1:length(labels)) {
+  
+p = 
+  sensitivity_simulated_priors_models[[i]] %>% 
+  tidy_draws() %>% 
+  summarise(model = labels[i],
+            "< 1.0" = mean(b_Intercept < log(1)),
+            "< 0.9" = mean(b_Intercept < log(0.9)))
+
+probabilities = probabilities %>% bind_rows(p) %>% 
+  mutate(model = factor(model,
+                        levels = c(labels[1],
+                                   labels[2],
+                                   labels[3],
+                                   labels[4],
+                                   labels[5],
+                                   labels[6],
+                                   labels[7]))
+         )
+
+}
+
+multiply100 = function(x){x*100}
+
+probabilities_geompoint =
+  probabilities %>% 
+  mutate(across(2:3, ~multiply100(.))) %>% 
+  pivot_longer(2:3,
+               names_to = "Odds Ratio") %>% 
+  mutate("Odds Ratio" = fct_rev(`Odds Ratio`))
+  
+p2 =
+  ggplot() +
+  geom_hline(yintercept = c(10, 30, 50, 70, 90), color = "gray80", size = 0.3) +
+  geom_segment(data = probabilities,
+               aes(x=model, xend=model, y=100*`< 1.0`, yend=100*`< 0.9`),
+               color="grey", size = 1) +
+  geom_point(data = probabilities_geompoint,
+             aes(x=model, y= value, fill = `Odds Ratio`, color = `Odds Ratio`),
+             size= 4) +
+  scale_color_manual(values= c("#E68D67", "#BB3151")) +
+  scale_y_continuous(breaks = seq(0, 100, 20)) +
+  coord_cartesian(y = c(0, 105)) +
+  labs(x = "\nNumber of Patients Included",
+       y = "Posterior Probability of Benefit (%)") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 12),
+    axis.text.y = element_text(size = 11),
+    panel.background = element_blank(),
+    panel.spacing = unit(1.5, "lines"), 
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+    legend.position = 'right',
+    legend.text = element_text(size=13),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  )
+
+```
+
+
+```{r fig.width=10, fig.height=9, fig.cap="Results for the invasive mechanical ventilation subgroup from meta-analyses using an informative prior based on simulated randomized controlled trials (eTable 5). In contrast to the results shown in eFigure4, the prior distributions in these analyses are centered at 1.0 odds ratio. Panel A: Each panel represents a different model. The label on top of each panel depict the number of total patients on invasive mechanical ventilation included in each respective model (current plus simulated patients). Point estimates depict the median and interval bars represent the 95% compatibility (highest density) intervals for both prior and posterior distributions. The posterior distribution for '(Current) 717 patients' depicts the results previously shown in Figures 1A and 1B for this subgroup. Panel B shows the posterior probability of benefit for different thresholds (OR < 1.0 and < 0.9). Underlying weakly informative priors are N(0, 1.5) for the coefficients, and HN(0.5) for the between-study standard deviation. N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation)."}
+p1 / p2 + plot_annotation(tag_levels = "A")
+```

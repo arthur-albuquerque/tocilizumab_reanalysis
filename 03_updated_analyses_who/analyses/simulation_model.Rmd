@@ -1,0 +1,583 @@
+---
+title: "Simulating RCTs as Priors (Models)"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: hide
+          toc: yes
+          toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(tidyverse, # data wrangling + plotting
+               gt, # to create tables
+               brms, # to fit Bayesian models
+               here, # reproducible file paths
+               rio, # to import files
+               ggdist, # to plot distributions 
+               tidybayes, # to plot distributions 
+               PNWColors,
+               flextable, # table
+               patchwork) # arrange plots
+
+# Load data
+d_logOR = readRDS(
+  here("03_updated_analyses_who", "output", "data", "effect_sizes.Rds")
+  )
+
+# Load main model
+m1 = readRDS(here("03_updated_analyses_who", "output", "fits", "m1.Rds"))
+
+# Load function
+source(here("03_updated_analyses_who/functions/diag_plot.R"))
+```
+
+In this file, we will discuss the rationale and fit models in which
+we use simulated randomized controlled trials as priors.
+
+# Details
+
+The main Bayesian meta-regression random-effect model is:
+
+$$
+\begin{align*}
+y_i & \sim Normal(\theta_i, \sigma_i^2) \tag{Likelihood} \\
+\theta_i & \sim Normal(\mu, \tau^2)\\
+\mu & =  \alpha  + \beta_{SOO} x_i + \beta_{NIV}x_i\\
+\\
+\alpha & \sim \operatorname{Normal}(0, 0.82^2) \tag{Priors} \\
+\beta_{SOO}, \beta_{NIV} & \sim \operatorname{Normal}(0, 1.5^2) \\
+\tau & \sim \operatorname{Half-Normal}(0.5^2) \\
+\end{align*}
+$$
+
+where $y_i$ is the observed mean log odds ratio of tocilizumab versus control
+and $\sigma_i^2$ is the known sampling variance in study $i$. $\alpha$ is the
+intercept, which represents the overall effect of tocilizumab in patients on
+**invasive mechanical ventilation**. $\beta_{SOO}$ is the difference between
+patients on simple oxygen only (SOO) and patients on invasive mechanical
+ventilation ($\alpha$). $\beta_{NIV}$ is the difference between patients on
+noninvasive ventilation (NIV) and patients on invasive mechanical
+ventilation ($\alpha$).
+Both coefficients are multiplied by $x$, which is dummy-coded. Lastly,
+$\tau^2$ represents the between-study heterogeneity.
+
+```{r}
+### Overall mean odds ratio in WHO's meta-analysis on tocilizumab in patients
+# using corticosteroids:
+
+# The mean odds ratio in patients using corticosteroids (toci vs control)
+# was 0.77 (page 14 in Supplement 2 doi:10.1001/jama.2021.11330)
+
+mean_OR_WHO = 0.77 
+```
+
+Here, we will fit 6 models using different priors for $\alpha$. Each prior will
+be tailored to simulate a randomized controlled trial (RCT) of tocilizumab versus 
+standard of care (control). We want to simulate RCTs with the following total
+sample sizes: $200, 500, 1000, 1500, 2000, 4000$.
+
+All priors will be normally distributed and will have a mean of
+`r round(log(mean_OR_WHO),2)`. This value is the equal to log(`r mean_OR_WHO`),
+which was chosen based on WHO's meta-analysis ([page 14 in
+Supplement 2](doi:10.1001/jama.2021.11330)). This is the mean odds ratio of
+tocilizumab vs. control in patients using corticosteroids (overall results).
+
+To calculate the standard deviation of each prior, we need to define certain
+aspects of these "simulated randomized controlled trials":
+
+```{r}
+
+control_risk = 0.43
+
+# Now, we need to calculate the risk in the tocilizumab arm based on the odds ratio
+# and control risk mentioned above
+
+# Reference for formula: Box 1 in https://doi.org/10.1016/j.jclinepi.2020.08.019
+
+toci_risk = (control_risk*mean_OR_WHO)/(control_risk*(mean_OR_WHO - 1) + 1)
+```
+
+1. We assume equal allocation in both treatment arms.
+
+2. Adapting from the suggestions in the
+[GRADE guidelines](http://dx.doi.org/10.1016/j.jclinepi.2012.01.012), we found
+a striking discrepancy between the control mortality risk in this data (52%)
+in comparison to another [previously published meta-analysis](https://jamanetwork.com/journals/jama/fullarticle/2770279?utm_campaign=articlePDF&utm_medium=articlePDFlink&utm_source=articlePDF&utm_content=jama.2020.17023) (34% in patients on IVM and using corticosteroids).
+Thus, we have decided to use 43% (arithmetic mean between 34 and 52) as our
+reference risk in the IVM subgroup..
+
+3. The mortality risk in the tocilizumab was calculated using the following
+formula (Box 1 in [Doi et al., 2020](https://doi.org/10.1016/j.jclinepi.2020.08.019)):
+
+$$R_{T} = \frac{R_{C} O R}{R_{C}\left(O R-1\right)+1}$$
+
+where $R_{T}$ is the mortality risk in the tocilizumab group, $R_{C}$ is the
+mortality risk in the control group and $OR$ is the odds ratio mentioned above.
+Thus, the tocilizumab risk is equal to `r round(toci_risk,2)`.
+
+Thus, we are simulating RCTs with mean OR equal to `r mean_OR_WHO`, control
+risk mortality of `r round(control_risk,2)`, and tocilizumab risk of 
+`r round(toci_risk,2)`.
+
+Based on these values, we can estimate the standard deviation ($SD$) with the following
+[formula](https://doi.org/10.1016/j.jclinepi.2008.07.006):
+
+$$SD=\sqrt{\frac{1}{a+\frac{1}{2}}+\frac{1}{b+\frac{1}{2}}+\frac{1}{c+\frac{1}{2}}+\frac{1}{d+\frac{1}{2}}}$$
+
+where $a$, $b$, $c$ and $d$ are number of events and follow this 2x2 table:
+
+```{r}
+tribble(
+  
+  ~"Event", ~"Tocilizumab", ~"Control",
+  
+  "Death", "a", "c",
+  "No death", "b", "d"
+) %>% 
+  flextable() %>% 
+  autofit()
+```
+
+As similarly shown in the supplementary material of [Higgins and Spiegelhalter, 2002](https://academic.oup.com/ije/article/31/1/96/655931?login=true), we can estimate these values as:
+
+* $a = R_{T}SS_{T}$ 
+* $b = SS_{T} - R_{T}SS_{T}$ 
+* $c = R_{C}SS_{C}$ 
+* $d = SS_{C} - R_{C}SS_{C}$ 
+
+where $SS_{T}$ and $SS_{C}$ are the sample sizes in the tocilizumab and control
+arms, respectively. As mentioned above, we assume equal allocation in
+both treatment arms, thus $SS_{T} = SS_{C}$.
+
+```{r}
+# Function to calculate the standard deviation of odds ratio from simulated RCT ,
+# based on risk and total sample size in each treatment arm
+# Here we assume both arms have the same number of total patients (total_arm)
+
+# Adapted from:
+# Appendix in https://doi.org/10.1093/ije/31.1.96
+# +
+# Appendix in https://doi.org/10.1016/j.jclinepi.2008.07.006
+
+SD_fun = function(risk_toci, # Risk in tocilizumab arm
+                  risk_control, # Risk in control arm
+                  total_arm){ # Total sample size in each arm
+  
+# Tocilizumab
+a = risk_toci*total_arm                     # Deaths
+b = total_arm - risk_toci*total_arm         # No deaths
+# Control
+c = risk_control*total_arm                  # Deaths
+d = total_arm - risk_control*total_arm      # No deaths
+
+# Standard deviation =
+sqrt(1/(a + 1/2) + 1/(b + 1/2) + 1/(c + 1/2) + 1/(d + 1/2)) 
+
+                  }
+```
+
+```{r}
+# Lastly, we should apply the function above to calculate the standard deviation
+# of multiple simulated RCTs will the same risk_toci and risk_control, but 
+# different amounts of patients
+
+df = 
+  tibble(risk_toci = toci_risk,
+         risk_control = control_risk,
+         total_arm = c(100, 250, 500, 750, 1000, 2000)) %>% 
+  mutate(SD = SD_fun(risk_toci, risk_control, total_arm))
+```
+
+Finally, we can estimate the $SD$ based on the 6 different sample sizes 
+mentioned above:
+
+```{r}
+df %>% 
+  summarise("Sample size in each treatment arm" = total_arm,
+            "Total sample size" = 2*total_arm,
+            " SD" = round(SD,2)) %>% 
+  flextable() %>% 
+  autofit()
+```
+
+In summary, there are 4 parameters in these models, which are $\alpha$, $\beta_{SOO}$,
+$\beta_{NIV}$, and $\tau$. The priors for the latter three parameters will be the 
+same in every model:
+
+$$
+\begin{align*}
+\beta_{SOO}, \beta_{NIV} & \sim \operatorname{Normal}(0, 1.5^2)\\
+\tau & \sim \operatorname{Half-Normal}(0.5^2)
+\end{align*}
+$$
+
+On the other hand, the priors for $\alpha$ are described as:
+
+$$
+\begin{align*}
+\alpha & \sim \operatorname{Normal}(\mu, SD^2) 
+\end{align*}
+$$
+
+where $\mu$ is equal to `r round(log(mean_OR_WHO),2)` in every model, but
+$SD$ range from `r round(df[[1,4]],2)` to `r round(df[[6,4]],2)`, as described in the table
+above.
+
+Let's fit these 6 new models:
+
+```{r}
+# Priors
+
+intercept100 = prior_string(
+  paste0(
+  "normal(",
+  log(mean_OR_WHO), # Mean, log(0.77)
+  ",",
+  df[[1,4]], # SD, total_arm = 100
+  ")"),
+  class = "b", coef = "Intercept"
+  )
+
+# b_Intercept ~ normal(-0.261364764134408,0.28303369902181)
+
+intercept250 = prior_string(
+  paste0(
+  "normal(",
+  log(mean_OR_WHO), # Mean, log(0.77)
+  ",",
+  df[[2,4]], # SD, total_arm = 250
+  ")"),
+  class = "b", coef = "Intercept")
+
+# b_Intercept ~ normal(-0.261364764134408,0.179552672191073)
+
+
+intercept500 = prior_string(paste0(
+  "normal(",
+  log(mean_OR_WHO), # Mean, log(0.77)
+  ",",
+  df[[3,4]], # SD, total_arm = 500
+  ")"),
+  class = "b", coef = "Intercept")
+
+# b_Intercept ~ normal(-0.261364764134408,0.127092510741972)
+
+intercept750 = prior_string(paste0(
+  "normal(",
+  log(mean_OR_WHO), # Mean, log(0.77)
+  ",",
+  df[[4,4]], # SD, total_arm = 750
+  ")"),
+  class = "b", coef = "Intercept")
+
+# b_Intercept ~ normal(-0.261364764134408,0.103805945961058)
+
+intercept1000 = prior_string(paste0(
+  "normal(",
+  log(mean_OR_WHO), # Mean, log(0.77)
+  ",",
+  df[[5,4]], # SD, total_arm = 1000
+  ")"),
+  class = "b", coef = "Intercept")
+
+#b_Intercept ~ normal(-0.261364764134408,0.0899139032236548)
+
+intercept2000 = prior_string(paste0(
+  "normal(",
+  log(mean_OR_WHO), # Mean, log(0.77)
+  ",",
+  df[[6,4]], # SD, total_arm = 2000
+  ")"),
+  class = "b", coef = "Intercept")
+
+# b_Intercept ~ normal(-0.261364764134408,0.0635949873256457)
+
+SOO = prior(normal(0, 1.5), class = "b", coef = "oxygenlow") # beta_Simple oxygen only
+
+NIV = prior(normal(0, 1.5), class = "b", coef = "oxygenNIV") # beta_NIV
+
+tau_study = prior(normal(0, 0.5), class = "sd") # tau_study
+
+priors = list(
+  
+  c(intercept100, SOO, NIV, tau_study),
+  c(intercept250, SOO, NIV, tau_study),
+  c(intercept500, SOO, NIV, tau_study),
+  c(intercept750, SOO, NIV, tau_study),
+  c(intercept1000, SOO, NIV, tau_study),
+  c(intercept2000, SOO, NIV, tau_study)
+)
+
+# Create list to store fits
+# new_models = list()
+# 
+# # Store the main model
+# 
+# new_models[[1]] = m1
+# 
+## Supressed because we saved the models already
+#
+## Run the loop, to fit other models with different 
+#
+# for (i in 1:nrow(df)) {
+# 
+#   # Show what model is running
+#   print(i)
+#   
+#   # Skip first index because main model (m1) is already stored there
+#   k = i + 1
+#   
+#   # Re-fit the main model, but now changing the prior
+#   new_fit = update(m1, 
+#                prior = priors[[i]], 
+#                
+#                cores = parallel::detectCores(),
+#                sample_prior = T,
+#                chains = 4,
+#                control = list(adapt_delta = .99),
+#                backend = "cmdstanr",
+#                seed = 123)
+#   
+#   # Save models
+#   new_models[[k]] = new_fit
+# }
+# # 
+# saveRDS(new_models,
+#          here("03_updated_analyses_who", "output", "fits", "simulated_priors_models.rds"))
+
+new_models = readRDS(here("03_updated_analyses_who",
+                          "output",
+                          "fits",
+                          "simulated_priors_models.rds"))
+
+```
+
+
+## Diagnostic plots
+
+```{r, fig.align='center', fig.height=4}
+
+# Run loop
+for (i in 1:(nrow(df))) {
+  
+  
+# Skip first index (main model)
+k = i + 1
+
+  # Run custom function diag_plot, 1 per model
+p = diag_plot(model = new_models[[k]],
+          pars_list = c("b_Intercept", "b_oxygenlow", "b_oxygenNIV", "sd_study__Intercept"),
+          ncol_trace = 4)
+# Display plot
+print(p)  
+
+# Add legend to show respective priors
+lab = paste0(df %>% slice(i) %>% pull(SD) %>% round(2))
+grid::grid.text(paste0("alpha_SD = ", lab), 0.25, .03, gp=grid::gpar(cex=1.3))
+}
+```
+
+Posterior predictive check
+
+```{r, fig.align='center', fig.height=4}
+# Run lopp
+for (i in 1:(nrow(df))) {
+  
+# Skip first index (main model)
+k = i + 1
+
+p = pp_check(new_models[[k]], ndraws = 20)
+
+print(p)
+
+lab = paste0(df %>% slice(i) %>% pull(SD) %>% round(2))
+grid::grid.text(paste0("alpha_SD = ", lab), .7, .9, gp=grid::gpar(cex=1.2))
+}
+```
+
+# Sensitivity analysis model
+
+We will fit models assuming a priors for $\alpha$ with the mean equal to $log(1)$.
+
+```{r}
+# Priors
+
+intercept100 = prior_string(
+  paste0(
+  "normal(",
+  log(1), # Mean, 0
+  ",",
+  df[[1,4]], # SD, total_arm = 100
+  ")"),
+  class = "b", coef = "Intercept"
+  )
+
+# b_Intercept ~ normal(0,0.28303369902181)
+
+intercept250 = prior_string(
+  paste0(
+  "normal(",
+  log(1), # Mean, 0
+  ",",
+  df[[2,4]], # SD, total_arm = 250
+  ")"),
+  class = "b", coef = "Intercept")
+
+# b_Intercept ~ normal(-0.261364764134408,0.179552672191073)
+
+
+intercept500 = prior_string(paste0(
+  "normal(",
+  log(1), # Mean, 0
+  ",",
+  df[[3,4]], # SD, total_arm = 500
+  ")"),
+  class = "b", coef = "Intercept")
+
+# b_Intercept ~ normal(-0.261364764134408,0.127092510741972)
+
+intercept750 = prior_string(paste0(
+  "normal(",
+  log(1), # Mean, 0
+  ",",
+  df[[4,4]], # SD, total_arm = 750
+  ")"),
+  class = "b", coef = "Intercept")
+
+# b_Intercept ~ normal(-0.261364764134408,0.103805945961058)
+
+intercept1000 = prior_string(paste0(
+  "normal(",
+  log(1), # Mean, 0
+  ",",
+  df[[5,4]], # SD, total_arm = 1000
+  ")"),
+  class = "b", coef = "Intercept")
+
+#b_Intercept ~ normal(-0.261364764134408,0.0899139032236548)
+
+intercept2000 = prior_string(paste0(
+  "normal(",
+  log(1), # Mean, 0
+  ",",
+  df[[6,4]], # SD, total_arm = 2000
+  ")"),
+  class = "b", coef = "Intercept")
+
+# b_Intercept ~ normal(-0.261364764134408,0.0635949873256457)
+
+SOO = prior(normal(0, 1.5), class = "b", coef = "oxygenlow") # beta_Simple oxygen only
+
+NIV = prior(normal(0, 1.5), class = "b", coef = "oxygenNIV") # beta_NIV
+
+tau_study = prior(normal(0, 0.5), class = "sd") # tau_study
+
+priors = list(
+  
+  c(intercept100, SOO, NIV, tau_study),
+  c(intercept250, SOO, NIV, tau_study),
+  c(intercept500, SOO, NIV, tau_study),
+  c(intercept750, SOO, NIV, tau_study),
+  c(intercept1000, SOO, NIV, tau_study),
+  c(intercept2000, SOO, NIV, tau_study)
+)
+
+# Create list to store fits
+# new_models = list()
+# # 
+# # # Store the main model
+# # 
+# new_models[[1]] = m1
+# # 
+# # ## Supressed because we saved the models already
+# # 
+# # # Run the loop, to fit other models with different 
+# # 
+# for (i in 1:nrow(df)) {
+# 
+#   # Show what model is running
+#   print(i)
+#   
+#   # Skip first index because main model (m1) is already stored there
+#   k = i + 1
+#   
+#   # Re-fit the main model, but now changing the prior
+#   new_fit = update(m1, 
+#                prior = priors[[i]], 
+#                
+#                cores = parallel::detectCores(),
+#                sample_prior = T,
+#                chains = 4,
+#                control = list(adapt_delta = .99),
+#                backend = "cmdstanr",
+#                seed = 123)
+#   
+#   # Save models
+#   new_models[[k]] = new_fit
+# }
+# # 
+# saveRDS(new_models,
+#          here("03_updated_analyses_who", "output", "fits",
+#               "sensitivity_simulated_priors_models.rds"))
+
+new_models = readRDS(here("03_updated_analyses_who",
+                          "output",
+                          "fits",
+                          "sensitivity_simulated_priors_models.rds"))
+
+```
+
+## Diagnostic plots
+
+```{r, fig.align='center', fig.height=4}
+
+# Run loop
+for (i in 1:(nrow(df))) {
+  
+# Skip first index (main model)
+k = i + 1
+
+  # Run custom function diag_plot, 1 per model
+p = diag_plot(model = new_models[[k]],
+          pars_list = c("b_Intercept", "b_oxygenlow", "b_oxygenNIV", "sd_study__Intercept"),
+          ncol_trace = 4)
+# Display plot
+print(p)  
+
+# Add legend to show respective priors
+lab = paste0(df %>% slice(i) %>% pull(SD) %>% round(2))
+grid::grid.text(paste0("alpha_SD = ", lab), 0.25, .03, gp=grid::gpar(cex=1.3))
+}
+```
+
+Posterior predictive check
+
+```{r, fig.align='center', fig.height=4}
+# Run lopp
+for (i in 1:(nrow(df))) {
+  
+# Skip first index (main model)
+k = i + 1
+
+p = pp_check(new_models[[k]], ndraws = 20)
+
+print(p)
+
+lab = paste0(df %>% slice(i) %>% pull(SD) %>% round(2))
+grid::grid.text(paste0("alpha_SD = ", lab), .7, .9, gp=grid::gpar(cex=1.2))
+}
+```
+
+```{r}
+sessionInfo()
+```
+

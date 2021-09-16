@@ -1,0 +1,166 @@
+---
+title: "Untitled"
+author: "Arthur"
+date: "9/8/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(tidyverse, # data wrangling + plotting
+               gt, # to create tables
+               brms, # to fit Bayesian models
+               here, # reproducible file paths
+               rio, # to import files
+               ggdist, # to plot distributions 
+               tidybayes, # to plot distributions 
+               PNWColors, # color palettes
+               patchwork) # arrange plots
+
+
+# Load data
+d_logOR = readRDS(
+  here("03_updated_analyses_who", "output", "data", "effect_sizes.Rds")
+  )
+
+# Load sensitivity models
+
+sensitivity_models =
+  readRDS(here("03_updated_analyses_who", "output", "fits", "sensitivity.Rds"))
+```
+
+# Table 1
+
+```{r}
+
+d_logOR %>% 
+  mutate(oxygen = case_when(
+    oxygen == "low" ~ "Simple oxygen only",
+    oxygen == "NIV" ~ "Noninvasive ventilation",
+    oxygen == "IMV" ~ "Invasive mechanical ventilation"),
+    oxygen = factor(oxygen, 
+                    levels = c("Simple oxygen only",
+                               "Noninvasive ventilation",
+                               "Invasive mechanical ventilation"))) %>% 
+  summarise("Study" = study,
+            oxygen = oxygen,
+            "Events" = trt_events,
+            "Total" = trt_total,
+            "Events " = control_events,
+            "Total " = control_total,
+            "Odds Ratio (95% CI)" = str_c(round(exp(yi),2),
+                             " [",
+                             ( round( exp(yi -1.96*sei), 2) ),
+                             " - ",
+                             ( round( exp(yi +1.96*sei), 2) ),
+                             "]")
+  ) %>% 
+    group_by(oxygen) %>% 
+    # https://stackoverflow.com/questions/43832434/arrange-within-a-group-with-dplyr
+    arrange(Total, .by_group = TRUE) %>% 
+    gt() %>% 
+    cols_align(
+      align = "center",
+      columns = everything()
+    ) %>%
+    cols_align(
+      align = "left",
+      columns = "Study"
+    ) %>%
+    # Expand the size of first column
+    cols_width(
+      Study ~ px(200)
+    ) %>% 
+    # Add column tabs based on the column names defined above
+    tab_spanner(label = "Tocilizumab",
+                columns = c("Events", "Total")) %>% 
+    tab_spanner(label = "Control",
+              columns = c("Events ", "Total ")) %>% 
+  gtsave("table_1.html",
+         path =  here("03_updated_analyses_who", "output", "tables"))
+```
+
+# Table 2
+
+```{r}
+table_fun = function(model){
+  
+t1 = 
+  sensitivity_models[[model]] %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
+            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  group_by(name) %>% 
+  median_hdi(exp(value)) %>% 
+  mutate(across(2:4, ~round(.,2))) %>% 
+  summarise("Priors / Subgroups" = name,
+            "Odds Ratio [95% CI]" = str_c(`exp(value)`, " [", .lower, ", ", .upper, "]"))
+
+t2 =
+  sensitivity_models[[model]] %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
+            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  group_by(name) %>% 
+  summarise("Pr(< 0.9)" = round(100*mean(value < log(0.9)),1),
+            "Pr(< 1.0)" = round(100*mean(value < log(1)),1),
+            "Pr(> 1.11)" = round(100*mean(value > log(1.11)),1)) %>% 
+  rename("Priors / Subgroups" = name)
+
+return(
+  left_join(t1, t2) %>% 
+  mutate(Model = model)
+)
+}
+
+```
+
+```{r message=TRUE, warning=FALSE}
+table_fun("Weakly informative") %>% 
+  bind_rows(
+    table_fun("Vague"), table_fun("Informative")
+    ) %>% 
+  mutate(Model = fct_rev(Model)) %>% 
+  group_by(Model) %>% 
+  # https://stackoverflow.com/questions/43832434/arrange-within-a-group-with-dplyr
+  arrange(Model, .by_group = TRUE) %>% 
+  gt() %>% 
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>%
+  cols_align(
+    align = "left",
+    columns = "Priors / Subgroups"
+  ) %>%
+  # Expand the size of first column
+  cols_width(
+    "Priors / Subgroups" ~ px(250)
+  ) %>% 
+  tab_footnote(
+    footnote = "Weakly informative priors: Intercept N(0, 0.82); Coefficients N(0, 1.5); Between-study standard deviation HN(0.5) / Vague priors: Intercept N(0, 4); Coefficients N(0, 4); Between-study standard deviation HN(4) / Informative priors: Intercept N(0, 0.35); Coefficients N(0, 0.2); Between-study standard deviation LN(-1.975, 0.67)",
+    locations = cells_column_labels(
+      columns = c("Priors / Subgroups")
+    )) %>% 
+  tab_source_note(
+    source_note =
+      md("N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation); LN(mu, sigma) = Log-Normal(mean, standard deviation)"
+  )
+  ) %>% 
+  gtsave("table_2.html",
+         path =  here("03_updated_analyses_who", "output", "tables"))
+```

@@ -1,0 +1,1519 @@
+---
+title: "Main Model Assessment"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: hide
+          toc: yes
+          toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(tidyverse, # data wrangling + plotting
+               brms, # to fit Bayesian models
+               here, # reproducible file paths
+               rio, # to import files
+               bayesmeta, # to use TurnerEtAlPrior
+               PNWColors, # colors
+               gt, # tables
+               patchwork, # to display > 1 plots together
+               tidybayes, # to plot distributions
+               extraDistr, # to plot distributions
+               metafor, # to calculate log odds ratio
+               latex2exp,
+               Hmisc) # to use %nin%
+
+# Load function
+source(here("03_updated_analyses_who/functions/diag_plot.R"))
+```
+
+```{r}
+# Import original data
+d = import(here("03_updated_analyses_who", "data", "oxygen_and_corticosteroids_who_ma.xlsx")) %>% 
+  # Only mortality outcome and patients using corticosteroids
+  filter(outcome == "mortality",
+         corticoid == 1) 
+
+# Find what studies had 0 patients in at least one of the treatment arms per
+# subgroup
+
+index_low = 
+  d %>% 
+  filter(trt_total == 0 | control_total == 0) %>% 
+  filter(oxygen == "low")
+
+index_niv =
+  d %>% 
+  filter(trt_total == 0 | control_total == 0) %>% 
+  filter(oxygen == "NIV")
+
+index_imv =
+  d %>% 
+  filter(trt_total == 0 | control_total == 0) %>% 
+  filter(oxygen == "IMV")
+
+# Only include studies that do not have 0 patients in a treatment arm (per subgroup)
+
+d_clean = 
+  d %>% 
+  filter(case_when(
+    oxygen == "low" ~ study %nin% index_low$study,
+    oxygen == "NIV" ~ study %nin% index_niv$study,
+    oxygen == "IMV" ~ study %nin% index_imv$study)
+  )
+
+```
+
+```{r}
+# Calculate log odds ratio
+
+d_logOR = 
+  escalc(
+  measure = "OR", # log odds ratio,
+  
+  # Tocilizumab
+  ai = trt_events,
+  n1i = trt_total,
+  
+  # Control
+  ci = control_events,
+  n2i = control_total,
+  
+  data = d_clean
+) %>%
+  as_tibble() %>% 
+  # Calculate standard error
+  mutate(sei = sqrt(vi),
+         # Set order to use "IMV" as the Intercept in brms
+         oxygen = factor(oxygen,
+                         levels = c("IMV",
+                                    "low",
+                                    "NIV")))
+
+# saveRDS(d_logOR,
+#         here("03_updated_analyses_who", "output", "data", "effect_sizes.Rds"))
+
+```
+
+## The model
+
+The Bayesian meta-regression random-effect model is:
+
+$$
+\begin{align*}
+y_i & \sim Normal(\theta_i, \sigma_i^2) \tag{Likelihood} \\
+\theta_i & \sim Normal(\mu, \tau^2)\\
+\mu & =  \alpha  + \beta_{SOO} x_i + \beta_{NIV}x_i\\
+\\
+\alpha & \sim \operatorname{Normal}(0, 0.82^2) \tag{Priors} \\
+\beta_{SOO}, \beta_{NIV} & \sim \operatorname{Normal}(0, 1.5^2) \\
+\tau & \sim \operatorname{Half-Normal}(0.5^2) \\
+\end{align*}
+$$
+
+where $y_i$ is the observed mean log odds ratio of tocilizumab versus control
+and $\sigma_i^2$ is the known sampling variance in study $i$. $\alpha$ is the
+intercept, which represents the overall effect of tocilizumab in patients on
+**invasive mechanical ventilation**. $\beta_{SOO}$ is the difference between
+patients on simple oxygen only (SOO) and patients on invasive mechanical
+ventilation ($\alpha$). $\beta_{NIV}$ is the difference between patients on
+noninvasive ventilation (NIV) and patients on invasive mechanical
+ventilation ($\alpha$).
+Both coefficients are multiplied by $x_i$, which is dummy-coded. Lastly,
+$\tau^2$ represents the between-study heterogeneity.
+
+## Diagnostics
+
+As suggested by [Depaoli and van de Schoot, 2017](https://doi.org/10.1037/met0000065):
+
+#### "Point 1: Do You Understand the Priors?"
+
+Our goal is to use priors that exclude impossible treatment effects, and yet
+applies little influence in the final results (hereafter, weakly informative
+priors). 
+
+We find highly unlikely that a pharmacological treatment, such as tocilizumab,
+will yield a 80% odds reduction in 28-days all-cause mortality.
+Thus, regarding $\alpha$, we set a prior  which the 95% CI ranges from
+0.2 to 5.0 odds ratio, i.e. $Normal(0, 0.82)$ in the log odds ratio scale.
+
+Moreover, we set very weakly informative priors for $\beta_{SOO}$ and
+$\beta_{NIV}$, because we did not expect large differences between the invasive
+mechanical subgroup ($\alpha$) and the other two respiratory support subgroups.
+
+```{r, fig.align='center', fig.height=3.5, fig.width=8}
+sd_alpha = 0.82
+sd_beta = 1.5
+
+twosd_alpha = sd_alpha*1.96
+twosd_beta = sd_beta*1.96
+
+# https://stackoverflow.com/questions/19950219/using-legend-with-stat-function-in-ggplot2
+
+ggplot(data = data.frame(x = c(-5, 5)), aes(x)) + #Empty plot
+  
+  # Normal(0, 0.82)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_alpha), linetype=1, size = 1.2,
+              aes(colour = "0.82")) +
+  # Normal(0, 1.5)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_beta), linetype=1, size = 1.2,
+              aes(colour = "1.5")) +
+  
+  scale_colour_manual(latex2exp::TeX("Normal(0, $\\sigma)"),
+                      values = pnw_palette("Starfish", 3, type = "discrete")) +
+  geom_vline(xintercept = c(-twosd_alpha, twosd_alpha),
+             linetype = 2,
+             color = pnw_palette("Starfish", 3, type = "discrete")[1]) +
+  geom_vline(xintercept = c(-twosd_beta, twosd_beta),
+             linetype = 2,
+             color = pnw_palette("Starfish", 3, type = "discrete")[2]) +
+  
+  scale_y_continuous(breaks = seq(0, 0.6, 0.3),
+                     limits = c(0, 0.6),
+                     expand = c(0, 0)) + # remove gap between X and Y axis
+  scale_x_continuous(breaks = c(-twosd_beta, -twosd_alpha, 
+                                0, twosd_alpha, twosd_beta),
+                     labels = function(x) round(as.numeric(x), 2),
+                     expand = c(0, 0)) +
+  coord_cartesian(x = c(-5, 5)) +
+  labs(x = "\nLog Odds Ratio",
+       y = "Density\n") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(20,20,0,20),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    legend.position = 'right',
+    legend.text = element_text(size=12),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    panel.background = element_blank()
+    )
+```
+
+95% quantile intervals:
+
+```{r}
+sd_beta = 1.5
+
+tibble(
+  "Prior" = c("Intercept", "Coefficients"),
+  Mean = 0,
+  "SD" = c(sd_alpha, sd_beta)
+) %>% 
+  mutate("Mean " = exp(Mean),
+         "95% CI" =
+           str_c(" [",
+                 round(exp(Mean - 1.96*`SD`), 1),
+                 ", ", round(exp(Mean + 1.96*`SD`), 1),
+                 "]")) %>% 
+  gt() %>% 
+    cols_align(
+      align = "center",
+      columns = everything()
+    ) %>%
+    cols_align(
+      align = "left",
+      columns = "Prior"
+    ) %>%
+    # Add column tabs based on the column names defined above
+    tab_spanner(label = "Log Odds Ratio",
+                columns = c("Mean", "SD")) %>% 
+    tab_spanner(label = "Odds Ratio",
+              columns = c("Mean ", "95% CI"))
+```
+
+<br><br>
+
+In the log odds ratio scale, Spiegelhalter et al. 2004 categorized $0.1$ - $0.5$ as
+“reasonable”, $0.5$ - $1.0$ as “fairly high”, and $> 1.0$ as "fairly extreme"
+heterogeneity ranges. Below, we show the percentages of density of each
+prior distribution of $\tau$ for Spiegelhalter's ranges. We also added
+a "low" category for values between $0$ and $0.1$.
+
+The $\operatorname{Half-Normal}(0.5)$ distribution yields plausible probabilities in each of
+these ranges.
+
+```{r, fig.align='center', fig.height=3.5, fig.width=8}
+sd_w = 0.5
+
+median_w = round(extraDistr::qhnorm(0.975, sigma = sd_w),2)
+
+# https://stackoverflow.com/questions/19950219/using-legend-with-stat-function-in-ggplot2
+
+ggplot(data = data.frame(x = c(0, 2)), aes(x)) + #Empty plot
+  
+  # Half-Normal(0.5)
+  stat_function(fun = extraDistr::dhnorm, n = 1000,
+              args = list(sigma = sd_w), linetype=1, size = 1.2,
+              aes(colour = "0.5")) +
+  
+  scale_colour_manual(latex2exp::TeX("Half-Normal($\\sigma)"),
+                      values = pnw_palette("Bay", 1, type = "continuous")) +
+  
+  scale_y_continuous(breaks = seq(0, 2, 1),
+                     limits = c(0, 2),
+                     expand = c(0, 0)) + # remove gap between X and Y axis
+  scale_x_continuous(breaks = c(0, 0.1,median_w, 0.5, 1, 2),
+                     labels = function(x) round(as.numeric(x), 1),
+                     expand = c(0, 0)) +
+  
+  geom_vline(xintercept = median_w, linetype = 2) +
+  coord_cartesian(x = c(0, 2)) +
+  labs(x = "\nLog Odds Ratio",
+       y = "Density\n") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(20,20,0,20),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14),
+    legend.position = 'right',
+    legend.text = element_text(size=12),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    panel.background = element_blank()
+    )
+```
+
+```{r}
+tibble(
+   "Low" = c(
+    100*round(phnorm(0.1, sigma = sd_w) - phnorm(0, sigma = sd_w),2)
+  ),
+  "Reasonable" = c(
+    100*round(phnorm(0.5, sigma = sd_w) - phnorm(0.1, sigma = sd_w),2)
+  ),
+  "Fairly High" = c(
+    100*round(phnorm(1, sigma = sd_w) - phnorm(0.5, sigma = sd_w),2)
+  ),
+  "Fairly Extreme" = c(
+    100*round(1 - phnorm(1, sigma = sd_w), 2)
+  )) %>% 
+  mutate(across(everything(), ~str_c(., "%"))) %>% 
+  gt() %>% 
+    cols_align(
+      align = "center",
+      columns = everything()
+    ) %>%
+    # Add column tabs based on the column names defined above
+    tab_spanner(label = "Heterogeneity Range",
+                columns = c("Low",
+                            "Reasonable",
+                            "Fairly High",
+                            "Fairly Extreme"))
+```
+
+
+<br><br>
+
+```{r}
+# Fit the model
+
+## Formula
+mf = 
+  # https://bookdown.org/content/3890/horoscopes-insights.html#use-the-0-intercept-syntax
+  formula(yi | se(sei) ~ 0 + Intercept + oxygen + (1|study))
+
+priors = 
+  prior(normal(0, 0.82), class = "b", coef = "Intercept") +
+  prior(normal(0, 1.5), class = "b", coef = "oxygenlow") +
+  prior(normal(0, 1.5), class = "b", coef = "oxygenNIV") +
+  prior(normal(0, 0.5), class = "sd") 
+
+m1 = 
+  brm(
+  data = d_logOR,
+  family = gaussian,
+  
+  formula = mf,
+  prior = priors,
+  sample_prior = T,
+  
+  control = list(adapt_delta = .97),
+  backend = "cmdstanr", # faster
+  cores = parallel::detectCores(),
+  chains = 4,
+  warmup = 2000,
+  iter = 4000,
+  seed = 123,
+  
+  file = here("03_updated_analyses_who", "output", "fits", "m1.Rds"),
+  file_refit = "on_change"
+)
+
+# Detailed diagnostics
+# launch_shinystan(m1)
+
+```
+
+Prior predictive check:
+
+95% quantile intervals
+
+```{r fig.align='center'}
+m1 %>% 
+  prior_draws() %>% 
+  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
+            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  
+  # Plot!
+  ggplot(aes(
+    # exp() to transform to Odds Ratio
+    x = exp(value), fill = name)
+  ) +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(point_interval = median_qi, 
+               .width = 0.95, 
+               n = 1e4) +
+  scale_fill_manual(values = c("#EECE9C", # Simple oxygen
+                               "#BE6376", # Non-invasive
+                               "#605A91") # Invasive 
+                    ) +
+  geom_vline(xintercept = 1, linetype = 2, size = 0.4, alpha = 0.7) +
+  labs(
+    x = "\nOdds Ratio",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = c(1, seq(from = 0, to = 30, 5))) +
+  coord_cartesian(xlim = c(0, 30)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  facet_wrap(~ name, ncol = 1, scales = "free_y")
+```
+
+#### "Point 2: Does the Trace-Plot Exhibit Convergence?"
+
+```{r, fig.align='center'}
+diag_plot(model = m1,
+          pars_list = c("b_Intercept", "b_oxygenlow", "b_oxygenNIV", "sd_study__Intercept"),
+          ncol_trace = 4)
+```
+
+#### "Point 3: Does Convergence Remain After Doubling the Number of Iterations?"
+
+```{r}
+# Fit the model
+
+## Formula
+mf = 
+  # https://bookdown.org/content/3890/horoscopes-insights.html#use-the-0-intercept-syntax
+  formula(yi | se(sei) ~ 0 + Intercept + oxygen + (1|study))
+
+priors = 
+  prior(normal(0, 0.82), class = "b", coef = "Intercept") +
+  prior(normal(0, 1.5), class = "b", coef = "oxygenlow") +
+  prior(normal(0, 1.5), class = "b", coef = "oxygenNIV") +
+  prior(normal(0, 0.5), class = "sd") 
+
+m1_double = 
+  brm(
+  data = d_logOR,
+  family = gaussian,
+  
+  formula = mf,
+  prior = priors,
+  
+  control = list(adapt_delta = .97),
+  backend = "cmdstanr", # faster
+  cores = parallel::detectCores(),
+  chains = 4,
+  warmup = 4000, # double
+  iter = 8000, # double
+  seed = 123,
+  
+  file = here("03_updated_analyses_who", "output", "fits", "double_iterations",
+              "m1_double.Rds"),
+  file_refit = "on_change"
+)
+
+
+```
+
+```{r, fig.align='center'}
+diag_plot(model = m1_double,
+          pars_list = c("b_Intercept", "b_oxygenlow", "b_oxygenNIV", "sd_study__Intercept"),
+          ncol_trace = 4)
+```
+
+#### "Point 4: Does the Histogram Have Enough Information?"
+
+```{r fig.align='center'} 
+mcmc_hist(m1, pars = c("b_Intercept", "b_oxygenlow", "b_oxygenNIV", "sd_study__Intercept"))
+```
+
+#### "Point 5: Do the Chains Exhibit a Strong Degree of Autocorrelation?"
+
+```{r  fig.align='center'}
+mcmc_acf(m1,
+         pars = c("b_Intercept", "b_oxygenlow",
+                  "b_oxygenNIV", "sd_study__Intercept"),
+         lags = 10)
+```
+
+#### "Point 6: Does the Posterior Distribution Make Substantive Sense?"
+
+```{r  fig.align='center'}
+mcmc_dens(m1, pars = c("b_Intercept", "b_oxygenlow",
+                       "b_oxygenNIV", "sd_study__Intercept"),
+          transformations = list("b_Intercept" = "exp",
+                                 "b_oxygenlow" = "exp",
+                                 "b_oxygenNIV" = "exp"))
+```
+
+Posterior predictive check
+
+```{r, fig.align='center'}
+pp_check(m1, ndraws = 20)
+```
+
+<br><br>
+
+#### "Point 7: Do Different Specifications of the Multivariate Variance Priors Influence the Results?"
+
+Not applicable.
+
+<br><br>
+
+#### "Point 8: Is There a Notable Effect of the Prior When Compared With Noninformative Priors?"
+
+Here, we will fit models with different combinations of priors. For each parameter
+($\alpha$, $\beta_{SOO}, \beta_{NIV}$ and $\tau$), we will use three different
+types of prior:
+
+1. Weakly-informative
+2. Vague
+3. Informative
+
+Notably, we used weakly-informative priors for all of the parameters in our
+main model.
+
+Here are the distributions used for $\alpha$ (hereafter, **"Intercept"**):
+
+* Weakly-informative: $\operatorname{Normal}(0, 0.82^2)$
+* Vague: $\operatorname{Normal}(0, 4^2)$
+* Informative: $\operatorname{Normal}(0, 0.35^2)$
+
+```{r, fig.align='center', fig.height=3.5, fig.width=9}
+sd_w = 0.82
+sd_v = 4
+sd_i = 0.35
+
+twosd_w = sd_w*1.96
+twosd_v = sd_v*1.96
+twosd_i = sd_i*1.96
+
+# https://stackoverflow.com/questions/19950219/using-legend-with-stat-function-in-ggplot2
+
+ggplot(data = data.frame(x = c(-5, 5)), aes(x)) + #Empty plot
+  
+  # Normal(0, 0.82)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_w), linetype=1, size = 1.2,
+              aes(colour = "0.82")) +
+  # Normal(0, 4)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_v), linetype=1, size = 1.2,
+              aes(colour = "4.0")) +
+  # Normal(0, 0.35)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_i), linetype=1, size = 1.2,
+              aes(colour = "0.35")) +
+  
+  scale_colour_manual(latex2exp::TeX("Normal(0, $\\sigma)"),
+                      values = pnw_palette("Starfish", 3, type = "discrete")) +
+  geom_vline(xintercept = c(-twosd_w, twosd_w),
+             linetype = 2,
+             color = pnw_palette("Starfish", 3, type = "discrete")[2]) +
+  geom_vline(xintercept = c(-twosd_i, twosd_i),
+             linetype = 2,
+             color = pnw_palette("Starfish", 3, type = "discrete")[1]) +
+  
+  scale_y_continuous(breaks = seq(0, 1.5, 0.5),
+                     limits = c(0, 1.5),
+                     expand = c(0, 0)) + # remove gap between X and Y axis
+  scale_x_continuous(breaks = c(-3.92, -twosd_w, -twosd_i,
+                                0, twosd_w, twosd_i, 3.92),
+                     labels = function(x) round(as.numeric(x), 2),
+                     expand = c(0, 0)) +
+  coord_cartesian(x = c(-5, 5)) +
+  labs(x = latex2exp::TeX("\n $\\alpha"),
+       y = "Density") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(20,20,0,20),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 15),
+    legend.position = 'right',
+    legend.text = element_text(size=12),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    panel.background = element_blank()
+    )
+```
+
+```{r}
+tibble(
+  "Prior" = c("Weakly-Informative", "Vague", "Informative"),
+  Mean = 0,
+  "SD" = c(sd_w, sd_v, sd_i)
+) %>% 
+  mutate("Mean " = exp(Mean),
+         "95% CI" =
+           str_c(" [",
+                 round(exp(Mean - 1.96*`SD`), 1),
+                 ", ", round(exp(Mean + 1.96*`SD`), 1),
+                 "]")) %>% 
+  gt() %>% 
+    cols_align(
+      align = "center",
+      columns = everything()
+    ) %>%
+    cols_align(
+      align = "left",
+      columns = "Prior"
+    ) %>%
+    # Add column tabs based on the column names defined above
+    tab_spanner(label = "Log Odds Ratio",
+                columns = c("Mean", "SD")) %>% 
+    tab_spanner(label = "Odds Ratio",
+              columns = c("Mean ", "95% CI"))
+```
+
+
+<br><br>
+
+Here are the distributions used for $\beta_{SOO}$ and $\beta_{NIV}$ 
+(hereafter, **"Coefficients"**):
+
+* Weakly-informative: $\operatorname{Normal}(0, 1.5^2)$
+* Vague: $\operatorname{Normal}(0, 4^2)$
+* Informative: $\operatorname{Normal}(0, 0.2^2)$
+
+```{r, fig.align='center', fig.height=3.5, fig.width=9}
+sd_w = 1.5
+sd_v = 4
+sd_i = 0.2
+
+twosd_w = sd_w*1.96
+twosd_v = sd_v*1.96
+twosd_i = sd_i*1.96
+
+# https://stackoverflow.com/questions/19950219/using-legend-with-stat-function-in-ggplot2
+
+ggplot(data = data.frame(x = c(-5, 5)), aes(x)) + #Empty plot
+  
+  # Normal(0, 1.5)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_w), linetype=1, size = 1.2,
+              aes(colour = "1.5")) +
+  # Normal(0, 4)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_v), linetype=1, size = 1.2,
+              aes(colour = "4.0")) +
+  # Normal(0, 0.2)
+  stat_function(fun = dnorm, n = 1000,
+              args = list(mean = 0, sd = sd_i), linetype=1, size = 1.2,
+              aes(colour = "0.2")) +
+  
+  scale_colour_manual(latex2exp::TeX("Normal(0, $\\sigma)"),
+                      values = pnw_palette("Sunset2", 3, type = "discrete")) +
+  geom_vline(xintercept = c(-twosd_w, twosd_w),
+             linetype = 2,
+             color = pnw_palette("Sunset2", 3, type = "discrete")[2]) +
+  geom_vline(xintercept = c(-twosd_i, twosd_i),
+             linetype = 2,
+             color = pnw_palette("Sunset2", 3, type = "discrete")[1]) +
+  
+  scale_y_continuous(breaks = seq(0, 3, 0.5),
+                     limits = c(0, 3),
+                     expand = c(0, 0)) + # remove gap between X and Y axis
+  scale_x_continuous(breaks = c(-2.94, -twosd_w, -twosd_i,
+                                0, twosd_w, twosd_i, 2.94),
+                     labels = function(x) round(as.numeric(x), 2),
+                     expand = c(0, 0)) +
+  coord_cartesian(x = c(-5, 5)) +
+  labs(x = latex2exp::TeX("\n $\\beta"),
+       y = "Density") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(20,20,0,20),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 15),
+    legend.position = 'right',
+    legend.text = element_text(size=12),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    panel.background = element_blank()
+    )
+```
+
+<br>
+
+```{r}
+tibble(
+  "Prior" = c("Weakly-Informative", "Vague", "Informative"),
+  Mean = 0,
+  "SD" = c(sd_w, sd_v, sd_i)
+) %>% 
+  mutate("Mean " = exp(Mean),
+         "95% CI" =
+           str_c(" [",
+                 round(exp(Mean - 1.96*`SD`), 1),
+                 ", ", round(exp(Mean + 1.96*`SD`), 1),
+                 "]")) %>% 
+  gt() %>% 
+    cols_align(
+      align = "center",
+      columns = everything()
+    ) %>%
+    cols_align(
+      align = "left",
+      columns = "Prior"
+    ) %>%
+    # Add column tabs based on the column names defined above
+    tab_spanner(label = "Log Odds Ratio",
+                columns = c("Mean", "SD")) %>% 
+    tab_spanner(label = "Odds Ratio",
+              columns = c("Mean ", "95% CI"))
+```
+
+<br><br>
+
+Here are the distributions used for $\tau$:
+
+* Weakly-informative: $\operatorname{Half-Normal}(0.5^2)$
+* Vague: $\operatorname{Half-Normal}(4^2)$
+* Informative: $\operatorname{Log-Normal}(-1.975, 0.67^2)$
+
+```{r, fig.align='center', fig.height=3.5, fig.width=9}
+sd_w = 0.5
+sd_v = 4
+
+informative = TurnerEtAlPrior("all-cause mortality",
+                              "pharma", "placebo / control")
+
+logmean = informative$parameters["tau", "mu"]
+logsd = informative$parameters["tau", "sigma"]
+
+mean_i = -1.975 # logmean
+sd_i = 0.67 # logsd
+
+# https://stackoverflow.com/questions/19950219/using-legend-with-stat-function-in-ggplot2
+
+ggplot(data = data.frame(x = c(0, 2)), aes(x)) + #Empty plot
+  
+  # Half-Normal(0.5)
+  stat_function(fun = extraDistr::dhnorm, n = 1000,
+              args = list(sigma = sd_w), linetype=1, size = 1.2,
+              aes(colour = "Weakly informative")) +
+  
+  # Half-Normal(4)
+  stat_function(fun = extraDistr::dhnorm, n = 1000,
+              args = list(sigma = sd_v), linetype=1, size = 1.2,
+              aes(colour = "Vague")) +
+  
+  # Log-Normal(-1.975, 0.67)
+  stat_function(fun = dlnorm, n = 1000,
+              args = list(meanlog = mean_i,
+                          sdlog = sd_i),
+              linetype=1, size = 1.2,
+              aes(colour = "Informative")) +
+  
+  scale_colour_manual("Prior",
+                      values = pnw_palette("Bay", 3, type = "continuous")) +
+  
+  
+  scale_y_continuous(breaks = seq(0, 6, 1.5),
+                     limits = c(0, 6),
+                     expand = c(0, 0)) + # remove gap between X and Y axis
+  scale_x_continuous(breaks = c(0, 0.1, 0.5, 1, 2),
+                     labels = function(x) round(as.numeric(x), 1),
+                     expand = c(0, 0)) +
+  coord_cartesian(x = c(0, 2)) +
+  labs(x = latex2exp::TeX("Between-study standard deviation ($\\tau)"),
+       y = "Density") +
+  theme_classic() +
+  theme(
+    plot.margin = margin(20,20,0,20),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 15),
+    legend.position = 'right',
+    legend.text = element_text(size=12),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    panel.background = element_blank()
+    )
+```
+
+<br><br>
+
+```{r}
+tibble(
+  "Prior" = c("Weakly-Informative", "Vague", "Informative"),
+   "Low" = c(
+    100*round(phnorm(0.1, sigma = sd_w) - phnorm(0, sigma = sd_w),2),
+    100*round(phnorm(0.1, sigma = sd_v) - phnorm(0, sigma = sd_v),2),
+    100*round(plnorm(0.1, meanlog = mean_i, sdlog = sd_i) -
+            plnorm(0, meanlog = mean_i, sdlog = sd_i),2)
+  ),
+  "Reasonable" = c(
+    100*round(phnorm(0.5, sigma = sd_w) - phnorm(0.1, sigma = sd_w),2),
+    100*round(phnorm(0.5, sigma = sd_v) - phnorm(0.1, sigma = sd_v),2),
+    100*round(plnorm(0.5, meanlog = mean_i, sdlog = sd_i) -
+            plnorm(0.1, meanlog = mean_i, sdlog = sd_i),2)
+  ),
+  "Fairly High" = c(
+    100*round(phnorm(1, sigma = sd_w) - phnorm(0.5, sigma = sd_w),2),
+    100*round(phnorm(1, sigma = sd_v) - phnorm(0.5, sigma = sd_v),2),
+    100*round(plnorm(1, meanlog = mean_i, sdlog = sd_i) -
+            plnorm(0.5, meanlog = mean_i, sdlog = sd_i),2)
+  ),
+  "Fairly Extreme" = c(
+    100*round(1 - phnorm(1, sigma = sd_w), 2) ,
+    100*round(1 - phnorm(1, sigma = sd_v), 2),
+    100*round(1 - plnorm(1, meanlog = mean_i, sdlog = sd_i),2))
+  ) %>% 
+  mutate(across(2:last_col(), ~str_c(., "%"))) %>% 
+  gt() %>% 
+    cols_align(
+      align = "center",
+      columns = everything()
+    ) %>%
+    cols_align(
+      align = "left",
+      columns = "Prior"
+    ) %>%
+    # Add column tabs based on the column names defined above
+    tab_spanner(label = "Heterogeneity Range",
+                columns = c("Low",
+                            "Reasonable",
+                            "Fairly High",
+                            "Fairly Extreme"))
+```
+
+<br><br>
+
+As mentioned above, we used all weakly-informative priors for our main model
+(already fitted). Now, we will fit two more models:
+
+1. Using vague priors
+2. Using informative priors
+
+```{r, results="hide"}
+
+## Priors
+
+# Intercept (alpha)
+intercept_vague =  prior(normal(0, 4), class = "b", coef = "Intercept")
+intercept_informative =  prior(normal(0, 0.35), class = "b", coef = "Intercept")
+
+# Coefficients (beta_SOO and beta_NIV)
+oxygenSOO_vague  =  prior(normal(0, 4), class = "b", coef = "oxygenlow")
+oxygenNIV_vague  =  prior(normal(0, 4), class = "b", coef = "oxygenNIV")
+oxygenSOO_informative  =  prior(normal(0, 0.3), class = "b", coef = "oxygenlow")
+oxygenNIV_informative  =  prior(normal(0, 0.3), class = "b", coef = "oxygenNIV")
+
+# Between-study standard deviation (tau_study)
+  # the package bayesmeta has a handy function to get the informative prior
+informative = TurnerEtAlPrior("all-cause mortality", "pharma", "placebo / control")
+
+logmean = informative$parameters["tau", "mu"]
+logsd = informative$parameters["tau", "sigma"]
+
+tau_vague = prior(normal(0, 4), class = "sd", group = "study")
+tau_informative = prior(lognormal(-1.975, # logmean
+                                  0.67), # logsd
+                        class = "sd", group = "study")
+
+# Put them all together in every possible combination, 1 line per model
+                                       
+priors = list(
+  
+  # All vague
+  c(intercept_vague, oxygenSOO_vague, oxygenNIV_vague, tau_vague),
+  # All informative
+  c(intercept_informative, oxygenSOO_informative,
+    oxygenNIV_informative, tau_informative)
+  ) 
+
+
+### Create list to store fits
+# sensitivity_models = list()
+# 
+### Store the main model
+# 
+# sensitivity_models[[1]] = m1
+##
+labs = data.frame(x = c("Weakly informative", "Vague", "Informative"))
+# # 
+### Supressed because we saved the models already
+#  
+#  # Run the loop, to fit other models with different priors
+#  
+# for (i in 1:(nrow(labs) - 1)) {
+# 
+#   # Show what model is running
+#   print(i)
+#   
+#   # Skip first index because main model (m1) is already stored there
+#   k = i + 1
+#   
+#   # Re-fit the main model, but now changing the prior
+#   new_fit = update(m1, 
+#                prior = priors[[i]], 
+#                
+#                cores = parallel::detectCores(),
+#                chains = 4,
+#                control = list(adapt_delta = .99),
+#                backend = "cmdstanr",
+#                seed = 123)
+#   
+#   # Save models
+#   sensitivity_models[[k]] = new_fit
+# }
+# 
+# names(sensitivity_models) = labs$x
+# 
+# saveRDS(sensitivity_models,
+#          here("03_updated_analyses_who", "output", "fits", "sensitivity.Rds"))
+
+sensitivity_models =
+  readRDS(here("03_updated_analyses_who", "output", "fits", "sensitivity.Rds"))
+  
+```
+
+P.S.: The diagnostics plots of these two models will be shown in the end
+of this document.
+
+Let's visualize the prior and posterior distributions (constructed by 
+the samples stored in each model object).
+
+```{r}
+weakly_prior = 
+  sensitivity_models[["Weakly informative"]] %>% 
+  prior_draws() %>% 
+  select(b_Intercept) %>% 
+  rename("Weakly informative" = b_Intercept)
+
+vague_prior = 
+  sensitivity_models[["Vague"]] %>% 
+  prior_draws() %>% 
+  select(b_Intercept) %>% 
+  rename("Vague" = b_Intercept)
+
+informative_prior = 
+  sensitivity_models[["Informative"]] %>% 
+  prior_draws() %>% 
+  select(b_Intercept) %>% 
+  rename("Informative" = b_Intercept)
+
+priors = 
+  bind_cols(weakly_prior, vague_prior, informative_prior) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  ggplot(aes(value)) +
+  stat_halfeye(point_interval = median_hdi, .width = .95,
+                    fill = "#605A91", slab_color = "grey92",
+                    breaks = 10, slab_size = .2, outline_bars = T) +
+  scale_x_continuous(breaks = seq(-3, 3, 1)) +
+  scale_y_continuous(breaks = seq(0,1, 0.5)) +
+  coord_cartesian(x = c(-3, 3)) + 
+  labs(x = latex2exp::TeX("Intercept ($\\alpha)"),
+       y = "Density\n") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )  + 
+  facet_wrap(~name, ncol = 1)
+
+weakly_posterior = 
+  sensitivity_models[["Weakly informative"]] %>% 
+  tidy_draws() %>% 
+  select(b_Intercept) %>% 
+  rename("Weakly informative" = b_Intercept)
+
+vague_posterior = 
+  sensitivity_models[["Vague"]] %>% 
+  tidy_draws() %>% 
+  select(b_Intercept) %>% 
+  rename("Vague" = b_Intercept)
+
+informative_posterior = 
+  sensitivity_models[["Informative"]] %>% 
+  tidy_draws() %>% 
+  select(b_Intercept) %>% 
+  rename("Informative" = b_Intercept)
+
+posteriors = 
+  bind_cols(weakly_posterior, vague_posterior, informative_posterior) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  ggplot(aes(value)) +
+  stat_halfeye(point_interval = median_hdi, .width = .95,
+                    fill = "#605A91", slab_color = "grey92",
+                    breaks = 10, slab_size = .2, outline_bars = T) +
+  scale_x_continuous(breaks = seq(-1, 1, 0.5)) +
+  scale_y_continuous(breaks = seq(0,1, 0.5)) +
+  coord_cartesian(x = c(-1, 1)) + 
+  labs(x = latex2exp::TeX("Intercept ($\\alpha)"),
+       y = "Density\n") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )  + 
+  facet_wrap(~name, ncol = 1)
+
+```
+
+```{r  fig.align='center', fig.cap="Panel A: Prior distributions; Panel B: Posterior distributions"}
+priors + posteriors + 
+  plot_annotation(tag_levels = "A")
+```
+
+"Percent relative deviation computation can be computed using the following
+formula: [(model with initial subjective parameter) – (model with
+noninformative prior)/(model with initial subjective parameter)] X 100."
+
+```{r}
+bind_cols(weakly_posterior, vague_posterior) %>% 
+  summarise("Weakly informative - Vague" =
+              100*(mean(`Weakly informative`) - mean(`Vague`))/mean(`Weakly informative`)) %>% 
+  mutate(across(1, ~str_c(round(.,2), "%"))) %>% 
+  gt() %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>% 
+  cols_width(
+    "Weakly informative - Vague" ~ px(300)
+  )
+```
+
+
+```{r}
+weakly_prior = 
+  sensitivity_models[["Weakly informative"]] %>% 
+  prior_draws() %>% 
+  select(b_oxygenlow) %>% 
+  rename("Weakly informative" = b_oxygenlow)
+
+vague_prior = 
+  sensitivity_models[["Vague"]] %>% 
+  prior_draws() %>% 
+  select(b_oxygenlow) %>% 
+  rename("Vague" = b_oxygenlow)
+
+informative_prior = 
+  sensitivity_models[["Informative"]] %>% 
+  prior_draws() %>% 
+  select(b_oxygenlow) %>% 
+  rename("Informative" = b_oxygenlow)
+
+priors = 
+  bind_cols(weakly_prior, vague_prior, informative_prior) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  ggplot(aes(value)) +
+  stat_halfeye(point_interval = median_hdi, .width = .95,
+                    fill = "#9FA464", slab_color = "grey92",
+                    breaks = 10, slab_size = .2, outline_bars = T) +
+  scale_x_continuous(breaks = seq(-2, 2, 1)) +
+  scale_y_continuous(breaks = seq(0,1, 0.5)) +
+  coord_cartesian(x = c(-2, 2)) + 
+  labs(x = latex2exp::TeX("Coefficient ($\\beta_{SOO})"),
+       y = "Density\n") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )  + 
+  facet_wrap(~name, ncol = 1)
+
+weakly_posterior = 
+  sensitivity_models[["Weakly informative"]] %>% 
+  tidy_draws() %>% 
+  select(b_oxygenlow) %>% 
+  rename("Weakly informative" = b_oxygenlow)
+
+vague_posterior = 
+  sensitivity_models[["Vague"]] %>% 
+  tidy_draws() %>% 
+  select(b_oxygenlow) %>% 
+  rename("Vague" = b_oxygenlow)
+
+informative_posterior = 
+  sensitivity_models[["Informative"]] %>% 
+  tidy_draws() %>% 
+  select(b_oxygenlow) %>% 
+  rename("Informative" = b_oxygenlow)
+
+posteriors = 
+  bind_cols(weakly_posterior, vague_posterior, informative_posterior) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  ggplot(aes(value)) +
+  stat_halfeye(point_interval = median_hdi, .width = .95,
+                    fill = "#9FA464", slab_color = "grey92",
+                    breaks = 10, slab_size = .2, outline_bars = T) +
+  scale_x_continuous(breaks = seq(-1, 1, 0.5)) +
+  scale_y_continuous(breaks = seq(0,1, 0.5)) +
+  coord_cartesian(x = c(-1, 1)) + 
+  labs(x = latex2exp::TeX("Coefficient ($\\beta_{SOO})"),
+       y = "Density\n") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )  + 
+  facet_wrap(~name, ncol = 1)
+
+
+```
+
+```{r fig.align='center', fig.cap="Panel A: Prior distributions; Panel B: Posterior distributions"}
+priors + posteriors + 
+  plot_annotation(tag_levels = "A")
+```
+
+"Percent relative deviation computation can be computed using the following
+formula: [(model with initial subjective parameter) – (model with
+noninformative prior)/(model with initial subjective parameter)] X 100."
+
+```{r}
+bind_cols(weakly_posterior, vague_posterior) %>% 
+  summarise("Weakly informative - Vague" =
+              100*(mean(`Weakly informative`) - mean(`Vague`))/mean(`Weakly informative`)) %>% 
+  mutate(across(1, ~str_c(round(.,2), "%"))) %>% 
+  gt() %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>% 
+  cols_width(
+    "Weakly informative - Vague" ~ px(300)
+  )
+```
+
+```{r}
+weakly_prior = 
+  sensitivity_models[["Weakly informative"]] %>% 
+  prior_draws() %>% 
+  select(b_oxygenNIV) %>% 
+  rename("Weakly informative" = b_oxygenNIV)
+
+vague_prior = 
+  sensitivity_models[["Vague"]] %>% 
+  prior_draws() %>% 
+  select(b_oxygenNIV) %>% 
+  rename("Vague" = b_oxygenNIV)
+
+informative_prior = 
+  sensitivity_models[["Informative"]] %>% 
+  prior_draws() %>% 
+  select(b_oxygenNIV) %>% 
+  rename("Informative" = b_oxygenNIV)
+
+priors = 
+  bind_cols(weakly_prior, vague_prior, informative_prior) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  ggplot(aes(value)) +
+  stat_halfeye(point_interval = median_hdi, .width = .95,
+                    fill = "skyblue", slab_color = "grey92",
+                    breaks = 10, slab_size = .2, outline_bars = T) +
+  scale_x_continuous(breaks = seq(-2, 2, 1)) +
+  scale_y_continuous(breaks = seq(0,1, 0.5)) +
+  coord_cartesian(x = c(-2, 2)) + 
+  labs(x = latex2exp::TeX("Coefficient ($\\beta_{NIV})"),
+       y = "Density\n") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )  + 
+  facet_wrap(~name, ncol = 1)
+
+weakly_posterior = 
+  sensitivity_models[["Weakly informative"]] %>% 
+  tidy_draws() %>% 
+  select(b_oxygenNIV) %>% 
+  rename("Weakly informative" = b_oxygenNIV)
+
+vague_posterior = 
+  sensitivity_models[["Vague"]] %>% 
+  tidy_draws() %>% 
+  select(b_oxygenNIV) %>% 
+  rename("Vague" = b_oxygenNIV)
+
+informative_posterior = 
+  sensitivity_models[["Informative"]] %>% 
+  tidy_draws() %>% 
+  select(b_oxygenNIV) %>% 
+  rename("Informative" = b_oxygenNIV)
+
+posteriors = 
+  bind_cols(weakly_posterior, vague_posterior, informative_posterior) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  ggplot(aes(value)) +
+  stat_halfeye(point_interval = median_hdi, .width = .95,
+                    fill = "skyblue", slab_color = "grey92",
+                    breaks = 10, slab_size = .2, outline_bars = T) +
+  scale_x_continuous(breaks = seq(-1, 1, 0.5)) +
+  scale_y_continuous(breaks = seq(0,1, 0.5)) +
+  coord_cartesian(x = c(-1, 1)) + 
+  labs(x = latex2exp::TeX("Coefficient ($\\beta_{NIV})"),
+       y = "Density\n") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )  + 
+  facet_wrap(~name, ncol = 1)
+
+
+```
+
+```{r fig.align='center', fig.cap="Panel A: Prior distributions; Panel B: Posterior distributions"}
+priors + posteriors + 
+  plot_annotation(tag_levels = "A")
+```
+
+"Percent relative deviation computation can be computed using the following
+formula: [(model with initial subjective parameter) – (model with
+noninformative prior)/(model with initial subjective parameter)] X 100."
+
+```{r}
+bind_cols(weakly_posterior, vague_posterior) %>% 
+  summarise("Weakly informative - Vague" =
+              100*(mean(`Weakly informative`) - mean(`Vague`))/mean(`Weakly informative`)) %>% 
+  mutate(across(1, ~str_c(round(.,2), "%"))) %>% 
+  gt() %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>% 
+  cols_width(
+    "Weakly informative - Vague" ~ px(300)
+  )
+```
+
+```{r}
+weakly_prior = 
+  sensitivity_models[["Weakly informative"]] %>% 
+  prior_draws() %>% 
+  select(sd_study) %>% 
+  rename("Weakly informative" = sd_study)
+
+vague_prior = 
+  sensitivity_models[["Vague"]] %>% 
+  prior_draws() %>% 
+  select(sd_study) %>% 
+  rename("Vague" = sd_study)
+
+vague_prior_hdi =
+  vague_prior %>% 
+  median_hdi()
+
+# 2.646475 [0.00110984, 7.83735]
+
+informative_prior = 
+  sensitivity_models[["Informative"]] %>% 
+  prior_draws() %>% 
+  select(sd_study) %>% 
+  rename("Informative" = sd_study)
+
+priors = 
+  bind_cols(weakly_prior, vague_prior, informative_prior) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  ggplot(aes(value)) +
+  stat_halfeye(point_interval = median_hdi, .width = .95,
+                    fill = "#9B5446", slab_color = "grey92",
+                    breaks = 10, slab_size = .2, outline_bars = T) +
+  scale_x_continuous(breaks = seq(0, 1, 0.25)) +
+  scale_y_continuous(breaks = seq(0,1, 0.5)) +
+  coord_cartesian(x = c(0, 1)) + 
+  labs(x = latex2exp::TeX("Between-study standard deviation ($\\tau)"),
+       y = "Density\n") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )  + 
+  facet_wrap(~name, ncol = 1)
+
+weakly_posterior = 
+  sensitivity_models[["Weakly informative"]] %>% 
+  tidy_draws() %>% 
+  select(sd_study__Intercept) %>% 
+  rename("Weakly informative" = sd_study__Intercept)
+
+vague_posterior = 
+  sensitivity_models[["Vague"]] %>% 
+  tidy_draws() %>% 
+  select(sd_study__Intercept) %>% 
+  rename("Vague" = sd_study__Intercept)
+
+informative_posterior = 
+  sensitivity_models[["Informative"]] %>% 
+  tidy_draws() %>% 
+  select(sd_study__Intercept) %>% 
+  rename("Informative" = sd_study__Intercept)
+
+posteriors = 
+  bind_cols(weakly_posterior, vague_posterior, informative_posterior) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  ggplot(aes(value)) +
+  stat_halfeye(point_interval = median_hdi, .width = .95,
+                    fill = "#9B5446", slab_color = "grey92",
+                    breaks = 10, slab_size = .2, outline_bars = T) +
+  scale_x_continuous(breaks = seq(0, 1, 0.25)) +
+  scale_y_continuous(breaks = seq(0,1, 0.5)) +
+  coord_cartesian(x = c(0, 1)) + 
+  labs(x = latex2exp::TeX("Between-study standard deviation ($\\tau)"),
+       y = "Density\n") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )  + 
+  facet_wrap(~name, ncol = 1)
+
+
+```
+
+```{r fig.align='center', fig.cap="Panel A: Prior distributions; Panel B: Posterior distributions", fig.width = 8}
+priors + posteriors + 
+  plot_annotation(tag_levels = "A")
+```
+
+"Percent relative deviation computation can be computed using the following
+formula: [(model with initial subjective parameter) – (model with
+noninformative prior)/(model with initial subjective parameter)] X 100."
+
+```{r}
+bind_cols(weakly_posterior, vague_posterior) %>% 
+  summarise("Weakly informative - Vague" =
+              100*(mean(`Weakly informative`) - mean(`Vague`))/mean(`Weakly informative`)) %>% 
+  mutate(across(1, ~str_c(round(.,2), "%"))) %>% 
+  gt() %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  ) %>% 
+  cols_width(
+    "Weakly informative - Vague" ~ px(300)
+  )
+```
+
+<br><br>
+
+#### "Point 9: Are the Results Stable From a Sensitivity Analysis?"
+
+We did not fit models "adjusting the entire prior distribution (i.e., using a
+completely different prior distribution than before) or adjusting
+hyperparameters upward and downward and reestimating the model with these varied
+priors."
+
+<br><br>
+
+#### Extra Diagnostic plots
+
+On the models shown in "Point 8: Is There a Notable Effect of the Prior When Compared
+With Noninformative Priors?"
+
+```{r, fig.align='center', fig.height=4}
+
+# Run loop
+for (i in 1:nrow(labs)) {
+  
+  # Run custom function diag_plot, 1 per model
+p = diag_plot(model = sensitivity_models[[i]],
+          pars_list = c("b_Intercept", "b_oxygenlow", "b_oxygenNIV", "sd_study__Intercept"),
+          ncol_trace = 4)
+# Display plot
+print(p)  
+
+# Add legend to show respective priors
+lab = paste0(labs %>% slice(i) %>% pull() )
+grid::grid.text(lab, 0.25, .03, gp=grid::gpar(cex=1.3))
+}
+```
+
+
+```{r fig.align='center'}
+for (i in 1:nrow(labs)) {
+p = mcmc_hist(sensitivity_models[[i]],
+          pars = c("b_Intercept", "b_oxygenlow", "b_oxygenNIV", "sd_study__Intercept"))
+
+# Display plot
+print(p)  
+
+lab = paste0(labs %>% slice(i) %>% pull() )
+grid::grid.text(lab, 0.82, .2, gp=grid::gpar(cex=1.3))
+  
+}
+```
+
+Posterior predictive check
+
+```{r, fig.align='center', fig.height=4}
+# Run lopp
+for (i in 1:nrow(labs)) {
+p = pp_check(sensitivity_models[[i]], ndraws = 20)
+
+print(p)
+
+lab = paste0(labs %>% slice(i) %>% pull() )
+grid::grid.text(lab, .7, .9, gp=grid::gpar(cex=1.2))
+}
+```
+
+```{r fig.align='center'}
+
+for (i in 1:nrow(labs)) {
+p = mcmc_acf(sensitivity_models[[i]],
+         pars = c("b_Intercept", "b_oxygenlow",
+                  "b_oxygenNIV", "sd_study__Intercept"),
+         lags = 10)
+
+# Display plot
+print(p)  
+
+lab = paste0(labs %>% slice(i) %>% pull() )
+grid::grid.text(lab, 0.25, .03, gp=grid::gpar(cex=1.3))
+  
+}
+```
+
+```{r fig.align='center'}
+for (i in 1:nrow(labs)) {
+  
+p = mcmc_dens(m1, pars = c("b_Intercept", "b_oxygenlow",
+                       "b_oxygenNIV", "sd_study__Intercept"),
+          transformations = list("b_Intercept" = "exp",
+                                 "b_oxygenlow" = "exp",
+                                 "b_oxygenNIV" = "exp"))
+
+# Display plot
+print(p)  
+
+lab = paste0(labs %>% slice(i) %>% pull() )
+grid::grid.text(lab, 0.82, .2, gp=grid::gpar(cex=1.3))
+  
+}
+```
+
+
+```{r}
+sessionInfo()
+```
+

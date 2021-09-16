@@ -1,0 +1,775 @@
+---
+title: "Figures and Tables"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: hide
+          toc: yes
+          toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(tidyverse, # data wrangling + plotting
+               gt, # to create tables
+               brms, # to fit Bayesian models
+               here, # reproducible file paths
+               rio, # to import files
+               ggdist, # to plot distributions 
+               tidybayes, # to plot distributions 
+               PNWColors, # color palettes
+               rcartocolor, # color palettes
+               patchwork) # arrange plots
+
+# Load data
+d_logOR = readRDS(
+  here("03_updated_analyses_who", "output", "data", "effect_sizes.Rds")
+  )
+
+# Load main model
+m1 = readRDS(here("03_updated_analyses_who", "output", "fits", "m1.Rds"))
+
+# Load models with simulated priors
+
+simulated_priors_models = readRDS(here("03_updated_analyses_who",
+                          "output",
+                          "fits",
+                          "simulated_priors_models.rds"))
+
+# Load sensitivity models
+
+sensitivity_models =
+  readRDS(here("03_updated_analyses_who", "output", "fits", "sensitivity.Rds"))
+```
+
+# Figure 1
+
+```{r}
+
+p1 =
+  m1 %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
+            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  
+  # Plot!
+  ggplot(aes(
+    # exp() to transform to Odds Ratio
+    x = exp(value),
+    fill = name,
+    # https://github.com/mjskay/ggdist/issues/71
+    fill_ramp = stat(x < 1))
+  ) +
+  geom_vline(xintercept = c(0.5, 0.7, 0.9, 1.1, 1.3), color = "gray80", size = 0.3) +
+  
+  geom_vline(xintercept = 1, linetype = 2, color = "gray30") +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(point_interval = median_hdi, 
+               .width = 0.95) +
+  scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
+  scale_fill_manual(values = c("#EECE9C", # Simple oxygen
+                               "#BE6376", # Non-invasive
+                               "#605A91") # Invasive 
+                    ) +
+  
+  labs(
+    x = "\nOdds Ratio",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = seq(from = 0.4, to = 1.2, 0.2)) +
+  coord_cartesian(xlim = c(0.4, 1.3)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  facet_wrap(~ name, ncol = 1, scales = "free_y")
+
+```
+
+
+```{r warning=FALSE}
+
+p2  =
+  m1 %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
+            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  pivot_longer(1:3) %>% 
+  mutate(name = fct_rev(name)) %>% 
+  
+  ggplot(aes(exp(value), colour = name)) +
+  geom_hline(yintercept = c(0.1, 0.3, 0.5, 0.7, 0.9), color = "gray80", size = 0.3) +  
+  geom_line(stat='ecdf', size = 1.2) +
+  scale_color_manual(' ',
+                    values = c("#EECE9C", # Simple oxygen
+                               "#BE6376", # Non-invasive
+                               "#605A91") # Invasive 
+                    ) +
+  geom_vline(xintercept = 1, linetype = 2 , color = "gray30") +
+  geom_vline(xintercept = 0.9, linetype = 2, size = 0.6) +
+    labs(
+      x = "\nOdds Ratio",
+      y = expression("Probability OR" <= "X (%)")
+      ) +
+    scale_x_continuous(
+      breaks = seq(from = 0.4, to = 1.2, 0.1),
+      limits = c(0.4, 1.4)) +
+    scale_y_continuous(
+      breaks = seq(from = 0, to = 1, 0.2),
+      labels = c("0", "20", "40", "60", "80", "100"),
+      expand = c(0, .03)
+    ) +
+  theme(
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12),
+      axis.text.y = element_text(size = 12),
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 14),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+      legend.position = 'none',
+      plot.margin = margin(20, 20, 20, 20)
+    ) +
+  coord_cartesian(x = c(0.45, 1))
+```
+
+```{r}
+
+risks = 
+  d_logOR %>% 
+  filter(oxygen != "IMV") %>% 
+  mutate("Subgroup" = case_when(
+    oxygen == "low" ~ "Simple oxygen only",
+    oxygen == "NIV" ~ "Noninvasive ventilation"
+  )) %>% 
+  group_by(Subgroup) %>% 
+  summarise("Control Risk" = sum(control_events)/sum(control_total))
+
+ivm = tibble(Subgroup = "Invasive mechanical ventilation",
+             "Control Risk" = 0.42)
+
+risks = risks %>%
+  bind_rows(ivm) %>%
+  mutate(Subgroup = fct_rev(Subgroup)) %>% 
+  arrange(Subgroup)
+
+```
+
+
+```{r}
+
+# Extract Odds ratio from the main model in each subgorup
+
+d = 
+  m1 %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
+            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  pivot_longer(1:3,
+               names_to = "Subgroup",
+               values_to = "logOR") %>% 
+  summarise(
+    Subgroup = Subgroup,
+    # Calculate Odds ratio
+    OR = exp(logOR))
+```
+
+```{r}
+# Equation 8 in https://doi.org/10.1016/j.jclinepi.2020.08.019
+
+Rt_fun = function(x){
+z = (Rc*x$OR)/(Rc*(x$OR - 1) + 1)
+
+z
+}
+```
+
+```{r}
+### Simple oxygen only
+
+SOO_risk = round(risks[[1,2]],2)
+
+lower_bound = SOO_risk - 0.1
+upper_bound = SOO_risk + 0.1
+
+Rc = seq(lower_bound, upper_bound, 0.01)
+
+SOO_data = plyr::adply(.data = d %>% filter(Subgroup == "Simple oxygen only"), 
+            .margins = 1, 
+            .fun = function(x) Rt_fun(x)) %>% 
+  setNames(c(colnames(d)[1], colnames(d)[2], paste0("Rt_", Rc)))
+
+p3 =
+  SOO_data %>% 
+  select(starts_with("Rt")) %>% 
+  pivot_longer(
+    cols = everything(),
+    names_to = "Risk_control", values_to = "Risk_toci"
+  ) %>%
+  # Extract the risk control value
+  separate(Risk_control,
+           sep = "_",
+           c("NA","Risk_control")
+  ) %>% 
+  select(!"NA") %>% 
+  # Risk difference (Risk toci - Risk control)
+  mutate(Risk_control = as.numeric(Risk_control),
+         RD = Risk_toci - Risk_control) %>%  
+  # Transform to percentage
+  mutate(Risk_control = Risk_control*100,
+         RD = RD*-100) %>% 
+  group_by(Risk_control) %>% 
+  median_hdi(RD) %>% 
+
+  ggplot(aes(x = Risk_control)) +
+  geom_vline(xintercept = SOO_risk*100, linetype = 2) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.7,
+              fill = "#EECE9C") +
+  
+  geom_line(aes(y = RD), size = 1) +
+  geom_hline(yintercept = 0, linetype = 2, color = "gray30") +
+  scale_y_continuous(breaks = seq(-5, 15, 5)) +
+  scale_x_continuous(breaks = seq(100*lower_bound, 100*upper_bound, 5)) +
+  coord_cartesian(x = c((100*lower_bound - 2), (100*upper_bound+ 2)),
+                  y = c(-6, 16)) +
+  labs(x = "\nRisk Under Control Treatment (%)",
+       y = "Risk Difference (%)\n") +
+  theme(plot.title.position = 'plot',
+      axis.title.x = element_text(size = 12),
+      axis.title.y = element_text(size = 12),
+      axis.text.y = element_text(size = 12),
+      axis.text.x = element_text(size = 12),
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+```
+
+
+```{r}
+### Noninvasive ventilation
+
+NIV_risk = round(risks[[2,2]],2)
+
+lower_bound = NIV_risk - 0.1
+upper_bound = NIV_risk + 0.1
+
+Rc = seq(lower_bound, upper_bound, 0.01)
+
+NIV_data = plyr::adply(.data = d %>%
+                         filter(Subgroup == "Noninvasive ventilation"), 
+            .margins = 1, 
+            .fun = function(x) Rt_fun(x)) %>% 
+  setNames(c(colnames(d)[1], colnames(d)[2], paste0("Rt_", Rc)))
+
+p4 =
+  NIV_data %>% 
+  select(starts_with("Rt")) %>% 
+  pivot_longer(
+    cols = everything(),
+    names_to = "Risk_control", values_to = "Risk_toci"
+  ) %>%
+  # Extract the risk control value
+  separate(Risk_control,
+           sep = "_",
+           c("NA","Risk_control")
+  ) %>% 
+  select(!"NA") %>% 
+  # Risk difference (Risk toci - Risk control)
+  mutate(Risk_control = as.numeric(Risk_control),
+         RD = Risk_toci - Risk_control) %>%  
+  # Transform to percentage
+  mutate(Risk_control = Risk_control*100,
+         RD = RD*-100) %>% 
+  group_by(Risk_control) %>% 
+  median_hdi(RD) %>% 
+
+  ggplot(aes(x = Risk_control)) +
+  geom_vline(xintercept = NIV_risk*100, linetype = 2) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.7,
+              fill = "#BE6376") +
+  
+  geom_line(aes(y = RD), size = 1) +
+  geom_hline(yintercept = 0, linetype = 2, color = "gray30") +
+  scale_y_continuous(breaks = seq(-5, 16, 5)) +
+  scale_x_continuous(breaks = seq(100*lower_bound, 100*upper_bound, 5)) +
+  coord_cartesian(x = c((100*lower_bound - 2), (100*upper_bound+ 2)),
+                  y = c(-6, 16)) +
+  labs(x = "\nRisk Under Control Treatment (%)",
+       y = "Risk Difference (%)\n") +
+  theme(plot.title.position = 'plot',
+      axis.title.x = element_text(size = 12),
+      axis.title.y = element_text(size = 12),
+      axis.text.y = element_text(size = 12),
+      axis.text.x = element_text(size = 12),
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+```
+
+```{r}
+### Invasive mechanical ventilation
+
+IMV_risk = round(risks[[3,2]],2)
+
+lower_bound = IMV_risk - 0.1
+upper_bound = IMV_risk + 0.1
+
+Rc = seq(lower_bound, upper_bound, 0.01)
+
+IMV_data = plyr::adply(.data = d %>%
+                         filter(Subgroup == "Invasive mechanical ventilation"), 
+            .margins = 1, 
+            .fun = function(x) Rt_fun(x)) %>% 
+  setNames(c(colnames(d)[1], colnames(d)[2], paste0("Rt_", Rc)))
+
+p5 =
+  IMV_data %>% 
+  select(starts_with("Rt")) %>% 
+  pivot_longer(
+    cols = everything(),
+    names_to = "Risk_control", values_to = "Risk_toci"
+  ) %>%
+  # Extract the risk control value
+  separate(Risk_control,
+           sep = "_",
+           c("NA","Risk_control")
+  ) %>% 
+  select(!"NA") %>% 
+  # Risk difference (Risk toci - Risk control)
+  mutate(Risk_control = as.numeric(Risk_control),
+         RD = Risk_toci - Risk_control) %>%  
+  # Transform to percentage
+  mutate(Risk_control = Risk_control*100,
+         RD = RD*-100) %>% 
+  group_by(Risk_control) %>% 
+  median_hdi(RD) %>% 
+
+  ggplot(aes(x = Risk_control)) +
+  geom_vline(xintercept = IMV_risk*100, linetype = 2) +
+  geom_ribbon(aes(ymin = .lower, ymax = .upper), alpha = 0.7,
+              fill = "#605A91") +
+  
+  geom_line(aes(y = RD), size = 1) +
+  geom_hline(yintercept = 0, linetype = 2, color = "gray30") +
+  scale_y_continuous(breaks = seq(-5, 15, 5)) +
+  scale_x_continuous(breaks = seq(100*lower_bound, 100*upper_bound, 5)) +
+  coord_cartesian(x = c((100*lower_bound - 2), (100*upper_bound+ 2)),
+                  y = c(-6, 16)) +
+  labs(x = "\nRisk Under Control Treatment (%)",
+       y = "Risk Difference (%)\n") +
+  theme(plot.title.position = 'plot',
+      axis.title.x = element_text(size = 12),
+      axis.title.y = element_text(size = 12),
+      axis.text.y = element_text(size = 12),
+      axis.text.x = element_text(size = 12),
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3))
+```
+
+
+
+```{r warning=FALSE, fig.align='center', fig.height=7, fig.width=11, fig.cap = "Results of the meta-analysis assuming weakly informative priors: posterior distributions and probabilities of each subgroup. Odds ratio lower than 1 indicate reduced mortality due to tocilizumab in comparison to control treatment. Panel A shows the posterior distributions, in which point estimates depict the median and interval bars represent the 95% compatibility (highest density) intervals. Panel B shows the cumulative posterior probabilities, which correspond to the probabilities (Y-axis) that the odds ratio (OR) is lower than or equal to the effect size on the X-axis. Panels C - E show the posterior distributions in the risk difference scale (control minus tocilizumab risk) across plausible ranges of mortality risk under control treatment (X-axis) for each subgroup. Risk difference greater than 0 indicate reduced mortality due to tocilizumab in comparison to control treatment. The colors in Panels A match the ones used in Panel B-E. Thus, panel C show results for the simple oxygen only subgroup; panel D for the noninvasive ventilation subgroup; panel E for the invasive mechanical ventilation. Underlying weakly informative priors are N(0, 0.82) for the intercept, N(0, 1.5) for the coefficients, and HN(0.5) for the between-study standard deviation. N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation)"}
+(p1 + p2) / (p3 + p4 + p5) + plot_annotation(tag_levels = "A")
+
+# ggsave(width = 11,
+#        height = 7,
+#         here("03_updated_analyses_who", "output", "figures", # File path
+#                    "figure_01.pdf")) # File name
+```
+
+```{r eval=FALSE, include=FALSE}
+first_last_rd_fun = function(data){
+
+data %>% 
+  select(starts_with("Rt")) %>% 
+  pivot_longer(
+    cols = everything(),
+    names_to = "Risk_control", values_to = "Risk_toci"
+  ) %>%
+  # Extract the risk control value
+  separate(Risk_control,
+           sep = "_",
+           c("NA","Risk_control")
+  ) %>% 
+  select(!"NA") %>% 
+  # Risk difference (Risk toci - Risk control)
+  mutate(Risk_control = as.numeric(Risk_control),
+         RD = Risk_toci - Risk_control) %>%  
+  # Transform to percentage
+  mutate(Risk_control = Risk_control*100,
+         RD = RD*-100) %>% 
+  group_by(Risk_control) %>% 
+  median_hdi(RD) %>% 
+  mutate(across(RD:.upper, ~round(.,1))) %>% 
+  slice(1, n())
+  
+}
+```
+
+```{reval=FALSE, include=FALSE, message=TRUE, warning=FALSE}
+first_last_rd_fun(SOO_data)
+first_last_rd_fun(NIV_data)
+first_last_rd_fun(IMV_data)
+```
+
+# Figure 2
+
+```{r}
+set.seed(123)
+N = 10e4
+
+# preds = 
+#   m1 %>% 
+#   tidy_draws() %>% 
+#   summarise("Simple oxygen only" =
+#               rnorm(N, mean = (b_Intercept + b_oxygenlow), sd = sd_study__Intercept),
+#             "Noninvasive ventilation" =
+#               rnorm(N, mean = (b_Intercept + b_oxygenNIV), sd = sd_study__Intercept),
+#             "Invasive mechanical ventilation" =
+#              rnorm(N, mean = (b_Intercept), sd = sd_study__Intercept)) %>% 
+#   pivot_longer(1:3) %>% 
+#   mutate(name = fct_rev(name)) 
+# 
+# saveRDS(preds,
+#         here("03_updated_analyses_who", "output", "data",
+#              "prediction_intervals.rds"))
+
+preds = readRDS(here("03_updated_analyses_who", "output", "data",
+              "prediction_intervals.rds"))
+
+# preds %>% 
+#   group_by(name) %>% 
+#   summarise("pr > 1" = 100*round(mean(value > log(1)),3))
+# 
+# name                            pr > 1
+# Simple oxygen only	            5.2			
+# Noninvasive ventilation	        11.4			
+# Invasive mechanical ventilation	27.2	
+
+    
+p1  =
+  preds %>% 
+  # Plot!
+  ggplot(aes(
+    # exp() to transform to Odds Ratio
+    x = exp(value),
+    fill = name,
+    # https://github.com/mjskay/ggdist/issues/71
+    fill_ramp = stat(x < 1))
+  ) +
+  geom_vline(xintercept = c(0.4, 0.8, 1.2, 1.6), color = "gray80", size = 0.3) +
+  
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(point_interval = median_hdi,
+               .width = 0.95,
+               # https://github.com/mjskay/ggdist/issues/97
+               n = 1e4
+               ) +
+  scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
+  scale_fill_manual(values = c("#EECE9C", # Simple oxygen
+                               "#BE6376", # Non-invasive
+                               "#605A91") # Invasive 
+                    ) +
+  geom_vline(xintercept = 1, linetype = 2) +
+  labs(
+    x = "\nOdds Ratio",
+    y = " "
+  ) +
+  scale_x_continuous(breaks = c(1,seq(from = 0.2, to = 1.4, 0.2))) +
+  coord_cartesian(xlim = c(0.2, 1.5)) +
+  scale_y_discrete(expand = c(0, 0.5)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  facet_wrap(~ name, ncol = 1, scales = "free_y")
+
+```
+
+```{r warning=FALSE}
+
+p2  =
+  preds %>% 
+  
+  ggplot(aes(exp(value), colour = name)) +
+  geom_hline(yintercept = c(0.1, 0.3, 0.5, 0.7, 0.9), color = "gray80", size = 0.3) +  
+  geom_line(stat='ecdf', size = 1.2) +
+  scale_color_manual(' ',
+                    values = c("#EECE9C", # Simple oxygen
+                               "#BE6376", # Non-invasive
+                               "#605A91") # Invasive 
+                    ) +
+    labs(
+      x = "\nOdds Ratio",
+      y = expression("Probability OR" <= "X (%)")
+      ) +
+    geom_vline(xintercept = 1, linetype = 2 , color = "gray30") +
+  geom_vline(xintercept = 0.9, linetype = 2, size = 0.6) +
+    scale_x_continuous(
+      breaks = seq(from = 0.4, to = 1.7, 0.1),
+      limits = c(0.2, 1.7)) +
+    scale_y_continuous(
+      breaks = seq(from = 0, to = 1, 0.2),
+      labels = c("0", "20", "40", "60", "80", "100"),
+      expand = c(0, .03)
+    ) +
+  theme(
+      axis.ticks.x = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.text.x = element_text(size = 12),
+      axis.text.y = element_text(size = 12),
+      axis.title.x = element_text(size = 14),
+      axis.title.y = element_text(size = 14),
+      panel.background = element_blank(),
+      panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+      panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+      legend.position = 'none',
+      plot.margin = margin(20, 20, 20, 20)
+    ) +
+  coord_cartesian(x = c(0.4, 1), y = c(0, 1))
+```
+
+```{r warning=FALSE, fig.align = "center", fig.height=4.5, fig.width=9, fig.cap = "Predictive posterior distributions and probabilities of each subgroup. Panel A shows the predictive posterior distributions, in which point estimates depict the median and interval bars represent the 95% compatibility (highest density) intervals. Panel B shows the cumulative posterior probabilities, which correspond to the probabilities (Y-axis) that future studies (specific to each subgroup) will find a point estimate lower than or equal to the effect size on the X-axis. The colors in Panels A match the ones used in Panel B. Underlying weakly informative priors are N(0, 0.82) for the mean effect, N(0, 1.5) for the coefficients, and HN(0.5) for the between-study standard deviation. N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation)."}
+p1 + p2 + plot_annotation(tag_levels = "A")
+
+# ggsave(width = 9,
+#        height = 4.5,
+#        here("03_updated_analyses_who", "output", "figures", # File path
+#                    "figure_02.pdf")) # File name
+```
+
+# Figure 3
+
+```{r message=FALSE, warning=FALSE}
+current_events = 
+  d_logOR %>% 
+  filter(oxygen == "IMV") %>% 
+  summarise(total = sum(trt_events + control_events)) %>% 
+  pull()
+
+current_total = 
+  d_logOR %>% 
+  filter(oxygen == "IMV") %>% 
+  summarise(total = sum(trt_total + control_total)) %>% 
+  pull()
+
+sample_sizes = c(100, 250, 500, 750, 1000, 2000)
+
+labels = c(str_c("(Current) ", current_total), c(2*sample_sizes + current_total)) # times 2 because we want the total number of patients
+
+samples_size = 
+  simulated_priors_models[[1]] %>% 
+  tidy_draws() %>% 
+  nrow()
+
+priors = data.frame()
+posteriors = tibble(x = rep(NA, samples_size))
+
+for (i in 1:(length(labels))) {
+  
+prior =
+  simulated_priors_models[[i]] %>% 
+  prior_samples() %>% 
+  select(b_Intercept) %>% 
+  median_hdi() %>% 
+  summarise(lower = exp(.lower),
+            upper = exp(.upper),
+            model = labels[i])
+  
+  priors = priors %>% bind_rows(prior)
+
+post =  
+  simulated_priors_models[[i]] %>% 
+  tidy_draws() %>% 
+  select(b_Intercept)
+  
+  posteriors = posteriors %>% bind_cols(post)
+  
+}
+
+posteriors =
+  posteriors %>% 
+  select(-1) %>% 
+  pivot_longer(1:last_col(),
+               names_to = "Model",
+               values_to = "Posterior") %>% 
+  mutate(Model = case_when(
+    Model == "b_Intercept...2" ~ labels[1],
+    Model == "b_Intercept...3" ~ labels[2],
+    Model == "b_Intercept...4" ~ labels[3],
+    Model == "b_Intercept...5" ~ labels[4],
+    Model == "b_Intercept...6" ~ labels[5],
+    Model == "b_Intercept...7" ~ labels[6],
+    Model == "b_Intercept...8" ~ labels[7],
+  )) 
+
+p1 = 
+  posteriors %>% 
+  mutate(Model = factor(Model,
+                        levels = c(labels[7],
+                                   labels[6],
+                                   labels[5],
+                                   labels[4],
+                                   labels[3],
+                                   labels[2],
+                                   labels[1]))) %>% 
+  # To add label on top of plot
+  mutate(subgroup = "Invasive mechanical ventilation") %>% 
+  
+  ggplot(aes(y = Model, x = exp(Posterior),
+             group = Model, fill = Model,
+             fill_ramp = stat(x < 1))) +
+ 
+  stat_halfeye(point_interval = median_hdi,
+               .width = 0.95, n = 1e4) +
+  scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
+  scale_fill_carto_d(palette = "PurpOr", direction = -1) +
+  geom_vline(xintercept = 1, linetype = 2) +
+  
+  labs(x = "\nOdds Ratio",
+       y = "Number of Patients Included\n") +
+  scale_x_continuous(breaks = seq(0.6, 1.3, 0.1)) +
+  coord_cartesian(x = c(0.6, 1.3)) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 12),
+    axis.text.y = element_text(size = 11),
+    panel.background = element_blank(),
+    panel.spacing = unit(1.5, "lines"), 
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.title.position = 'plot',
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+    facet_wrap(~subgroup)
+```
+
+
+```{r, fig.width=7, fig.height=3.5}
+
+probabilities = data.frame()
+
+for (i in 1:length(labels)) {
+  
+p = 
+  simulated_priors_models[[i]] %>% 
+  tidy_draws() %>% 
+  summarise(model = labels[i],
+            "< 1.0" = mean(b_Intercept < log(1)),
+            "< 0.9" = mean(b_Intercept < log(0.9)))
+
+probabilities = probabilities %>% bind_rows(p) %>% 
+  mutate(model = factor(model,
+                        levels = c(labels[1],
+                                   labels[2],
+                                   labels[3],
+                                   labels[4],
+                                   labels[5],
+                                   labels[6],
+                                   labels[7]))
+         )
+
+}
+
+multiply100 = function(x){x*100}
+
+probabilities_geompoint =
+  probabilities %>% 
+  mutate(across(2:3, ~multiply100(.))) %>% 
+  pivot_longer(2:3,
+               names_to = "Odds Ratio") %>% 
+  mutate("Odds Ratio" = fct_rev(`Odds Ratio`))
+  
+p2 =
+  ggplot() +
+  geom_hline(yintercept = c(10, 30, 50, 70, 90), color = "gray80", size = 0.3) +
+  geom_segment(data = probabilities,
+               aes(x=model, xend=model, y=100*`< 1.0`, yend=100*`< 0.9`),
+               color="grey", size = 1.5) +
+  geom_point(data = probabilities_geompoint,
+             aes(x=model, y= value, fill = `Odds Ratio`, color = `Odds Ratio`),
+             size= 4) +
+  scale_color_manual(values= c("#E68D67", "#BB3151")) +
+  scale_y_continuous(breaks = seq(0, 100, 20)) +
+  coord_cartesian(y = c(0, 105)) +
+  labs(x = "\nNumber of Patients Included",
+       y = "Posterior Probability of Benefit (%)") +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 11),
+    axis.title.x = element_text(size = 13),
+    axis.title.y = element_text(size = 13),
+    axis.text.y = element_text(size = 11),
+    panel.background = element_blank(),
+    panel.spacing = unit(1.5, "lines"), 
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    panel.grid.major.y = element_line(color = "gray80", size = 0.3),
+    legend.position = 'right',
+    legend.text = element_text(size=13),
+    legend.title = element_text(size=14),
+    legend.key= element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  )
+
+```
+
+
+```{r fig.height=5, fig.width=14, fig.align = "center", fig.cap="Results for the invasive mechanical ventilation subgroup from meta-analyses using an informative prior based on simulated randomized controlled trials (eTable 4). '(Current) 717 patients' depicts the results previously shown in Figures 1A and 1B for this subgroup. Panel A shows the posterior distributions for each separate meta-analysis. The Y axis depict the number of total patients on invasive mechanical ventilation included in each respective model (current plus simulated patients). Point estimates depict the median and interval bars represent the 95% compatibility (highest density) intervals. Panel B shows the posterior probability of benefit for different thresholds (OR < 1.0 and < 0.9). Underlying weakly informative priors are N(0, 1.5) for the coefficients, and HN(0.5) for the between-study standard deviation. N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation)."}
+p1 + p2 + plot_annotation(tag_levels = "A") 
+
+# ggsave(width = 14,
+#        height = 5,
+#         here("03_updated_analyses_who", "output", "figures", # File path
+#                    "figure_03.pdf")) # File name
+```
+
