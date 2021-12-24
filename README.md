@@ -3,7 +3,7 @@
 This repository contains code and data to reproduce analysis in the research articles:
 
 - ["Tocilizumab in COVID-19 – A Bayesian reanalysis of RECOVERY"](https://www.medrxiv.org/content/10.1101/2021.06.15.21258966v1) (preprint)
-- **"Effect of Tocilizumab in Hospitalized COVID-19 Patients on Corticosteroids – A Bayesian Reanalysis"** (under review)
+- **"Mortality Rates Among Hospitalized Patients with COVID-19 Infection Treated With Tocilizumab and Corticosteroids: A Bayesian Reanalysis of a Previous Meta-analysis"** (under review)
 
 Authors: [Arthur M. Albuquerque](https://twitter.com/arthur_alb1), Lucas Tramujas, Lorenzo R. Sewanan, Donald R. Williams and [James M. Brophy](https://twitter.com/brophyj)
 
