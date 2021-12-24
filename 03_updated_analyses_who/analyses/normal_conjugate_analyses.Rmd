@@ -1,0 +1,365 @@
+---
+title: "Updating Current Evidence with Generated RCTs"
+author: "Arthur M. Albuquerque"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+  html_document:
+          code_folding: hide
+          toc: yes
+          toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Ensures the package "pacman" is installed
+if (!require("pacman")) install.packages("pacman")
+
+pacman::p_load(tidyverse, # data wrangling + plotting
+               gt, # to create tables
+               brms, # to fit Bayesian models
+               here, # reproducible file paths
+               tidybayes,
+               ggdist,
+               PNWColors,
+               flextable) # table
+
+# Load data
+d_logOR = readRDS(
+  here("03_updated_analyses_who", "output", "data", "effect_sizes.Rds")
+  )
+
+# Load main model
+m1 = readRDS(here("03_updated_analyses_who", "output", "fits", "m1.Rds"))
+```
+
+In this document, we will update our current evidence (as modeled in our
+main meta-regression model) with generated randomized clinical trials (RCTs) of
+different sample sizes comparing tocilizumab to control on patients on invasive
+mechanical ventilation. 
+
+We will use the estimated marginal posterior mean and standard error on this subgroup to
+create a prior distribution. Then, we will use normal conjugate analyses to
+update this prior with new data (likelihood), and form an updated posterior
+distribution.
+
+# Prior
+
+As described in previous documents, we fitted a Bayesian meta-regression model,
+from which we estimated marginal posterior distributions on different subgroups.
+
+Here, the subgroup of interest is the invasive mechanical ventilation:
+
+```{r fig.cap="Marginal posterior distribution of the invasive mechanical ventilation subgroup. The interval bar depicts the mean and 95% quantile interval."}
+m1 %>% 
+  tidy_draws() %>% 
+  
+  # Plot!
+  ggplot(aes(
+    x = b_oxygenIMV,
+    # https://github.com/mjskay/ggdist/issues/71
+    fill_ramp = stat(x < log(1)))
+  ) +
+  geom_vline(xintercept = log(c(0.5, 0.7, 0.9, 1.1, 1.3)),
+             color = "gray80", size = 0.3) +
+  
+  geom_vline(xintercept = log(1), linetype = 2, color = "gray30") +
+
+  # https://mjskay.github.io/ggdist/articles/slabinterval.html
+  stat_halfeye(point_interval = mean_qi, 
+               .width = 0.95,
+               fill = "#605A91") +
+  scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
+  
+  labs(
+    x = "\nOdds Ratio (log scale)",
+    y = "Density"
+  ) +
+  scale_x_continuous(breaks = log(seq(from = 0.4, to = 1.4, 0.2)),
+                     labels = seq(from = 0.4, to = 1.4, 0.2)) +
+  coord_cartesian(xlim = log(c(0.5, 1.4))) +
+  theme(
+    strip.background = element_rect(fill = "#E4E6E7"),
+    strip.text.x = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.text.x = element_text(size = 12),
+    axis.title.x = element_text(size = 14),
+    axis.text.y = element_blank(),
+    panel.background = element_blank(),
+    panel.grid.major.x = element_line(color = "gray80", size = 0.3),
+    legend.position = 'none',
+    plot.margin = margin(20, 20, 20, 20)
+  )
+```
+
+In the linear scale, the mean of this marginal posterior distribution is 
+`r fixef(m1)["oxygenIMV", "Estimate"] %>% exp() %>% round(2)`. Because we will
+use normal conjugate analysis, it is of greater interest to evaluate this
+distribution on the log scale, which is approximately normally distributed.
+In this case, the mean is `r fixef(m1)["oxygenIMV", "Estimate"] %>% round(2)` and
+the standard error is `r fixef(m1)["oxygenIMV", "Est.Error"] %>% round(2)`.
+
+# Likelihood
+
+We will create six different RCTs and update the prior distribution mentioned above
+six separate times.
+
+Assuming the prior is normally distributed
+
+$$N(\theta,\sigma^2)$$
+
+and so is the data (likelihood).
+
+$$N(\hat{\theta},\hat{\sigma}^2)$$
+
+The mean and variance of the posterior distributions can be estimated by the
+following formulas:
+
+* Mean
+
+$$\frac{\frac{\theta}{\sigma^2} + \frac{\hat\theta}{\hat\sigma^2}}{\frac{1}{\sigma^2}+\frac{1}{\hat\sigma^2}}$$
+
+* Variance 
+
+$$\frac{1}{\frac{1}{\sigma^2}+\frac{1}{\hat\sigma^2}}$$
+
+In summary, we are able to update a normally distributed prior distribution
+(shown in the Figure above) with normally distributed data to generate a
+normally distributed posterior distribution.
+
+As mentioned before, we will create six different RCTs to separately generate
+six different posterior distributions (from the same prior distribution).
+Therefore, we now have to decide the mean and standard deviation of the likelihood.
+
+
+```{r}
+### Overall mean odds ratio in WHO's meta-analysis on tocilizumab in patients
+# using corticosteroids:
+
+# The mean odds ratio in patients using corticosteroids (toci vs control)
+# was 0.77 (page 14 in Supplement 2 doi:10.1001/jama.2021.11330)
+
+mean_OR_WHO = 0.77 
+```
+
+All RCTs will have a mean of `r round(log(mean_OR_WHO),2)` (log scale).
+This value is the equal to `r mean_OR_WHO` in the linear scale,
+which was chosen based on WHO's meta-analysis
+([page 14 in Supplement 2](doi:10.1001/jama.2021.11330)). This is the mean odds
+ratio of tocilizumab vs. control in patients using corticosteroids (overall
+results).
+
+Here are our assumptions to calculate the standard deviation of each RCTs:
+
+```{r}
+
+control_risk = 0.43
+
+# Now, we need to calculate the risk in the tocilizumab arm based on the odds ratio
+# and control risk mentioned above
+
+# Reference for formula: Box 1 in https://doi.org/10.1016/j.jclinepi.2020.08.019
+
+toci_risk = (control_risk*mean_OR_WHO)/(control_risk*(mean_OR_WHO - 1) + 1)
+```
+
+1. We assume equal allocation in both treatment arms (tocilizumab and control).
+
+2. Adapting from the suggestions in the
+[GRADE guidelines](http://dx.doi.org/10.1016/j.jclinepi.2012.01.012), we found
+a striking discrepancy between the control mortality risk in this data (52%)
+in comparison to another [previously published meta-analysis](https://jamanetwork.com/journals/jama/fullarticle/2770279?utm_campaign=articlePDF&utm_medium=articlePDFlink&utm_source=articlePDF&utm_content=jama.2020.17023) (34% in patients on IVM and using corticosteroids).
+Thus, we have decided to use 43% (arithmetic mean between 34 and 52) as our
+reference risk in the IVM subgroup..
+
+3. The mortality risk in the tocilizumab was calculated using the following
+formula (Box 1 in [Doi et al., 2020](https://doi.org/10.1016/j.jclinepi.2020.08.019)):
+
+$$R_{T} = \frac{R_{C} O R}{R_{C}\left(O R-1\right)+1}$$
+
+where $R_{T}$ is the mortality risk in the tocilizumab group, $R_{C}$ is the
+mortality risk in the control group and $OR$ is the odds ratio mentioned above.
+Thus, the tocilizumab risk is equal to `r round(toci_risk,2)`.
+
+Thus, we are simulating RCTs with mean OR equal to `r mean_OR_WHO`, control
+risk mortality of `r round(control_risk,2)`, and tocilizumab risk of 
+`r round(toci_risk,2)`.
+
+Based on these values, we can estimate the standard deviation ($SD$) with the following
+[formula](https://doi.org/10.1016/j.jclinepi.2008.07.006):
+
+$$SD=\sqrt{\frac{1}{a+\frac{1}{2}}+\frac{1}{b+\frac{1}{2}}+\frac{1}{c+\frac{1}{2}}+\frac{1}{d+\frac{1}{2}}}$$
+
+where $a$, $b$, $c$ and $d$ are number of events and follow this 2x2 table:
+
+```{r}
+tribble(
+  
+  ~"Event", ~"Tocilizumab", ~"Control",
+  
+  "Death", "a", "c",
+  "No death", "b", "d"
+) %>% 
+  flextable() %>% 
+  autofit()
+```
+
+As similarly shown in the supplementary material of [Higgins and Spiegelhalter, 2002](https://academic.oup.com/ije/article/31/1/96/655931?login=true), we can
+estimate these values as:
+
+* $a = R_{T}SS_{T}$ 
+* $b = SS_{T} - R_{T}SS_{T}$ 
+* $c = R_{C}SS_{C}$ 
+* $d = SS_{C} - R_{C}SS_{C}$ 
+
+where $SS_{T}$ and $SS_{C}$ are the sample sizes in the tocilizumab and control
+arms, respectively. As mentioned above, we assume equal allocation in
+both treatment arms, thus $SS_{T} = SS_{C}$.
+
+```{r}
+# Function to calculate the standard deviation of odds ratio from simulated RCT ,
+# based on risk and total sample size in each treatment arm
+# Here we assume both arms have the same number of total patients (total_arm)
+
+# Adapted from:
+# Appendix in https://doi.org/10.1093/ije/31.1.96
+# +
+# Appendix in https://doi.org/10.1016/j.jclinepi.2008.07.006
+
+SD_fun = function(risk_toci, # Risk in tocilizumab arm
+                  risk_control, # Risk in control arm
+                  total_arm){ # Total sample size in each arm
+  
+# Tocilizumab
+a = risk_toci*total_arm                     # Deaths
+b = total_arm - risk_toci*total_arm         # No deaths
+# Control
+c = risk_control*total_arm                  # Deaths
+d = total_arm - risk_control*total_arm      # No deaths
+
+# Standard deviation =
+sqrt(1/(a + 1/2) + 1/(b + 1/2) + 1/(c + 1/2) + 1/(d + 1/2)) 
+
+                  }
+```
+
+```{r}
+# Lastly, we should apply the function above to calculate the standard deviation
+# of multiple simulated RCTs will the same risk_toci and risk_control, but 
+# different amounts of patients
+
+df = 
+  tibble(risk_toci = toci_risk,
+         risk_control = control_risk,
+         total_arm = c(100, 250, 500, 750, 1000, 2000)) %>% 
+  mutate(SD = SD_fun(risk_toci, risk_control, total_arm))
+```
+
+Finally, we can estimate the $SD$ (log scale) based on the 6 different sample sizes 
+mentioned above:
+
+```{r}
+df %>% 
+  summarise("Sample size in each treatment arm" = total_arm,
+            "Total sample size" = 2*total_arm,
+            " SD" = round(SD,2)) %>% 
+  flextable() %>% 
+  autofit()
+```
+
+
+# Posterior
+
+We will now apply the normal conjugate analysis to update our prior belief 
+(current evidence) with new RCTs.
+
+```{r}
+## Functions
+
+# Spiegelhalter DJ, Abrams KR, Myles JP. Bayesian Approaches to Clinical Trials
+# and Health Care Evaluation. Wiley; 2004.
+
+post.normal.mean <- function(prior.mean, prior.var, data.mean, data.var)
+{
+  post.mean.numerator <- prior.mean/prior.var + data.mean/data.var
+  post.mean.denominator <- 1/prior.var + 1/data.var
+  post.mean <-  post.mean.numerator/post.mean.denominator
+  return(post.mean)
+}
+
+post.normal.sd <- function(prior.var, data.var)
+{
+  post.var <- (1/(1/prior.var + 1/data.var))
+  post.sd <- sqrt(post.var)
+  return(post.sd)
+}
+```
+
+
+```{r}
+# Prior and Data
+
+prior_data = tibble(
+  
+  prior_mean = fixef(m1)["oxygenIMV", "Estimate"],
+  prior_sd = fixef(m1)["oxygenIMV", "Est.Error"],
+  
+  data_sample_size = 2*df$total_arm,
+  data_mean = log(mean_OR_WHO),
+  data_sd = df$SD
+)
+
+# Generate the posterior
+
+prior_data_posterior =
+  
+  prior_data %>% 
+    mutate(post_mean = 
+             post.normal.mean(prior.mean = prior_mean, prior.var = prior_sd^2,
+                              data.mean = data_mean, data.var = data_sd^2),
+           
+           post_sd = post.normal.sd(prior.var = prior_sd^2,
+                                    data.var = data_sd^2))
+
+# Save it
+save(prior_data_posterior,
+     file = here("03_updated_analyses_who", "output", "data",
+                 "prior_data_posterior.rds"))
+```
+
+
+Lastly, we will perform these analyses with RCTs centered at no effect (OR = 1).
+
+```{r}
+# Prior and Data
+
+prior_data = tibble(
+  
+  prior_mean = fixef(m1)["oxygenIMV", "Estimate"],
+  prior_sd = fixef(m1)["oxygenIMV", "Est.Error"],
+  
+  data_sample_size = 2*df$total_arm,
+  data_mean = log(1),
+  data_sd = df$SD
+)
+
+# Generate the posterior
+
+prior_data_posterior_skeptical =
+  
+  prior_data %>% 
+    mutate(post_mean = 
+             post.normal.mean(prior.mean = prior_mean, prior.var = prior_sd^2,
+                              data.mean = data_mean, data.var = data_sd^2),
+           
+           post_sd = post.normal.sd(prior.var = prior_sd^2,
+                                    data.var = data_sd^2))
+
+# Save it
+save(prior_data_posterior_skeptical,
+     file = here("03_updated_analyses_who", "output", "data",
+                 "prior_data_posterior_skeptical.rds"))
+```

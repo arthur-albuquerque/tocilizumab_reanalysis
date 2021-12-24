@@ -36,12 +36,9 @@ d_logOR = readRDS(
 # Load main model
 m1 = readRDS(here("03_updated_analyses_who", "output", "fits", "m1.Rds"))
 
-# Load models with simulated priors
+# Load normal conjugate analyses
 
-simulated_priors_models = readRDS(here("03_updated_analyses_who",
-                          "output",
-                          "fits",
-                          "simulated_priors_models.rds"))
+load(here("03_updated_analyses_who", "output", "data", "prior_data_posterior.Rds"))
 
 # Load sensitivity models
 
@@ -56,9 +53,9 @@ sensitivity_models =
 p1 =
   m1 %>% 
   tidy_draws() %>% 
-  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
-            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
-            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  summarise("Simple oxygen only" = b_oxygenlow,
+            "Noninvasive ventilation" = b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_oxygenIMV) %>% 
   pivot_longer(1:3) %>% 
   mutate(name = fct_rev(name)) %>% 
   
@@ -113,9 +110,9 @@ p1 =
 p2  =
   m1 %>% 
   tidy_draws() %>% 
-  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
-            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
-            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  summarise("Simple oxygen only" = b_oxygenlow,
+            "Noninvasive ventilation" = b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_oxygenIMV) %>% 
   pivot_longer(1:3) %>% 
   mutate(name = fct_rev(name)) %>% 
   
@@ -187,9 +184,9 @@ risks = risks %>%
 d = 
   m1 %>% 
   tidy_draws() %>% 
-  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
-            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
-            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  summarise("Simple oxygen only" = b_oxygenlow,
+            "Noninvasive ventilation" = b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_oxygenIMV) %>% 
   pivot_longer(1:3,
                names_to = "Subgroup",
                values_to = "logOR") %>% 
@@ -409,6 +406,30 @@ p5 =
 #                    "figure_01.pdf")) # File name
 ```
 
+```{r reval=FALSE, include=FALSE, message=TRUE, warning=FALSE}
+# 95% CrIs from Figure 1A
+m1 %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only" = b_oxygenlow,
+            "Noninvasive ventilation" = b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_oxygenIMV) %>% 
+  pivot_longer(1:3) %>% 
+  group_by(name) %>% 
+  median_hdi(exp(value))
+
+# Posterior probabilities from Figure 1B
+m1 %>% 
+  tidy_draws() %>% 
+  summarise("Simple oxygen only" = b_oxygenlow,
+            "Noninvasive ventilation" = b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_oxygenIMV) %>% 
+  pivot_longer(1:3) %>% 
+  group_by(name) %>% 
+  summarise(pr1.0 = mean(value < log(1)),
+            pr0.9 = mean(value < log(0.9)))
+```
+
+
 ```{r eval=FALSE, include=FALSE}
 first_last_rd_fun = function(data){
 
@@ -448,35 +469,59 @@ first_last_rd_fun(IMV_data)
 
 ```{r}
 set.seed(123)
-N = 10e4
 
-# preds = 
-#   m1 %>% 
-#   tidy_draws() %>% 
-#   summarise("Simple oxygen only" =
-#               rnorm(N, mean = (b_Intercept + b_oxygenlow), sd = sd_study__Intercept),
-#             "Noninvasive ventilation" =
-#               rnorm(N, mean = (b_Intercept + b_oxygenNIV), sd = sd_study__Intercept),
-#             "Invasive mechanical ventilation" =
-#              rnorm(N, mean = (b_Intercept), sd = sd_study__Intercept)) %>% 
-#   pivot_longer(1:3) %>% 
-#   mutate(name = fct_rev(name)) 
+# Explanations: 
+  # https://twitter.com/IsabellaGhement/status/1458539033131302913/photo/1
+  # https://www.andrewheiss.com/blog/2021/11/10/ame-bayes-re-guide/
+
+preds = 
+  m1$data %>% 
+  # se = 0 because we are predicting a new theta, not new Y
+  expand(oxygen, study = "new", sei = 0) %>% 
+  tidybayes::add_predicted_draws(m1,
+                                 re_formula = NULL,
+                                 allow_new_levels = TRUE,
+                                 sample_new_levels = "gaussian") %>%
+  
+  rename(name = oxygen, value = .prediction) %>%
+  mutate(name = name %>%
+           fct_relevel("low", "NIV", "IMV") %>%
+           fct_recode(
+             "Simple oxygen only" = "low",
+             "Invasive mechanical ventilation" = "IMV",
+             "Noninvasive ventilation" = "NIV"
+           )
+  )
 # 
 # saveRDS(preds,
 #         here("03_updated_analyses_who", "output", "data",
 #              "prediction_intervals.rds"))
 
-preds = readRDS(here("03_updated_analyses_who", "output", "data",
-              "prediction_intervals.rds"))
+## 95% CrIs
 
 # preds %>% 
 #   group_by(name) %>% 
-#   summarise("pr > 1" = 100*round(mean(value > log(1)),3))
+#   median_hdi(exp(value))
+
+#   name         `exp(value)` .lower .upper .width .point .interval
+#   <fct>               <dbl>  <dbl>  <dbl>  <dbl> <chr>  <chr>    
+# 1 Simple oxyg…        0.694  0.377   1.08   0.95 median hdi      
+# 2 Noninvasive…        0.804  0.443   1.26   0.95 median hdi      
+# 3 Invasive me…        0.885  0.479   1.42   0.95 median hdi 
+
+## Posterior probabilities
+
+preds %>% 
+  group_by(name) %>% 
+  summarise("pr > 1" = 100*round(mean(value > log(1)),3),
+            "pr < 1" = 100*round(mean(value < log(1)),3),
+            "pr < 0.9" = 100*round(mean(value < log(0.9)),3))
 # 
-# name                            pr > 1
-# Simple oxygen only	            5.2			
-# Noninvasive ventilation	        11.4			
-# Invasive mechanical ventilation	27.2	
+# name                            `pr > 1` `pr < 1` `pr < 0.9`
+# <fct>                              <dbl>    <dbl>      <dbl>
+# Simple oxygen only                   5.9     94.2       88.9
+# Noninvasive ventilation             12.8     87.2       75.1
+# Invasive mechanical ventilation     28       72         53.3
 
     
 p1  =
@@ -573,10 +618,10 @@ p2  =
 ```{r warning=FALSE, fig.align = "center", fig.height=4.5, fig.width=9, fig.cap = "Predictive posterior distributions and probabilities of each subgroup. Panel A shows the predictive posterior distributions, in which point estimates depict the median and interval bars represent the 95% compatibility (highest density) intervals. Panel B shows the cumulative posterior probabilities, which correspond to the probabilities (Y-axis) that future studies (specific to each subgroup) will find a point estimate lower than or equal to the effect size on the X-axis. The colors in Panels A match the ones used in Panel B. Underlying weakly informative priors are N(0, 0.82) for the mean effect, N(0, 1.5) for the coefficients, and HN(0.5) for the between-study standard deviation. N(mu, sigma) = Normal(mean, standard deviation); HN(sigma) = Half-Normal(standard deviation)."}
 p1 + p2 + plot_annotation(tag_levels = "A")
 
-# ggsave(width = 9,
-#        height = 4.5,
-#        here("03_updated_analyses_who", "output", "figures", # File path
-#                    "figure_02.pdf")) # File name
+ggsave(width = 9,
+       height = 4.5,
+       here("03_updated_analyses_who", "output", "figures", # File path
+                   "figure_02.pdf")) # File name
 ```
 
 # Figure 3
@@ -598,67 +643,47 @@ sample_sizes = c(100, 250, 500, 750, 1000, 2000)
 
 labels = c(str_c("(Current) ", current_total), c(2*sample_sizes + current_total)) # times 2 because we want the total number of patients
 
-samples_size = 
-  simulated_priors_models[[1]] %>% 
-  tidy_draws() %>% 
-  nrow()
+set.seed(123)
+N = 10e4
 
-priors = data.frame()
-posteriors = tibble(x = rep(NA, samples_size))
+current_evidence = 
+  tibble(current = rnorm(N,
+                         mean = prior_data_posterior$prior_mean[1],
+                         sd = prior_data_posterior$prior_sd[1])
+         ) %>% 
+  pivot_longer(1,
+               names_to = "data_sample_size",
+               values_to = "posterior_draws") %>% 
+  mutate(data_sample_size = factor(data_sample_size))
+         
 
-for (i in 1:(length(labels))) {
-  
-prior =
-  simulated_priors_models[[i]] %>% 
-  prior_samples() %>% 
-  select(b_Intercept) %>% 
-  median_hdi() %>% 
-  summarise(lower = exp(.lower),
-            upper = exp(.upper),
-            model = labels[i])
-  
-  priors = priors %>% bind_rows(prior)
+new_posteriors = 
+  prior_data_posterior %>% 
+  group_by(data_sample_size) %>% 
+  summarise(posterior_draws = rnorm(N, mean = post_mean, sd = post_sd)) %>% 
+  mutate(data_sample_size = factor(data_sample_size))
 
-post =  
-  simulated_priors_models[[i]] %>% 
-  tidy_draws() %>% 
-  select(b_Intercept)
-  
-  posteriors = posteriors %>% bind_cols(post)
-  
-}
-
-posteriors =
-  posteriors %>% 
-  select(-1) %>% 
-  pivot_longer(1:last_col(),
-               names_to = "Model",
-               values_to = "Posterior") %>% 
-  mutate(Model = case_when(
-    Model == "b_Intercept...2" ~ labels[1],
-    Model == "b_Intercept...3" ~ labels[2],
-    Model == "b_Intercept...4" ~ labels[3],
-    Model == "b_Intercept...5" ~ labels[4],
-    Model == "b_Intercept...6" ~ labels[5],
-    Model == "b_Intercept...7" ~ labels[6],
-    Model == "b_Intercept...8" ~ labels[7],
-  )) 
+both = bind_rows(current_evidence, new_posteriors) %>% 
+  mutate(data_sample_size = case_when(
+    data_sample_size == "current" ~ labels[1],
+    data_sample_size == "200" ~ labels[2],
+    data_sample_size == "500" ~ labels[3],
+    data_sample_size == "1000" ~ labels[4],
+    data_sample_size == "1500" ~ labels[5],
+    data_sample_size == "2000" ~ labels[6],
+    data_sample_size == "4000" ~ labels[7]),
+    
+    # Re-order levels based on the median of each group
+    data_sample_size = fct_reorder(data_sample_size, posterior_draws,
+                                   .fun = median))
 
 p1 = 
-  posteriors %>% 
-  mutate(Model = factor(Model,
-                        levels = c(labels[7],
-                                   labels[6],
-                                   labels[5],
-                                   labels[4],
-                                   labels[3],
-                                   labels[2],
-                                   labels[1]))) %>% 
+  both %>% 
   # To add label on top of plot
   mutate(subgroup = "Invasive mechanical ventilation") %>% 
   
-  ggplot(aes(y = Model, x = exp(Posterior),
-             group = Model, fill = Model,
+  ggplot(aes(y = data_sample_size, x = exp(posterior_draws),
+             group = data_sample_size, fill = data_sample_size,
              fill_ramp = stat(x < 1))) +
  
   stat_halfeye(point_interval = median_hdi,
@@ -669,8 +694,8 @@ p1 =
   
   labs(x = "\nOdds Ratio",
        y = "Number of Patients Included\n") +
-  scale_x_continuous(breaks = seq(0.6, 1.3, 0.1)) +
-  coord_cartesian(x = c(0.6, 1.3)) +
+  scale_x_continuous(breaks = seq(0.6, 1.2, 0.1)) +
+  coord_cartesian(x = c(0.6, 1.2)) +
   theme(
     strip.background = element_rect(fill = "#E4E6E7"),
     strip.text.x = element_text(size = 12),
@@ -694,29 +719,12 @@ p1 =
 
 ```{r, fig.width=7, fig.height=3.5}
 
-probabilities = data.frame()
-
-for (i in 1:length(labels)) {
-  
-p = 
-  simulated_priors_models[[i]] %>% 
-  tidy_draws() %>% 
-  summarise(model = labels[i],
-            "< 1.0" = mean(b_Intercept < log(1)),
-            "< 0.9" = mean(b_Intercept < log(0.9)))
-
-probabilities = probabilities %>% bind_rows(p) %>% 
-  mutate(model = factor(model,
-                        levels = c(labels[1],
-                                   labels[2],
-                                   labels[3],
-                                   labels[4],
-                                   labels[5],
-                                   labels[6],
-                                   labels[7]))
-         )
-
-}
+# Posterior probabilities below 1 and 0.9 OR
+probabilities = both %>% 
+  group_by(data_sample_size) %>% 
+  summarise("< 1.0" = mean(posterior_draws < log(1)),
+            "< 0.9" = mean(posterior_draws < log(0.9))) %>% 
+  mutate(data_sample_size = fct_rev(data_sample_size))
 
 multiply100 = function(x){x*100}
 
@@ -724,17 +732,17 @@ probabilities_geompoint =
   probabilities %>% 
   mutate(across(2:3, ~multiply100(.))) %>% 
   pivot_longer(2:3,
-               names_to = "Odds Ratio") %>% 
+               names_to = "Odds Ratio")%>% 
   mutate("Odds Ratio" = fct_rev(`Odds Ratio`))
   
 p2 =
-  ggplot() +
+  probabilities %>% 
+  ggplot(aes(x=data_sample_size)) +
   geom_hline(yintercept = c(10, 30, 50, 70, 90), color = "gray80", size = 0.3) +
-  geom_segment(data = probabilities,
-               aes(x=model, xend=model, y=100*`< 1.0`, yend=100*`< 0.9`),
+  geom_segment(aes(xend=data_sample_size, y=100*`< 1.0`, yend=100*`< 0.9`),
                color="grey", size = 1.5) +
   geom_point(data = probabilities_geompoint,
-             aes(x=model, y= value, fill = `Odds Ratio`, color = `Odds Ratio`),
+             aes(y= value, fill = `Odds Ratio`, color = `Odds Ratio`),
              size= 4) +
   scale_color_manual(values= c("#E68D67", "#BB3151")) +
   scale_y_continuous(breaks = seq(0, 100, 20)) +

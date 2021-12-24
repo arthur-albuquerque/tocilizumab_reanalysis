@@ -96,23 +96,23 @@ table_fun = function(model){
 t1 = 
   sensitivity_models[[model]] %>% 
   tidy_draws() %>% 
-  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
-            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
-            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  summarise("Simple oxygen only" = b_oxygenlow,
+            "Noninvasive ventilation" = b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_oxygenIMV) %>% 
   pivot_longer(1:3) %>% 
   mutate(name = fct_rev(name)) %>% 
   group_by(name) %>% 
   median_hdi(exp(value)) %>% 
   mutate(across(2:4, ~round(.,2))) %>% 
   summarise("Priors / Subgroups" = name,
-            "Odds Ratio [95% CI]" = str_c(`exp(value)`, " [", .lower, ", ", .upper, "]"))
+            "Odds Ratio [95% CrI]" = str_c(`exp(value)`, " [", .lower, ", ", .upper, "]"))
 
 t2 =
   sensitivity_models[[model]] %>% 
   tidy_draws() %>% 
-  summarise("Simple oxygen only" = b_Intercept + b_oxygenlow,
-            "Noninvasive ventilation" = b_Intercept + b_oxygenNIV,
-            "Invasive mechanical ventilation" = b_Intercept) %>% 
+  summarise("Simple oxygen only" = b_oxygenlow,
+            "Noninvasive ventilation" = b_oxygenNIV,
+            "Invasive mechanical ventilation" = b_oxygenIMV) %>% 
   pivot_longer(1:3) %>% 
   mutate(name = fct_rev(name)) %>% 
   group_by(name) %>% 
@@ -152,7 +152,7 @@ table_fun("Weakly informative") %>%
     "Priors / Subgroups" ~ px(250)
   ) %>% 
   tab_footnote(
-    footnote = "Weakly informative priors: Intercept N(0, 0.82); Coefficients N(0, 1.5); Between-study standard deviation HN(0.5) / Vague priors: Intercept N(0, 4); Coefficients N(0, 4); Between-study standard deviation HN(4) / Informative priors: Intercept N(0, 0.35); Coefficients N(0, 0.2); Between-study standard deviation LN(-1.975, 0.67)",
+    footnote = "Weakly informative priors: Coefficients N(0, 0.82); Between-study standard deviation HN(0.5) / Vague priors: Coefficients N(0, 4); Between-study standard deviation HN(4) / Informative priors: Coefficients N(0, 0.35); Between-study standard deviation LN(-1.975, 0.67)",
     locations = cells_column_labels(
       columns = c("Priors / Subgroups")
     )) %>% 

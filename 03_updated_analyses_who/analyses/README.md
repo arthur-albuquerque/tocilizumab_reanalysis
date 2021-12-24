@@ -6,6 +6,6 @@ In this folder, we present all scripts in which we fitted and diagnosed our Baye
 
 - main_model
     - Main model assuming weakly informative, vague, or informative priors
-- simulation_model
-    - Model regarding simulation analysis for patients on invasive mechanical ventilation
+- normal_conjugate_analyses
+    - Bayesian normal conjugate analyses with generated randomized clinical trials for patients on invasive mechanical ventilation
 
