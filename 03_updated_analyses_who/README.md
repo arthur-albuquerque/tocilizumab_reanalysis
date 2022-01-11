@@ -29,5 +29,5 @@ If you open an RMarkdown html file in GitHub, it will not present the report in 
 
 So, one could copy the corresponding URL: https://github.com/arthur-albuquerque/tocilizumab_reanalysis/blob/master/03_updated_analyses_who/analyses/main_model.html
 
-and paste it in the aforementioned website to visualize the report directly from their browser: [Report](https://htmlpreview.github.io/?https://github.com/arthur-albuquerque/tocilizumab_reanalysis/blob/master/03_updated_analyses_who/analyses/main_model.html)
+and paste it in the aforementioned website to visualize the report directly from their browser: [Report](http://htmlpreview.github.io/?https://github.com/arthur-albuquerque/tocilizumab_reanalysis/blob/master/03_updated_analyses_who/analyses/main_model.html)
 
