@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 
 # Ensures the package "pacman" is installed
 if (!require("pacman")) install.packages("pacman")
