@@ -690,7 +690,10 @@ p1 =
                .width = 0.95, n = 1e4) +
   scale_fill_ramp_discrete(from = "gray85", range = c(0,1)) +
   scale_fill_carto_d(palette = "PurpOr", direction = -1) +
-  geom_vline(xintercept = 1, linetype = 2) +
+  geom_vline(xintercept = 1, linetype = 2, alpha = 0.6) +
+  # 0.77 is the WHO REACT Working Group mean result for tocilizumab and 
+  # corticosteroids treated patients
+  geom_vline(xintercept = 0.77, linetype = 2, size = 0.8) +
   
   labs(x = "\nOdds Ratio",
        y = "Number of Patients Included\n") +
