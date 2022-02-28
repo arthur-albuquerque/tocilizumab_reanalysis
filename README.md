@@ -13,7 +13,7 @@ There are three main folders in this repository:
 
 - `01_preregistration`, which corresponds to files regarding our preregistered [project in OSF](https://osf.io/qhvcp/)
 - `02_preprint`, which corresponds to files regarding our preprint "[Tocilizumab in COVID-19 – A Bayesian reanalysis of RECOVERY](https://www.medrxiv.org/content/10.1101/2021.06.15.21258966v1)"
-- `03_updated_analyses_who`, which corresponds to files regarding our newest research article **"Mortality Rates Among Hospitalized Patients with COVID-19 Infection Treated With Tocilizumab and Corticosteroids: A Bayesian Reanalysis of a Previous Meta-analysis"**
+- `03_updated_analyses_who`, which corresponds to files regarding our newest research article **["Mortality Rates Among Hospitalized Patients with COVID-19 Infection Treated With Tocilizumab and Corticosteroids: A Bayesian Reanalysis of a Previous Meta-analysis"](https://jamanetwork.com/journals/jamanetworkopen/fullarticle/2789444?utm_campaign=articlePDF&utm_medium=articlePDFlink&utm_source=articlePDF&utm_content=jamanetworkopen.2022.0548)**
 
 In each folder, one can find further instructions on how to reproduce the analysis (in the corresponding `README.md` file). 
 
