@@ -81,6 +81,7 @@ al.](https://doi.org/10.1002/sim.7588) as “Model 2: the Simmonds and
 Higgins model”.
 
 $$
+
 \begin{align*}
 
 logit(\pi_{ij}) &= \gamma_i + j\theta_i\\
@@ -88,6 +89,7 @@ logit(\pi_{ij}) &= \gamma_i + j\theta_i\\
 \theta_i &\sim N(0, \tau^2)
 
 \end{align*}
+
 $$
 
 This model can be translated to brms’ synthax as:
@@ -116,6 +118,7 @@ get_prior(
 # Priors
 
 $$
+
 \begin{align*}
 
 \gamma & \sim N(0, 10^2) \\
@@ -124,6 +127,7 @@ $$
 \tau & \sim U(0, 2)
 
 \end{align*}
+
 $$
 
 Quick prior visualization to better understand these beliefs.
