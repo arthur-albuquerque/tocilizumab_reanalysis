@@ -77,15 +77,14 @@ We will fit the Binomial model, described by
 [Jackson et al.](https://doi.org/10.1002/sim.7588)
 as "Model 2: the Simmonds and Higgins model".
 
+$$ 
+logit(\pi_{ij}) = \gamma_i + j\theta_i
 $$
-\begin{align*}
 
-logit(\pi_{ij}) &= \gamma_i + j\theta_i\\
-
-\theta_i &\sim N(0, \tau^2)
-
-\end{align*}
 $$
+\theta_i \sim N(0, \tau^2) 
+$$
+
 
 This model can be translated to brms' synthax as:
 
@@ -114,16 +113,16 @@ get_prior(
 # Priors
 
 $$
-\begin{align*}
-
-\gamma & \sim N(0, 10^2) \\
-\theta& \sim N(0, 10^2) \\
-
-\tau & \sim U(0, 2)
-
-\end{align*}
+\gamma \sim N(0, 10^2)
 $$
 
+$$
+\theta \sim N(0, 10^2)
+$$
+
+$$
+\tau  \sim U(0, 2)
+$$
 
 Quick prior visualization to better understand these beliefs.
 
@@ -196,7 +195,7 @@ data.frame(
 
 # Model fitting
 
-```{r warning=FALSE, results="hide"}
+```{r message=FALSE, warning=FALSE, results="hide"}
 mf = 
   brms::bf(
     events | trials(total) ~ 0 + study + tx + (tx - 1|study)

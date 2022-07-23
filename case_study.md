@@ -80,17 +80,9 @@ We will fit the Binomial model, described by [Jackson et
 al.](https://doi.org/10.1002/sim.7588) as “Model 2: the Simmonds and
 Higgins model”.
 
-$$
+*l**o**g**i**t*(*π*<sub>*i**j*</sub>) = *γ*<sub>*i*</sub> + *j**θ*<sub>*i*</sub>
 
-\begin{align*}
-
-logit(\pi_{ij}) &= \gamma_i + j\theta_i\\
-
-\theta_i &\sim N(0, \tau^2)
-
-\end{align*}
-
-$$
+*θ*<sub>*i*</sub> ∼ *N*(0,*τ*<sup>2</sup>)
 
 This model can be translated to brms’ synthax as:
 
@@ -117,18 +109,11 @@ get_prior(
 
 # Priors
 
-$$
+*γ* ∼ *N*(0,10<sup>2</sup>)
 
-\begin{align*}
+*θ* ∼ *N*(0,10<sup>2</sup>)
 
-\gamma & \sim N(0, 10^2) \\
-\theta& \sim N(0, 10^2) \\
-
-\tau & \sim U(0, 2)
-
-\end{align*}
-
-$$
+*τ* ∼ *U*(0,2)
 
 Quick prior visualization to better understand these beliefs.
 
@@ -232,23 +217,6 @@ ma_toci =
   seed = 123
 )
 ```
-
-    ## Start sampling
-
-    ## Chain 1 Rejecting initial value:
-
-    ## Chain 1   Log probability evaluates to log(0), i.e. negative infinity.
-
-    ## Chain 1   Stan can't start sampling from this initial value.
-
-    ## Chain 2 Rejecting initial value:
-
-    ## Chain 2   Log probability evaluates to log(0), i.e. negative infinity.
-
-    ## Chain 2   Stan can't start sampling from this initial value.
-
-    ## Warning: 7195 of 40000 (18.0%) transitions ended with a divergence.
-    ## See https://mc-stan.org/misc/warnings for details.
 
 # Model diagnostics
 
