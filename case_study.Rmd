@@ -14,7 +14,10 @@ knitr::opts_chunk$set(echo = TRUE,
 # Introduction 
 
 Here, I will discuss technical implications of fitting a Bayesian Meta-analysis
-with the Binomial likelihood.
+with the Binomial likelihood with two different sets of priors:
+
+- Vague
+- Weakly informative
 
 All analyses were conducted in R (R Environment version 4.1.2). I will use [Stan](http://mc-stan.org) through the R package [brms](https://paul-buerkner.github.io/brms/index.html). Instructions to download RStan and brms can be found [here](https://mc-stan.org/users/interfaces/rstan.html) and [here](https://github.com/paul-buerkner/brms#how-do-i-install-brms), respectively. Lastly, I also used [CmdStanR](https://mc-stan.org/cmdstanr/), a lightweight interface to Stan for R users.
 Here is the code to install it:
@@ -34,7 +37,7 @@ Load packages
 if (!require("pacman")) install.packages("pacman")
 
 pacman::p_load(brms, bayesplot, dplyr, ggplot2, ggdist,
-               tidyr, patchwork)
+               tidyr, patchwork, extraDistr)
 ```
 
 
@@ -110,7 +113,9 @@ get_prior(
   select(class, coef)
 ```
 
-# Priors
+# Vague model
+
+## Priors
 
 $$
 \gamma \sim N(0, 10^2)
@@ -193,7 +198,7 @@ data.frame(
 ```
 
 
-# Model fitting
+## Model fitting
 
 ```{r message=FALSE, warning=FALSE, results="hide"}
 mf = 
@@ -223,7 +228,7 @@ ma_toci =
 )
 ```
 
-# Model diagnostics
+## Model diagnostics
 
 Overall diagnostics:
 
@@ -262,10 +267,6 @@ mcmc_scatter(
 
 Moreover, these two parameters ($\theta, \tau$) showed very low effective sample size,
 which is concerning.
-
-Nevertheless, within all parameters, all chains converged to a common distribution,
-represented by low R-hat values.
-
 ```{r}
 neff_ratio(ma_toci) |> 
   mcmc_neff(size = 2) + yaxis_text(hjust = 0) +
@@ -286,7 +287,10 @@ as.array(ma_toci) |>
   mcmc_acf(pars = c("b_tx","sd_study__tx"), lags = 20)
 ```
 
-Nevertheless, within each parameter, chains have converged to a common distribution:
+
+Nevertheless, within all parameters, all chains converged to a common distribution,
+represented by low R-hat values.
+
 
 ```{r}
 rhat(ma_toci) |> 
@@ -295,7 +299,7 @@ rhat(ma_toci) |>
   labs(title = "All parameters")
 ```
 
-# Conclusion
+## Conclusion
 
 Regarding Albuquerque et al.'s data on the simple oxygen only subgroup,
 this model with vague priors does not explore the posterior distribution
@@ -303,6 +307,204 @@ adequately.
 
 Therefore, I do not feel comfortable in trusting the 95% CrI of the treatment
 effect parameter ($\theta$, depicted as odds ratio below):
+
+```{r}
+fixef(ma_toci) |> tail(1) |> exp()
+```
+
+# Weakly informative model
+
+## Priors
+
+$$
+\gamma \sim N(0, 1.5^2)
+$$
+
+$$
+\theta \sim N(0, 1.5^2)
+$$
+
+$$
+\tau  \sim \text{Half-Normal}(1)
+$$
+
+Quick prior visualization to better understand these beliefs.
+
+In regards to $\gamma$, here are the plots under the logit link (log odds) and
+in the response scale (proportion):
+
+```{r}
+set.seed(123) 
+prior_data = 
+  data.frame(
+  x = rnorm(1e5, mean = 0, sd = 1.5)
+) |> 
+  mutate(logOR = x,
+         OR = exp(x),
+         "Log Odds" = x,
+         "Proportion" = inv_logit_scaled(x))
+
+prior_data |> 
+  pivot_longer(4:5) |> 
+  ggplot() +
+  aes(x = value) +
+  geom_density() +
+  facet_wrap(~ name, scales = "free") +
+  theme_minimal()
+  
+```
+
+In regards to $\theta$, here are the plots under the logit link (log odds ratio) and
+in the linear scale (odds ratio): 
+
+```{r}
+p1 = 
+  prior_data |> 
+  pivot_longer(2) |> 
+  ggplot() +
+  aes(x = value) +
+  geom_density() +
+  facet_wrap(~ name, scales = "free") +
+  theme_minimal()
+
+p2 = 
+  prior_data |> 
+  pivot_longer(3) |> 
+  ggplot() +
+  aes(x = value) +
+  geom_density() +
+  facet_wrap(~ name, scales = "free") +
+  theme_minimal() +
+  coord_cartesian(x = c(0, 15))
+
+p1 + p2
+```
+
+Lastly, here is the plot regarding $\tau$, the between-study standard deviation
+parameter (log odds ratio scale):
+
+```{r}
+data.frame(
+  "logOR" = rhnorm(10e5, sigma = 0.5)
+) |> 
+  pivot_longer(1) |> 
+  ggplot() +
+  aes(x = value) +
+  geom_density() +
+  theme_minimal() +
+  facet_wrap(~ name, scales = "free") 
+```
+
+
+## Model fitting
+
+```{r message=FALSE, warning=FALSE, results="hide"}
+mf = 
+  brms::bf(
+    events | trials(total) ~ 0 + study + tx + (tx - 1|study)
+  )
+
+priors = 
+  prior(normal(0, 1.5), class = "b") +
+  prior(normal(0, 0.5), class = "sd") 
+
+ma_toci2 = 
+  brms::brm(
+    
+  data = d,
+  family = binomial,
+  formula = mf,
+  prior = priors,
+  
+  control = list(adapt_delta = .99),
+  backend = "cmdstanr", # faster
+  cores = parallel::detectCores(),
+  chains = 4,
+  warmup = 10000, 
+  iter = 100000, 
+  seed = 123
+)
+```
+
+## Model diagnostics
+
+Overall diagnostics:
+
+```{r}
+rstan::check_hmc_diagnostics(ma_toci2$fit)
+```
+ 
+
+- Trace plots for $\theta$ ("b_tx") and $\tau$ ("sd_study__tx"), respectively:
+
+```{r}
+# Extract divergence info
+np_cp = bayesplot::nuts_params(ma_toci2)
+
+mcmc_trace(ma_toci2, pars = c("b_tx"), np = np_cp) /
+  mcmc_trace(ma_toci2, pars = c("sd_study__tx"), np = np_cp) +
+  xlab("Post-warmup iteration") +
+  plot_layout(guides='collect')
+```
+
+
+```{r}
+mcmc_pairs(ma_toci2, np = np_cp, pars = c("b_tx","sd_study__tx"))
+```
+
+```{r}
+mcmc_scatter(
+  as.array(ma_toci2),
+  pars = c("b_tx","sd_study__tx"),
+  np = np_cp,
+  size = 1
+)
+```
+
+These two parameters ($\theta, \tau$) now show higher effective sample size
+
+```{r}
+neff_ratio(ma_toci2) |> 
+  mcmc_neff(size = 2) + yaxis_text(hjust = 0) +
+  labs(title = "All parameters")
+```
+
+```{r}
+neff_ratio(ma_toci2, pars = c("b_tx","sd_study__tx")) |> 
+  mcmc_neff(size = 2) + yaxis_text(hjust = 0) +
+  labs(title = "Only theta and tau")
+```
+
+Accordingly, autocorrelation decreased.
+
+```{r}
+as.array(ma_toci2) |> 
+  mcmc_acf(pars = c("b_tx","sd_study__tx"), lags = 20)
+```
+
+R-hat values remained very low.
+
+```{r}
+rhat(ma_toci2) |> 
+  mcmc_rhat() + yaxis_text(hjust = 1) +
+  xlim(c(1, 1.01)) +
+  labs(title = "All parameters")
+```
+
+## Conclusion
+
+Regarding Albuquerque et al.'s data on the simple oxygen only subgroup,
+this model with weakly informative priors explore the posterior distribution
+more adequately than the model with vague priors. 
+
+Therefore, I now feel more comfortable in trusting the 95% CrI of the treatment
+effect parameter with weakly informative priors ($\theta$, depicted as odds ratio below):
+
+```{r}
+fixef(ma_toci2) |> tail(1) |> exp()
+```
+
+Here are the results previously shown for the vague model:
 
 ```{r}
 fixef(ma_toci) |> tail(1) |> exp()
