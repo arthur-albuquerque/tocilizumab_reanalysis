@@ -1,7 +1,7 @@
 Case Study
 ================
 Arthur M. Albuquerque
-2022-07-23
+2022-07-24
 
 # Introduction
 
@@ -213,7 +213,7 @@ ma_toci =
   cores = parallel::detectCores(),
   chains = 4,
   warmup = 10000, 
-  iter = 20000, 
+  iter = 100000, 
   seed = 123
 )
 ```
@@ -229,13 +229,13 @@ rstan::check_hmc_diagnostics(ma_toci$fit)
     ## 
     ## Divergences:
 
-    ## 7195 of 40000 iterations ended with a divergence (17.9875%).
+    ## 61699 of 360000 iterations ended with a divergence (17.1386111111111%).
     ## Try increasing 'adapt_delta' to remove the divergences.
 
     ## 
     ## Tree depth:
 
-    ## 0 of 40000 iterations saturated the maximum tree depth of 10.
+    ## 0 of 360000 iterations saturated the maximum tree depth of 10.
 
     ## 
     ## Energy:
@@ -338,5 +338,5 @@ treatment effect parameter (*θ*, depicted as odds ratio below):
 fixef(ma_toci) |> tail(1) |> exp()
 ```
 
-    ##     Estimate Est.Error     Q2.5    Q97.5
-    ## tx 0.7530889  1.486241 0.361069 1.857915
+    ##     Estimate Est.Error      Q2.5    Q97.5
+    ## tx 0.7452419  1.459429 0.3543418 1.729179

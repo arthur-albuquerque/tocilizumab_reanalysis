@@ -218,7 +218,7 @@ ma_toci =
   cores = parallel::detectCores(),
   chains = 4,
   warmup = 10000, 
-  iter = 20000, 
+  iter = 100000, 
   seed = 123
 )
 ```
