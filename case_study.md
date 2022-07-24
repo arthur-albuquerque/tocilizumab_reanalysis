@@ -352,7 +352,7 @@ fixef(ma_toci) |> tail(1) |> exp()
 
 *θ* ∼ *N*(0,1.5<sup>2</sup>)
 
-*τ* ∼ Half-Normal(1)
+*τ* ∼ Half-Normal(0.5)
 
 Quick prior visualization to better understand these beliefs.
 
